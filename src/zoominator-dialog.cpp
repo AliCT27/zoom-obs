@@ -235,6 +235,7 @@ void ZoominatorDialog::buildUi()
 		cmbTrigger = new QComboBox(page);
 		cmbTrigger->addItem(T("Dialog.Trigger.Keyboard"), "keyboard");
 		cmbTrigger->addItem(T("Dialog.Trigger.MouseButton"), "mouse");
+		cmbTrigger->addItem(T("Dialog.Trigger.Auto"), "auto");
 		lay->addWidget(mkField(T("Dialog.TriggerType"), cmbTrigger));
 		lay->addSpacing(16);
 
@@ -311,15 +312,32 @@ void ZoominatorDialog::buildUi()
 		}
 		lay->addWidget(rowModifiersWidget);
 
+		rowAutoWidget = new QWidget(page);
+		{
+			auto *v = new QVBoxLayout(rowAutoWidget);
+			v->setContentsMargins(0, 0, 0, 0);
+			v->setSpacing(8);
+			auto *help = new QLabel(T("Dialog.AutoHelp"), rowAutoWidget);
+			help->setWordWrap(true);
+			v->addWidget(help);
+			chkAutoClick = new QCheckBox(T("Dialog.AutoOnClick"), rowAutoWidget);
+			chkAutoTyping = new QCheckBox(T("Dialog.AutoOnTyping"), rowAutoWidget);
+			chkAutoTyping->setToolTip(T("Dialog.AutoOnTypingTooltip"));
+			spAutoHold = new QSpinBox(rowAutoWidget);
+			spAutoHold->setRange(300, 60000);
+			spAutoHold->setSingleStep(100);
+			spAutoHold->setSuffix(T("Unit.Milliseconds"));
+			spAutoHold->setToolTip(T("Dialog.AutoHoldTooltip"));
+			v->addWidget(chkAutoClick);
+			v->addWidget(chkAutoTyping);
+			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
+		}
+		lay->addWidget(rowAutoWidget);
+
 		lay->addStretch(1);
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));
 
-		connect(cmbTrigger, &QComboBox::currentIndexChanged, this, [this](int) {
-			const bool isMouse = (cmbTrigger->currentData().toString() == "mouse");
-			rowHotkeyWidget->setVisible(!isMouse);
-			rowMouseWidget->setVisible(isMouse);
-			rowModifiersWidget->setVisible(isMouse);
-		});
+		connect(cmbTrigger, &QComboBox::currentIndexChanged, this, [this](int) { updateTriggerRows(); });
 	}
 
 	{
@@ -376,6 +394,19 @@ void ZoominatorDialog::buildUi()
 		zoomRow->addWidget(mkField(T("Dialog.AnimateIn"), spIn), 1);
 		zoomRow->addWidget(mkField(T("Dialog.AnimateOut"), spOut), 1);
 		lay->addLayout(zoomRow);
+		lay->addSpacing(12);
+
+		cmbEasing = new QComboBox(page);
+		cmbEasing->addItem(T("Dialog.Easing.Smooth"), "smooth");
+		cmbEasing->addItem(T("Dialog.Easing.EaseOut"), "ease_out");
+		cmbEasing->addItem(T("Dialog.Easing.Expo"), "expo");
+		cmbEasing->addItem(T("Dialog.Easing.Punch"), "punch");
+		cmbEasing->setToolTip(T("Dialog.EasingTooltip"));
+		auto *easingRow = new QHBoxLayout;
+		easingRow->setSpacing(12);
+		easingRow->addWidget(mkField(T("Dialog.Easing"), cmbEasing), 1);
+		easingRow->addStretch(2);
+		lay->addLayout(easingRow);
 		lay->addSpacing(12);
 
 		auto *wheelZoomRow = new QHBoxLayout;
@@ -523,7 +554,10 @@ void ZoominatorDialog::buildUi()
 	btnRefresh = new QPushButton(T("Dialog.RefreshLists"), this);
 	btnApply = new QPushButton(T("Dialog.Apply"), this);
 	btnTest = new QPushButton(T("Dialog.Test"), this);
+	btnReelsPreset = new QPushButton(T("Dialog.ReelsPreset"), this);
+	btnReelsPreset->setToolTip(T("Dialog.ReelsPresetTooltip"));
 	btnRow->addWidget(btnRefresh);
+	btnRow->addWidget(btnReelsPreset);
 	btnRow->addStretch(1);
 	btnRow->addWidget(btnTest);
 	btnRow->addWidget(btnApply);
@@ -532,6 +566,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnRefresh, &QPushButton::clicked, this, &ZoominatorDialog::refreshLists);
 	connect(btnApply, &QPushButton::clicked, this, &ZoominatorDialog::applyToController);
 	connect(btnTest, &QPushButton::clicked, this, &ZoominatorDialog::testZoom);
+	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
@@ -707,10 +742,10 @@ void ZoominatorDialog::loadFromController()
 
 		editHotkey->setKeySequence(QKeySequence(c.hotkeySequence));
 
-		const bool isMouse = (c.triggerType == "mouse");
-		rowHotkeyWidget->setVisible(!isMouse);
-		rowMouseWidget->setVisible(isMouse);
-		rowModifiersWidget->setVisible(isMouse);
+		chkAutoClick->setChecked(c.autoOnClick);
+		chkAutoTyping->setChecked(c.autoOnTyping);
+		spAutoHold->setValue(c.autoHoldMs);
+		updateTriggerRows();
 	}
 
 	{
@@ -721,6 +756,8 @@ void ZoominatorDialog::loadFromController()
 		spWheelZoomMaximum->setValue(c.wheelZoomMaximum);
 		spIn->setValue(c.animInMs);
 		spOut->setValue(c.animOutMs);
+		const int easingIdx = cmbEasing->findData(ZoominatorController::zoomEasingToString(c.easing));
+		cmbEasing->setCurrentIndex(easingIdx >= 0 ? easingIdx : 0);
 		const int anchorIdx =
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
@@ -781,6 +818,10 @@ void ZoominatorDialog::applyToController()
 	c.wheelZoomMaximum = std::max(spWheelZoomMaximum->value(), c.wheelZoomMinimum + 0.1);
 	c.animInMs = spIn->value();
 	c.animOutMs = spOut->value();
+	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
+	c.autoOnClick = chkAutoClick->isChecked();
+	c.autoOnTyping = chkAutoTyping->isChecked();
+	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
 	c.centerCursorUntilEdge = chkCenterCursorUntilEdge->isChecked();
@@ -808,6 +849,45 @@ void ZoominatorDialog::applyToController()
 	c.saveSettings();
 	c.rebuildRuntimeHooks();
 	lblStatus->setText(T("Dialog.SettingsApplied"));
+}
+
+void ZoominatorDialog::updateTriggerRows()
+{
+	const QString type = cmbTrigger->currentData().toString();
+	const bool isMouse = (type == "mouse");
+	const bool isAuto = (type == "auto");
+	rowHotkeyWidget->setVisible(!isMouse && !isAuto);
+	rowMouseWidget->setVisible(isMouse);
+	rowModifiersWidget->setVisible(isMouse);
+	rowAutoWidget->setVisible(isAuto);
+}
+
+/* A starting point for vertical short-form video: zoom on its own when you
+ * click or type, glide back out afterwards, snappy "push" animation, and the
+ * capture filling the 9:16 canvas while the view follows the cursor. Only
+ * fills in the widgets; sources and the target screen are left alone. */
+void ZoominatorDialog::applyReelsPreset()
+{
+	const int autoIdx = cmbTrigger->findData("auto");
+	if (autoIdx >= 0)
+		cmbTrigger->setCurrentIndex(autoIdx);
+	chkAutoClick->setChecked(true);
+	chkAutoTyping->setChecked(true);
+	spAutoHold->setValue(2500);
+
+	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further
+	spIn->setValue(260);
+	spOut->setValue(420);
+	cmbEasing->setCurrentIndex(std::max(0, cmbEasing->findData("punch")));
+	cmbZoomAnchor->setCurrentIndex(std::max(0, cmbZoomAnchor->findData("cursor_follow")));
+	spFollowSpeed->setValue(6.0);
+	spEdgeOverflowMargin->setValue(0);
+	spMouseIdleTimeout->setValue(0);
+	chkPortraitCover->setChecked(true);
+	chkShowCursorMarker->setChecked(true);
+
+	applyToController();
+	lblStatus->setText(T("Dialog.ReelsPresetApplied"));
 }
 
 void ZoominatorDialog::testZoom()

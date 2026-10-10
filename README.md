@@ -40,6 +40,39 @@ It operates at the **scene level**, meaning it works with any source automatical
 
 ---
 
+- **Automatic Trigger (new in 2.1)**
+  Nothing to press: zoom in on a click and/or while typing, then zoom back out
+  after a configurable pause. Plain typing counts; shortcuts held with
+  Ctrl/Alt/Win are ignored. On Windows, clicks and keys while OBS itself has
+  focus (Start/Stop Recording, this dialog) are ignored too.
+
+- **Animation Styles (new in 2.1)**
+  Smooth, Ease out, Expo, or Punch (a slight overshoot that feels snappy in
+  short videos).
+
+- **Portrait Cover (now functional)**
+  On a canvas taller than wide, the capture is scaled up while zoomed so it
+  fills the canvas with no gaps, and the view stays centred on the cursor.
+  Zoom Factor is applied on top of this fill. Use Zoom Factor 1.0 to just fill.
+
+- **Reels preset (new in 2.1)**
+  One button in the dialog that fills in settings for vertical short-form video.
+
+---
+
+## Recording vertical videos (Reels / Shorts / TikTok)
+
+1. Set the OBS canvas to **1080x1920** (Settings -> Video).
+2. Add your display capture and fit it to the canvas width. Add your webcam
+   below or above it.
+3. Open **Tools -> Zoominator -> Sources** and tick **only the screen capture**.
+   Unticked sources (webcam, logo, watermark) stay fixed.
+4. Click **Reels preset**, pick your monitor on the Target tab, and Apply.
+5. Click or type while recording: the view pushes in, follows the cursor, and
+   glides back after a pause.
+
+---
+
 ## Installation
 
 ### Windows

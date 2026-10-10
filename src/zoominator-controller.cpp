@@ -137,6 +137,70 @@ static inline double smoothstep(double t)
 	return t * t * (3.0 - 2.0 * t);
 }
 
+/* Maps linear animation progress 0..1 to eased progress. Only Punch can leave
+ * the 0..1 range (a small overshoot on the way in); callers that interpolate
+ * positions rather than scale must clamp. */
+/* Back-ease-out used by Punch. Rises past 1.0 (peak ~1.05 near t=0.636) and
+ * settles back to exactly 1.0 at t=1. */
+static inline double punch_curve(double t)
+{
+	const double c1 = 1.2;
+	const double c3 = c1 + 1.0;
+	const double u = t - 1.0;
+	return 1.0 + c3 * u * u * u + c1 * u * u;
+}
+
+static constexpr double kPunchPeakT = 0.636;
+
+/* Inverse of punch_curve on its rising branch [0, kPunchPeakT]. Values at or
+ * above 1.0 map to the end of the animation. */
+static inline double punch_curve_inverse(double v)
+{
+	if (v <= 0.0)
+		return 0.0;
+	if (v >= 1.0)
+		return 1.0;
+	double lo = 0.0, hi = kPunchPeakT;
+	for (int i = 0; i < 40; ++i) {
+		const double mid = 0.5 * (lo + hi);
+		(punch_curve(mid) < v ? lo : hi) = mid;
+	}
+	return 0.5 * (lo + hi);
+}
+
+/* Inverse of smoothstep on [0,1]. */
+static inline double smoothstep_inverse(double y)
+{
+	y = clampd(y, 0.0, 1.0);
+	return 0.5 - std::sin(std::asin(1.0 - 2.0 * y) / 3.0);
+}
+
+static inline double apply_easing(ZoominatorController::ZoomEasing easing, double t, bool zoomingIn)
+{
+	t = clampd(t, 0.0, 1.0);
+	switch (easing) {
+	case ZoominatorController::ZoomEasing::EaseOut: {
+		const double u = 1.0 - t;
+		return 1.0 - u * u * u;
+	}
+	case ZoominatorController::ZoomEasing::Expo:
+		if (t <= 0.0)
+			return 0.0;
+		if (t >= 1.0)
+			return 1.0;
+		return t < 0.5 ? std::pow(2.0, 20.0 * t - 10.0) * 0.5 : (2.0 - std::pow(2.0, -20.0 * t + 10.0)) * 0.5;
+	case ZoominatorController::ZoomEasing::Punch:
+		/* Overshoot only when zooming in; running it backwards would make the
+		 * zoom-out bulge outwards first. */
+		if (zoomingIn)
+			return punch_curve(t);
+		return smoothstep(t);
+	case ZoominatorController::ZoomEasing::Smooth:
+		break;
+	}
+	return smoothstep(t);
+}
+
 static inline bool nearly_equal(float a, float b, float eps = 0.5f)
 {
 	return std::fabs(a - b) <= eps;
@@ -254,6 +318,32 @@ ZoominatorController::ZoomAnchorMode ZoominatorController::zoomAnchorModeFromStr
 	if (value == QLatin1String("cursor_static"))
 		return ZoomAnchorMode::CursorStatic;
 	return ZoomAnchorMode::CursorFollow;
+}
+
+QString ZoominatorController::zoomEasingToString(ZoomEasing easing)
+{
+	switch (easing) {
+	case ZoomEasing::EaseOut:
+		return QStringLiteral("ease_out");
+	case ZoomEasing::Expo:
+		return QStringLiteral("expo");
+	case ZoomEasing::Punch:
+		return QStringLiteral("punch");
+	case ZoomEasing::Smooth:
+		break;
+	}
+	return QStringLiteral("smooth");
+}
+
+ZoominatorController::ZoomEasing ZoominatorController::zoomEasingFromString(const QString &value)
+{
+	if (value == QLatin1String("ease_out"))
+		return ZoomEasing::EaseOut;
+	if (value == QLatin1String("expo"))
+		return ZoomEasing::Expo;
+	if (value == QLatin1String("punch"))
+		return ZoomEasing::Punch;
+	return ZoomEasing::Smooth;
 }
 
 ZoominatorController::ZoominatorController()
@@ -659,6 +749,10 @@ void ZoominatorController::loadSettings()
 	animInMs = 180;
 	animOutMs = 320;
 	zoomAnchor = ZoomAnchorMode::CursorFollow;
+	easing = ZoomEasing::Smooth;
+	autoOnClick = true;
+	autoOnTyping = true;
+	autoHoldMs = 2500;
 	followMouseRuntimeEnabled = true;
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
@@ -769,7 +863,7 @@ void ZoominatorController::loadSettings()
 				       followToggleModWin || key != 0);
 	}
 
-	if (triggerType != "mouse")
+	if (triggerType != "mouse" && triggerType != "auto")
 		triggerType = "keyboard";
 
 	mouseButton = getStr("mouse_button");
@@ -827,6 +921,16 @@ void ZoominatorController::loadSettings()
 		animInMs = 180;
 	if (animOutMs < 0)
 		animOutMs = 180;
+
+	if (obs_data_has_user_value(data, "easing"))
+		easing = zoomEasingFromString(getStr("easing"));
+	if (obs_data_has_user_value(data, "auto_on_click"))
+		autoOnClick = obs_data_get_bool(data, "auto_on_click");
+	if (obs_data_has_user_value(data, "auto_on_typing"))
+		autoOnTyping = obs_data_get_bool(data, "auto_on_typing");
+	if (obs_data_has_user_value(data, "auto_hold_ms"))
+		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
+	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
 
 	/* `zoom_anchor` supersedes the `follow_mouse` boolean. Configs written by
 	 * older builds only have the boolean, so migrate it: following stays
@@ -941,6 +1045,10 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "anim_in_ms", animInMs);
 	obs_data_set_int(data, "anim_out_ms", animOutMs);
 	obs_data_set_string(data, "zoom_anchor", zoomAnchorModeToString(zoomAnchor).toUtf8().constData());
+	obs_data_set_string(data, "easing", zoomEasingToString(easing).toUtf8().constData());
+	obs_data_set_bool(data, "auto_on_click", autoOnClick);
+	obs_data_set_bool(data, "auto_on_typing", autoOnTyping);
+	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
 	/* Kept so a downgrade to an older build still finds a setting it understands. */
 	obs_data_set_bool(data, "follow_mouse", zoomAnchor == ZoomAnchorMode::CursorFollow);
 	followMouseRuntimeEnabled = true;
@@ -2568,14 +2676,30 @@ void ZoominatorController::applyZoomToScene(double t)
 		return item && std::find(liveItems.begin(), liveItems.end(), item) != liveItems.end();
 	};
 
-	const double tt = smoothstep(clampd(t, 0.0, 1.0));
-	const double zTarget = (renderedZoomFactor <= 1.0) ? 1.0 : renderedZoomFactor;
-	const double z = 1.0 + (zTarget - 1.0) * tt;
+	const double tt = apply_easing(easing, t, animDir.load(std::memory_order_relaxed) >= 0);
+	/* Position blends must stay inside 0..1 even when the scale overshoots. */
+	const double ttA = clampd(tt, 0.0, 1.0);
 
 	obs_video_info ovi{};
 	const bool haveVi = obs_get_video_info(&ovi);
 	const double cw = haveVi ? (double)ovi.base_width : 1920.0;
 	const double ch = haveVi ? (double)ovi.base_height : 1080.0;
+
+	/* Portrait cover: on a canvas taller than wide, a landscape capture is
+	 * letterboxed. While active, add whatever extra scale is needed for the
+	 * captured content to fill the canvas, so the view behaves like a camera
+	 * panning across the capture instead of leaving gaps above and below. */
+	double coverBase = 1.0;
+	if (portraitCover && ch > cw && sceneContentBoundsValid) {
+		const double contentW = std::max(1.0, (double)sceneContentMax.x - (double)sceneContentMin.x);
+		const double contentH = std::max(1.0, (double)sceneContentMax.y - (double)sceneContentMin.y);
+		coverBase = std::max(1.0, std::max(cw / contentW, ch / contentH));
+	}
+	const bool coverActive = coverBase > 1.0001;
+
+	const double zBase = (renderedZoomFactor <= 1.0) ? 1.0 : renderedZoomFactor;
+	const double zTarget = zBase * coverBase;
+	const double z = 1.0 + (zTarget - 1.0) * tt;
 	const double centerX = cw * 0.5;
 	const double centerY = ch * 0.5;
 
@@ -2611,6 +2735,10 @@ void ZoominatorController::applyZoomToScene(double t)
 
 	const double marginRatio = (double)edgeOverflowMarginPct / 100.0;
 	const bool allowOverflow = edgeOverflowMarginPct > 0;
+	/* Re-centre the view on the cursor when the margin is enabled or when cover
+	 * mode is zooming far past the canvas; the clamp below still keeps the
+	 * capture covering the canvas. */
+	const bool centerAnchor = allowOverflow || coverActive;
 
 	if (zoomAnchor == ZoomAnchorMode::CursorFollow && followMouseRuntimeEnabled && !mouseTrackingIdle) {
 		targetHasPos = false;
@@ -2635,9 +2763,9 @@ void ZoominatorController::applyZoomToScene(double t)
 			}
 			fx = followX;
 			fy = followY;
-			if (allowOverflow) {
-				anchorX = (float)((double)followX + ((double)centerX - (double)followX) * tt);
-				anchorY = (float)((double)followY + ((double)centerY - (double)followY) * tt);
+			if (centerAnchor) {
+				anchorX = (float)((double)followX + ((double)centerX - (double)followX) * ttA);
+				anchorY = (float)((double)followY + ((double)centerY - (double)followY) * ttA);
 			} else {
 				/* Scale around the tracked pointer itself. Anchoring at the canvas
 				 * centre makes the first zoom frame pull content sideways before
@@ -2649,9 +2777,9 @@ void ZoominatorController::applyZoomToScene(double t)
 		} else if (followHasPos) {
 			fx = followX;
 			fy = followY;
-			if (allowOverflow) {
-				anchorX = (float)((double)followX + ((double)centerX - (double)followX) * tt);
-				anchorY = (float)((double)followY + ((double)centerY - (double)followY) * tt);
+			if (centerAnchor) {
+				anchorX = (float)((double)followX + ((double)centerX - (double)followX) * ttA);
+				anchorY = (float)((double)followY + ((double)centerY - (double)followY) * ttA);
 			} else {
 				anchorX = followX;
 				anchorY = followY;
@@ -2682,9 +2810,9 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 		fx = targetX;
 		fy = targetY;
-		if (allowOverflow && zoomAnchor == ZoomAnchorMode::CursorStatic) {
-			anchorX = (float)((double)targetX + ((double)centerX - (double)targetX) * tt);
-			anchorY = (float)((double)targetY + ((double)centerY - (double)targetY) * tt);
+		if (centerAnchor && zoomAnchor == ZoomAnchorMode::CursorStatic) {
+			anchorX = (float)((double)targetX + ((double)centerX - (double)targetX) * ttA);
+			anchorY = (float)((double)targetY + ((double)centerY - (double)targetY) * ttA);
 		} else {
 			anchorX = (float)centerX;
 			anchorY = (float)centerY;
@@ -2812,6 +2940,8 @@ void ZoominatorController::onTick()
 		finishZoomOnMainThread();
 		return;
 	}
+
+	checkAutoIdle();
 
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
 	if (!zoomTickWanted && !markerClickHasPos) {
@@ -2953,6 +3083,20 @@ void ZoominatorController::videoTick(double seconds)
 		if (std::fabs(zoomFactor - renderedZoomFactor) < 0.0001)
 			renderedZoomFactor = zoomFactor;
 	}
+	/* Punch uses a different curve in than out. If the direction flips while
+	 * the animation is in flight (click during a zoom-out, or releasing the
+	 * trigger during a zoom-in) re-map animT so the eased value is unchanged,
+	 * otherwise the view jumps by up to ~40% of the zoom. */
+	if (easing == ZoomEasing::Punch && dir != 0 && lastTickDir != 0 && dir != lastTickDir && animT > 0.0 &&
+	    animT < 1.0) {
+		if (dir > 0)
+			animT = punch_curve_inverse(smoothstep(animT));
+		else
+			animT = smoothstep_inverse(punch_curve(animT));
+	}
+	if (dir != 0)
+		lastTickDir = dir;
+
 	const int dur = (dir >= 0) ? animInMs : animOutMs;
 	animT += (double)dir * (tickDeltaSeconds * 1000.0) / (double)std::max(1, dur);
 
@@ -3181,6 +3325,12 @@ static bool is_modifier_only_hotkey(int vk)
 	}
 }
 
+static inline bool shortcut_modifier_held()
+{
+	return (GetAsyncKeyState(VK_CONTROL) & 0x8000) || (GetAsyncKeyState(VK_MENU) & 0x8000) ||
+	       (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
+}
+
 LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	if (nCode == HC_ACTION && g_ctl) {
@@ -3198,6 +3348,14 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 		    mods_current(g_ctl->followToggleModCtrl, g_ctl->followToggleModAlt, g_ctl->followToggleModShift,
 				 g_ctl->followToggleModWin)) {
 			g_ctl->toggleFollowMouseRuntime();
+		}
+
+		if (g_ctl->triggerType == "auto") {
+			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
+			 * are ignored so editor commands do not trigger it. */
+			if (down && g_ctl->autoOnTyping && !is_modifier_vk(vk) && !shortcut_modifier_held())
+				g_ctl->onAutoActivity();
+			return CallNextHookEx((HHOOK)g_ctl->keyboardHook, nCode, wParam, lParam);
 		}
 
 		if (!(g_ctl->hkValid && g_ctl->triggerType == "keyboard"))
@@ -3284,6 +3442,9 @@ LRESULT CALLBACK ZoominatorController::mouse_hook_proc(int nCode, WPARAM wParam,
 
 		if (down)
 			g_ctl->captureMarkerClickPosition();
+
+		if (down && g_ctl->triggerType == "auto" && g_ctl->autoOnClick)
+			g_ctl->onAutoActivity();
 
 		if (g_ctl->triggerType == "mouse" && (down || up)) {
 			if (mods_current(g_ctl->modCtrl, g_ctl->modAlt, g_ctl->modShift, g_ctl->modWin,
@@ -3392,6 +3553,15 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 				 ctl->followToggleModWin)) {
 			ctl->toggleFollowMouseRuntime();
 		}
+
+		if (ctl->triggerType == "auto") {
+			const CGEventFlags flags = CGEventGetFlags(event);
+			const bool shortcut =
+				(flags & (kCGEventFlagMaskCommand | kCGEventFlagMaskControl | kCGEventFlagMaskAlternate)) != 0;
+			if (down && ctl->autoOnTyping && !shortcut)
+				ctl->onAutoActivity();
+			return event;
+		}
 	}
 
 	if (ctl->triggerType == "keyboard" && ctl->hkValid) {
@@ -3453,6 +3623,9 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 
 	if (isMouseDown)
 		ctl->captureMarkerClickPosition();
+
+	if (isMouseDown && ctl->triggerType == "auto" && ctl->autoOnClick)
+		ctl->onAutoActivity();
 
 	if (ctl->triggerType == "mouse") {
 		if (isMouseDown || isMouseUp) {
@@ -3582,6 +3755,14 @@ void ZoominatorController::processXInput2Events()
 				toggleFollowMouseRuntime();
 			}
 
+			if (triggerType == "auto" && down && autoOnTyping && !is_modifier_vk((int)sym)) {
+				const ModifierState ms = current_modifiers();
+				const bool shortcut = ms.leftCtrl || ms.rightCtrl || ms.leftAlt || ms.rightAlt ||
+						      ms.leftWin || ms.rightWin;
+				if (!shortcut)
+					onAutoActivity();
+			}
+
 			if (hkValid && triggerType == "keyboard") {
 				if (hotkeyVk == 0) {
 					if (is_modifier_vk((int)sym) && is_wanted_modifier_vk((int)sym, this)) {
@@ -3632,6 +3813,9 @@ void ZoominatorController::processXInput2Events()
 
 			if (down)
 				captureMarkerClickPosition();
+
+			if (down && triggerType == "auto" && autoOnClick && button >= 1 && button <= 3)
+				onAutoActivity();
 
 			if (button >= 4 && button <= 7) {
 				XFreeEventData(xiDisplay, &ev.xcookie);
@@ -3728,6 +3912,67 @@ void ZoominatorController::onTriggerUp()
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Trigger UP");
 	zoomPressed = false;
+	startZoomOut();
+}
+
+/* Automatic trigger. Any click or typing keeps the zoom alive; checkAutoIdle()
+ * lets go of it once autoHoldMs passes without any. Runs on the thread that
+ * owns the input hooks (the Qt main thread on every platform), like
+ * onTriggerDown(). */
+/* True while the OBS main window (or one of its dialogs, including this
+ * plugin's) has focus, so clicking Start/Stop Recording or the settings dialog
+ * does not trigger the automatic zoom. Windows only; other platforms report
+ * false and keep the old behaviour. */
+static bool obs_window_is_foreground()
+{
+#ifdef _WIN32
+	QWidget *mainWin = reinterpret_cast<QWidget *>(obs_frontend_get_main_window());
+	if (!mainWin)
+		return false;
+	HWND fg = GetForegroundWindow();
+	if (!fg)
+		return false;
+	return GetAncestor(fg, GA_ROOTOWNER) == reinterpret_cast<HWND>(mainWin->winId());
+#else
+	return false;
+#endif
+}
+
+void ZoominatorController::onAutoActivity()
+{
+	if (triggerType != "auto" || shuttingDown)
+		return;
+	if (obs_window_is_foreground())
+		return;
+
+	autoLastActivityMs = QDateTime::currentMSecsSinceEpoch();
+	if (zoomLatched)
+		return;
+
+	zoomLatched = true;
+	/* Only reseed the focal point for a fresh zoom. If a zoom-out is still
+	 * running, resuming from where the view currently is avoids a visible jump. */
+	if (!zoomActive.load(std::memory_order_acquire)) {
+		followHasPos = false;
+		lastCursorSampleValid = false;
+		lastCursorMovementMs = 0;
+		mouseTrackingIdle = false;
+		targetHasPos = false;
+	}
+	startZoomIn();
+}
+
+void ZoominatorController::checkAutoIdle()
+{
+	if (triggerType != "auto" || !zoomLatched)
+		return;
+	/* Do not cut a zoom-in short: wait until it has settled. */
+	if (animDir.load(std::memory_order_relaxed) > 0)
+		return;
+	if (QDateTime::currentMSecsSinceEpoch() - autoLastActivityMs < autoHoldMs)
+		return;
+
+	zoomLatched = false;
 	startZoomOut();
 }
 
@@ -4094,7 +4339,7 @@ void ZoominatorController::rebuildTriggersFromSettings()
 				       followToggleModWin || key != 0);
 	}
 
-	if (triggerType != "mouse")
+	if (triggerType != "mouse" && triggerType != "auto")
 		triggerType = "keyboard";
 
 	if (triggerType == "keyboard") {
@@ -4229,12 +4474,12 @@ void ZoominatorController::rebuildTriggersFromSettings()
 
 bool ZoominatorController::needsKeyboardHook() const
 {
-	return triggerType == "keyboard" || followToggleHkValid;
+	return triggerType == "keyboard" || followToggleHkValid || (triggerType == "auto" && autoOnTyping);
 }
 
 bool ZoominatorController::needsMouseHook() const
 {
-	return triggerType == "mouse" || showCursorMarker;
+	return triggerType == "mouse" || showCursorMarker || (triggerType == "auto" && autoOnClick);
 }
 
 void ZoominatorController::installHooks()

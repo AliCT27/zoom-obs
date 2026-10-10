@@ -46,6 +46,18 @@ public:
 	static QString zoomAnchorModeToString(ZoomAnchorMode mode);
 	static ZoomAnchorMode zoomAnchorModeFromString(const QString &value);
 
+	/* Shape of the zoom in/out animation. Punch overshoots the target a little
+	 * on the way in, which reads as a snappy "camera push" in short videos. */
+	enum class ZoomEasing {
+		Smooth,
+		EaseOut,
+		Expo,
+		Punch,
+	};
+
+	static QString zoomEasingToString(ZoomEasing easing);
+	static ZoomEasing zoomEasingFromString(const QString &value);
+
 	static ZoominatorController &instance();
 
 	void initialize();
@@ -84,6 +96,12 @@ public:
 	int animInMs = 180;
 	int animOutMs = 320;
 	ZoomAnchorMode zoomAnchor = ZoomAnchorMode::CursorFollow;
+	ZoomEasing easing = ZoomEasing::Smooth;
+	/* Automatic trigger (triggerType == "auto"): zoom in on a click and/or on
+	 * typing, then zoom back out once autoHoldMs passes with no activity. */
+	bool autoOnClick = true;
+	bool autoOnTyping = true;
+	int autoHoldMs = 2500;
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
@@ -125,6 +143,8 @@ private:
 	bool needsMouseHook() const;
 	void onTriggerDown();
 	void onTriggerUp();
+	void onAutoActivity();
+	void checkAutoIdle();
 	void beginWheelZoomGesture();
 	void adjustActiveZoomFromWheel(int direction, int steps = 1);
 	bool usesWheelZoomGesture() const;
@@ -194,6 +214,7 @@ private:
 	QTimer tickTimer;
 	bool zoomPressed = false;
 	bool zoomLatched = false;
+	qint64 autoLastActivityMs = 0;
 	bool zoomAdjustButtonHeld = false;
 	bool zoomAdjustedDuringButtonHold = false;
 	int wheelDeltaRemainder = 0;
@@ -203,6 +224,7 @@ private:
 	std::atomic<bool> zoomActive{false};
 
 	double animT = 0.0;
+	int lastTickDir = 0; /* graphics thread only: direction seen on the previous tick */
 	double renderedZoomFactor = 1.0;
 	std::atomic<int> animDir{0};
 

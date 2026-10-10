@@ -31,12 +31,14 @@ private slots:
 	void clearFollowToggleHotkey();
 	void chooseMarkerColor();
 	void populateSourcesTab();
+	void applyReelsPreset();
 
 private:
 	void buildUi();
 	void loadFromController();
 	void populateSources();
 	void updateMarkerColorButton(const QColor &color);
+	void updateTriggerRows();
 
 	static void obsSourceChanged(void *data, struct calldata *cd);
 
@@ -55,6 +57,12 @@ private:
 	QCheckBox *chkAlt = nullptr;
 	QCheckBox *chkShift = nullptr;
 	QCheckBox *chkWin = nullptr;
+	QWidget *rowAutoWidget = nullptr;
+	QCheckBox *chkAutoClick = nullptr;
+	QCheckBox *chkAutoTyping = nullptr;
+	QSpinBox *spAutoHold = nullptr;
+	QComboBox *cmbEasing = nullptr;
+	QPushButton *btnReelsPreset = nullptr;
 	QCheckBox *chkLeftCtrl = nullptr;
 	QCheckBox *chkRightCtrl = nullptr;
 	QCheckBox *chkLeftAlt = nullptr;
