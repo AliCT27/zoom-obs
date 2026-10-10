@@ -212,6 +212,21 @@ void ZoominatorDialog::buildUi()
 			h->addWidget(btnClearFollowToggleHotkey);
 		}
 		lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
+		lay->addSpacing(16);
+
+		auto *pauseHkRow = new QWidget(page);
+		{
+			auto *h = new QHBoxLayout(pauseHkRow);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editPauseHotkey = new QKeySequenceEdit(pauseHkRow);
+			editPauseHotkey->setToolTip(T("Dialog.PauseHotkeyTooltip"));
+			btnClearPauseHotkey = new QPushButton(T("Dialog.Clear"), pauseHkRow);
+			btnClearPauseHotkey->setToolTip(T("Dialog.ClearPauseHotkeyTooltip"));
+			h->addWidget(editPauseHotkey, 1);
+			h->addWidget(btnClearPauseHotkey);
+		}
+		lay->addWidget(mkField(T("Dialog.PauseHotkey"), pauseHkRow));
 
 		lay->addStretch(1);
 		lay->addSpacing(16);
@@ -515,6 +530,48 @@ void ZoominatorDialog::buildUi()
 		haloRow->addWidget(mkField(T("Dialog.Color"), btnMarkerColor), 1);
 		lay->addLayout(haloRow);
 
+		addSection(lay, T("Dialog.Section.Focus"));
+
+		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
+		chkFocus->setToolTip(T("Dialog.FocusEnableTooltip"));
+		lay->addWidget(chkFocus);
+		lay->addSpacing(6);
+
+		spFocusDim = new QSpinBox(page);
+		spFocusDim->setRange(0, 95);
+		spFocusDim->setSingleStep(5);
+		spFocusDim->setSuffix(QStringLiteral(" %"));
+		spFocusDim->setToolTip(T("Dialog.FocusDimTooltip"));
+
+		spFocusRadius = new QSpinBox(page);
+		spFocusRadius->setRange(40, 2000);
+		spFocusRadius->setSingleStep(10);
+		spFocusRadius->setSuffix(T("Unit.Pixels"));
+		spFocusRadius->setToolTip(T("Dialog.FocusRadiusTooltip"));
+
+		spFocusSoftness = new QSpinBox(page);
+		spFocusSoftness->setRange(0, 600);
+		spFocusSoftness->setSingleStep(10);
+		spFocusSoftness->setSuffix(T("Unit.Pixels"));
+		spFocusSoftness->setToolTip(T("Dialog.FocusSoftnessTooltip"));
+
+		auto *focusRow = new QHBoxLayout;
+		focusRow->setSpacing(12);
+		focusRow->addWidget(mkField(T("Dialog.FocusDim"), spFocusDim), 1);
+		focusRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
+		focusRow->addWidget(mkField(T("Dialog.FocusSoftness"), spFocusSoftness), 1);
+		lay->addLayout(focusRow);
+		lay->addSpacing(10);
+
+		auto syncFocusFields = [this]() {
+			const bool on = chkFocus->isChecked();
+			spFocusDim->setEnabled(on);
+			spFocusRadius->setEnabled(on);
+			spFocusSoftness->setEnabled(on);
+		};
+		connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
+		syncFocusFields();
+
 		addSection(lay, T("Dialog.Section.Developer"));
 
 		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
@@ -569,6 +626,9 @@ void ZoominatorDialog::buildUi()
 	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
+	connect(btnClearPauseHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearPauseHotkey);
+	connect(&ZoominatorController::instance(), &ZoominatorController::pauseStateChanged, this,
+		&ZoominatorDialog::onPauseStateChanged);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
 	connect(chkShowCursorMarker, &QCheckBox::toggled, chkShowMarkerWhenNotZoomed, &QWidget::setEnabled);
 }
@@ -615,7 +675,7 @@ void ZoominatorDialog::populateSourcesTab()
 					if (!name || !*name)
 						return true;
 
-					if (strcmp(name, "Zoominator Cursor Marker") == 0)
+					if (strcmp(name, "Zoominator Cursor Marker") == 0 || strcmp(name, "Zoominator Focus Dim") == 0)
 						return true;
 
 					const QString qname = QString::fromUtf8(name);
@@ -716,6 +776,7 @@ void ZoominatorDialog::loadFromController()
 			cmbMode->setCurrentIndex(idx);
 
 		editFollowToggleHotkey->setKeySequence(QKeySequence(c.followToggleHotkeySequence));
+		editPauseHotkey->setKeySequence(QKeySequence(c.pauseHotkeySequence));
 	}
 
 	{
@@ -742,6 +803,13 @@ void ZoominatorDialog::loadFromController()
 
 		editHotkey->setKeySequence(QKeySequence(c.hotkeySequence));
 
+		chkFocus->setChecked(c.focusEnabled);
+		spFocusDim->setValue(c.focusDimPct);
+		spFocusRadius->setValue(c.focusRadius);
+		spFocusSoftness->setValue(c.focusSoftness);
+		spFocusDim->setEnabled(c.focusEnabled);
+		spFocusRadius->setEnabled(c.focusEnabled);
+		spFocusSoftness->setEnabled(c.focusEnabled);
 		chkAutoClick->setChecked(c.autoOnClick);
 		chkAutoTyping->setChecked(c.autoOnTyping);
 		spAutoHold->setValue(c.autoHoldMs);
@@ -792,6 +860,7 @@ void ZoominatorDialog::applyToController()
 	c.screenKey = cmbSource->currentData().toString();
 	c.hotkeyMode = cmbMode->currentData().toString();
 	c.followToggleHotkeySequence = editFollowToggleHotkey->keySequence().toString(QKeySequence::NativeText);
+	c.pauseHotkeySequence = editPauseHotkey->keySequence().toString(QKeySequence::NativeText);
 
 	c.triggerType = cmbTrigger->currentData().toString();
 	c.mouseButton = cmbMouseBtn->currentData().toString();
@@ -819,6 +888,10 @@ void ZoominatorDialog::applyToController()
 	c.animInMs = spIn->value();
 	c.animOutMs = spOut->value();
 	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
+	c.focusEnabled = chkFocus->isChecked();
+	c.focusDimPct = spFocusDim->value();
+	c.focusRadius = spFocusRadius->value();
+	c.focusSoftness = spFocusSoftness->value();
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
 	c.autoHoldMs = spAutoHold->value();
@@ -904,6 +977,17 @@ void ZoominatorDialog::clearHotkey()
 void ZoominatorDialog::clearFollowToggleHotkey()
 {
 	editFollowToggleHotkey->setKeySequence(QKeySequence());
+}
+
+void ZoominatorDialog::clearPauseHotkey()
+{
+	editPauseHotkey->setKeySequence(QKeySequence());
+}
+
+void ZoominatorDialog::onPauseStateChanged(bool paused)
+{
+	if (lblStatus)
+		lblStatus->setText(T(paused ? "Dialog.ZoomPaused" : "Dialog.ZoomResumed"));
 }
 
 void ZoominatorDialog::updateMarkerColorButton(const QColor &color)

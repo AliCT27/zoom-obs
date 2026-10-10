@@ -50,6 +50,18 @@ It operates at the **scene level**, meaning it works with any source automatical
   Smooth, Ease out, Expo, or Punch (a slight overshoot that feels snappy in
   short videos).
 
+- **Focus (new in 2.2)**
+  While zoomed, dims everything except a soft spotlight around the cursor so
+  the viewer's eye stays on what you are clicking. Adjustable strength, radius
+  and edge softness (Advanced tab). Sources that are not ticked on the Sources
+  tab, such as a webcam or logo, stay above the dimming and are not darkened.
+  Off by default.
+
+- **Pause / Resume hotkey (new in 2.2)**
+  One key that switches all zooming off and on, for when you are talking and
+  do not want the view to move. Works while OBS is in the background.
+  Set it on the Target tab.
+
 - **Portrait Cover (now functional)**
   On a canvas taller than wide, the capture is scaled up while zoomed so it
   fills the canvas with no gaps, and the view stays centred on the cursor.

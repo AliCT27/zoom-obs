@@ -63,6 +63,9 @@ static int qtKeyToVk(int qtKey);
 
 static constexpr const char *kZoominatorMarkerSourceName = "Zoominator Cursor Marker";
 static constexpr const char *kZoominatorMarkerSourceId = "zoominator_marker_source";
+static constexpr const char *kZoominatorFocusSourceName = "Zoominator Focus Dim";
+/* The focus image is generated at 1/k size and drawn k times larger. */
+static constexpr double kFocusImageScale = 4.0;
 static void cleanup_legacy_marker_items_all_scenes(obs_source_t *currentMarkerSource = nullptr);
 static bool source_name_starts_with(const char *name, const char *prefix);
 static void collect_live_scene_items(obs_scene_t *scene, std::vector<obs_sceneitem_t *> &items);
@@ -78,6 +81,8 @@ static inline double clampd(double v, double lo, double hi)
 
 bool ZoominatorController::usesWheelZoomGesture() const
 {
+	if (zoomPaused)
+		return false;
 	return triggerType == "mouse" && mouseButton == "x2" && hotkeyMode == "toggle" && !modCtrl && !modAlt &&
 	       !modShift && !modWin && !modLeftCtrl && !modRightCtrl && !modLeftAlt && !modRightAlt && !modLeftShift &&
 	       !modRightShift && !modLeftWin && !modRightWin;
@@ -753,6 +758,11 @@ void ZoominatorController::loadSettings()
 	autoOnClick = true;
 	autoOnTyping = true;
 	autoHoldMs = 2500;
+	focusEnabled = false;
+	focusDimPct = 55;
+	focusRadius = 300;
+	focusSoftness = 80;
+	pauseHotkeySequence.clear();
 	followMouseRuntimeEnabled = true;
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
@@ -932,6 +942,19 @@ void ZoominatorController::loadSettings()
 		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
 	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
 
+	if (obs_data_has_user_value(data, "focus_enabled"))
+		focusEnabled = obs_data_get_bool(data, "focus_enabled");
+	if (obs_data_has_user_value(data, "focus_dim_pct"))
+		focusDimPct = (int)obs_data_get_int(data, "focus_dim_pct");
+	if (obs_data_has_user_value(data, "focus_radius"))
+		focusRadius = (int)obs_data_get_int(data, "focus_radius");
+	if (obs_data_has_user_value(data, "focus_softness"))
+		focusSoftness = (int)obs_data_get_int(data, "focus_softness");
+	focusDimPct = std::clamp(focusDimPct, 0, 95);
+	focusRadius = std::clamp(focusRadius, 40, 2000);
+	focusSoftness = std::clamp(focusSoftness, 0, 600);
+	pauseHotkeySequence = getStr("pause_hotkey");
+
 	/* `zoom_anchor` supersedes the `follow_mouse` boolean. Configs written by
 	 * older builds only have the boolean, so migrate it: following stays
 	 * following, and "off" keeps its old meaning of zooming about the canvas
@@ -1049,6 +1072,11 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "auto_on_click", autoOnClick);
 	obs_data_set_bool(data, "auto_on_typing", autoOnTyping);
 	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
+	obs_data_set_bool(data, "focus_enabled", focusEnabled);
+	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
+	obs_data_set_int(data, "focus_radius", focusRadius);
+	obs_data_set_int(data, "focus_softness", focusSoftness);
+	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */
 	obs_data_set_bool(data, "follow_mouse", zoomAnchor == ZoomAnchorMode::CursorFollow);
 	followMouseRuntimeEnabled = true;
@@ -1209,7 +1237,8 @@ void ZoominatorController::enumerateTargetItemsInCurrentScene(std::vector<obs_sc
 			const char *srcId = obs_source_get_id(src);
 			if (srcId && QString::fromUtf8(srcId) == QString::fromUtf8(kZoominatorMarkerSourceId))
 				return true;
-			return source_name_starts_with(srcName, kZoominatorMarkerSourceName);
+			return source_name_starts_with(srcName, kZoominatorMarkerSourceName) ||
+			       source_name_starts_with(srcName, kZoominatorFocusSourceName);
 		}
 
 		static void enum_scene(obs_scene_t *scene, Ctx *ctx)
@@ -2454,6 +2483,335 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	}
 }
 
+/* ---- Focus spotlight ------------------------------------------------------
+ *
+ * While zoomed, everything except a soft circle around the cursor is dimmed.
+ * It is one image_source scene item (same machinery as the click halo): a
+ * black image with a transparent, feathered hole in the middle, centred on the
+ * cursor. For the dim to cover the whole canvas wherever the hole sits, the
+ * image must be twice the canvas in each direction. Rather than allocate a
+ * 2x-canvas texture, it is generated at 1/kFocusImageScale size and the scene
+ * item scales it back up; the dim area is flat colour and the feathered edge is
+ * smooth, so nothing is lost. */
+
+static void get_canvas_size(int &w, int &h)
+{
+	obs_video_info ovi{};
+	if (obs_get_video_info(&ovi)) {
+		w = (int)ovi.base_width;
+		h = (int)ovi.base_height;
+	} else {
+		w = 1920;
+		h = 1080;
+	}
+}
+
+static obs_sceneitem_t *find_scene_item_for_source(obs_scene_t *scene, obs_source_t *source)
+{
+	struct Finder {
+		obs_source_t *want = nullptr;
+		obs_sceneitem_t *found = nullptr;
+
+		static bool enum_cb(obs_scene_t *, obs_sceneitem_t *item, void *param)
+		{
+			auto *f = static_cast<Finder *>(param);
+			if (!f || f->found)
+				return false;
+			if (obs_sceneitem_get_source(item) == f->want) {
+				f->found = item;
+				return false;
+			}
+			return true;
+		}
+	};
+
+	if (!scene || !source)
+		return nullptr;
+	Finder finder{source, nullptr};
+	obs_scene_enum_items(scene, Finder::enum_cb, &finder);
+	return finder.found;
+}
+
+QString ZoominatorController::focusImagePath() const
+{
+	char *path = obs_module_config_path("zoominator-focus-dim.png");
+	if (!path)
+		return {};
+	QString p = QString::fromUtf8(path);
+	bfree(path);
+	return p;
+}
+
+void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
+{
+	const QString path = focusImagePath();
+	if (path.isEmpty())
+		return;
+	ensure_parent_dir_exists(path);
+
+	/* +2 px (8 canvas px after scaling) so rounding or bilinear filtering at the
+	 * border can never expose an undimmed sliver when the cursor sits on an edge. */
+	const int w = std::max(8, (int)std::ceil(2.0 * canvasW / kFocusImageScale) + 2);
+	const int h = std::max(8, (int)std::ceil(2.0 * canvasH / kFocusImageScale) + 2);
+	const double radius = (double)std::clamp(focusRadius, 40, 2000) / kFocusImageScale;
+	const double soft = (double)std::clamp(focusSoftness, 0, 600) / kFocusImageScale;
+	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
+	const double inner = std::max(0.0, radius - soft * 0.5);
+	const double outer = radius + soft * 0.5;
+	const double cx = (double)w * 0.5;
+	const double cy = (double)h * 0.5;
+
+	QImage img(w, h, QImage::Format_ARGB32_Premultiplied);
+	for (int y = 0; y < h; ++y) {
+		QRgb *line = reinterpret_cast<QRgb *>(img.scanLine(y));
+		const double dy = ((double)y + 0.5) - cy;
+		for (int x = 0; x < w; ++x) {
+			const double dx = ((double)x + 0.5) - cx;
+			const double d = std::sqrt(dx * dx + dy * dy);
+			double t = 0.0;
+			if (outer > inner)
+				t = clampd((d - inner) / (outer - inner), 0.0, 1.0);
+			else
+				t = d >= radius ? 1.0 : 0.0;
+			/* Black, so premultiplied and straight alpha are the same value. */
+			line[x] = qRgba(0, 0, 0, (int)std::lround(smoothstep(t) * dimAlpha));
+		}
+	}
+	img.save(path, "PNG");
+}
+
+void ZoominatorController::ensureFocusFilter()
+{
+	if (!focusSource)
+		return;
+
+	if (focusFilter) {
+		obs_source_t *existing = obs_source_get_filter_by_name(focusSource, "ZoominatorFocusOpacity");
+		if (existing) {
+			obs_source_release(existing);
+			return;
+		}
+		obs_source_release(focusFilter);
+		focusFilter = nullptr;
+	}
+
+	obs_data_t *fsettings = obs_data_create();
+	obs_data_set_double(fsettings, "opacity", 100.0);
+	focusFilter = obs_source_create_private("color_filter", "ZoominatorFocusOpacity", fsettings);
+	obs_data_release(fsettings);
+
+	if (focusFilter)
+		obs_source_filter_add(focusSource, focusFilter);
+}
+
+void ZoominatorController::applyFocusOpacity(int opacity255)
+{
+	ensureFocusFilter();
+	if (!focusFilter)
+		return;
+
+	const int clamped = std::clamp(opacity255, 0, 255);
+	if (focusCurrentOpacity == clamped)
+		return;
+
+	focusCurrentOpacity = clamped;
+	obs_data_t *fsettings = obs_data_create();
+	obs_data_set_double(fsettings, "opacity", clamped / 255.0 * 100.0);
+	obs_source_update(focusFilter, fsettings);
+	obs_data_release(fsettings);
+}
+
+void ZoominatorController::ensureFocusSource()
+{
+	if (focusSource)
+		return;
+
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	rebuildFocusImage(cw, ch);
+
+	const QString path = focusImagePath();
+	if (path.isEmpty())
+		return;
+
+	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "file", path.toUtf8().constData());
+	obs_data_set_bool(settings, "unload", false);
+	focusSource = obs_source_create_private("image_source", kZoominatorFocusSourceName, settings);
+	obs_data_release(settings);
+
+	if (focusSource) {
+		ensureFocusFilter();
+		focusAppearanceHash = 0; /* force the next updateFocusAppearance to record the real hash */
+	}
+}
+
+/* Regenerates the image when the canvas size or any focus setting changed. */
+void ZoominatorController::updateFocusAppearance()
+{
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+
+	uint64_t hash = 1469598103934665603ULL;
+	auto mix = [&hash](uint64_t v) {
+		hash ^= v + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2);
+	};
+	mix((uint64_t)cw);
+	mix((uint64_t)ch);
+	mix((uint64_t)std::clamp(focusRadius, 40, 2000));
+	mix((uint64_t)std::clamp(focusSoftness, 0, 600));
+	mix((uint64_t)std::clamp(focusDimPct, 0, 95));
+
+	if (!focusSource) {
+		ensureFocusSource();
+		if (!focusSource)
+			return;
+		focusAppearanceHash = hash;
+		return;
+	}
+	if (focusAppearanceHash == hash)
+		return;
+
+	rebuildFocusImage(cw, ch);
+	const QString path = focusImagePath();
+	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "file", path.toUtf8().constData());
+	obs_data_set_bool(settings, "unload", false);
+	obs_source_update(focusSource, settings);
+	obs_data_release(settings);
+	focusAppearanceHash = hash;
+	focusCurrentOpacity = -1;
+}
+
+static void normalize_focus_scene_item(obs_sceneitem_t *item)
+{
+	if (!item)
+		return;
+	obs_sceneitem_set_alignment(item, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_NONE);
+	obs_sceneitem_set_rot(item, 0.0f);
+	vec2 scale{};
+	scale.x = (float)kFocusImageScale;
+	scale.y = (float)kFocusImageScale;
+	obs_sceneitem_set_scale(item, &scale);
+	obs_sceneitem_set_scale_filter(item, OBS_SCALE_BILINEAR);
+	obs_sceneitem_crop crop{};
+	obs_sceneitem_set_crop(item, &crop);
+	obs_sceneitem_set_locked(item, true);
+}
+
+obs_sceneitem_t *ZoominatorController::ensureFocusItem(obs_scene_t *scene, bool &created)
+{
+	created = false;
+	if (!scene || !focusSource)
+		return nullptr;
+
+	obs_sceneitem_t *item = find_scene_item_for_source(scene, focusSource);
+	if (item)
+		return item;
+
+	item = obs_scene_add(scene, focusSource);
+	if (!item)
+		return nullptr;
+	created = true;
+	normalize_focus_scene_item(item);
+	obs_sceneitem_set_visible(item, false);
+	return item;
+}
+
+/* Puts the dim directly above the topmost zoomed item, so overlays that are
+ * deliberately not zoomed (a webcam, a logo) stay above it and are not dimmed.
+ * If none of the zoomed items sit directly in this scene, falls back to the top. */
+void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_sceneitem_t *item)
+{
+	if (!scene || !item)
+		return;
+
+	obs_sceneitem_set_order(item, OBS_ORDER_MOVE_BOTTOM);
+
+	std::vector<obs_sceneitem_t *> live;
+	collect_live_scene_items(scene, live);
+
+	int topIndex = -1;
+	for (const auto &state : sceneItems) {
+		if (!state.item || state.item == item)
+			continue;
+		if (std::find(live.begin(), live.end(), state.item) == live.end())
+			continue;
+		if (obs_sceneitem_get_scene(state.item) != scene)
+			continue;
+		topIndex = std::max(topIndex, (int)obs_sceneitem_get_order_position(state.item));
+	}
+
+	if (topIndex < 0)
+		obs_sceneitem_set_order(item, OBS_ORDER_MOVE_TOP);
+	else
+		obs_sceneitem_set_order_position(item, topIndex);
+}
+
+void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255)
+{
+	if (!focusEnabled || !scene)
+		return;
+
+	if (std::clamp(opacity255, 0, 255) <= 0) {
+		hideFocusInScene(scene);
+		return;
+	}
+
+	updateFocusAppearance();
+	if (!focusSource)
+		return;
+
+	bool created = false;
+	obs_sceneitem_t *item = ensureFocusItem(scene, created);
+	if (!item)
+		return;
+
+	applyFocusOpacity(opacity255);
+
+	if (!scene_item_pointer_is_live(scene, item))
+		return;
+
+	vec2 pos{};
+	pos.x = (float)x;
+	pos.y = (float)y;
+	obs_sceneitem_set_pos(item, &pos);
+
+	if (!obs_sceneitem_visible(item)) {
+		normalize_focus_scene_item(item);
+		placeFocusBelowOverlays(scene, item);
+		obs_sceneitem_set_visible(item, true);
+	}
+	focusShown = true;
+}
+
+void ZoominatorController::hideFocusInScene(obs_scene_t *scene)
+{
+	if (!scene || !focusSource)
+		return;
+	if (obs_sceneitem_t *item = find_scene_item_for_source(scene, focusSource)) {
+		if (obs_sceneitem_visible(item))
+			obs_sceneitem_set_visible(item, false);
+	}
+}
+
+void ZoominatorController::hideFocusInAllScenes()
+{
+	focusShown = false;
+	if (!focusSource)
+		return;
+
+	obs_frontend_source_list scenes{};
+	obs_frontend_get_scenes(&scenes);
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		obs_source_t *sceneSource = scenes.sources.array[i];
+		if (obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr)
+			hideFocusInScene(scene);
+	}
+	obs_frontend_source_list_free(&scenes);
+}
+
 void ZoominatorController::captureOriginal(obs_sceneitem_t *item)
 {
 	if (!item)
@@ -2714,7 +3072,6 @@ void ZoominatorController::applyZoomToScene(double t)
 	const float mx = snapX;
 	const float my = snapY;
 	const bool mapped = snapMapped;
-	(void)snapInside;
 
 	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
 	if (mapped) {
@@ -2876,6 +3233,10 @@ void ZoominatorController::applyZoomToScene(double t)
 			pendingMarkerVisible = showCursorMarker && markerHasPoint;
 			pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 			pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
+			pendingFocusVisible = focusEnabled && mapped && snapInside;
+			pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
+			pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
+			pendingFocusOpacity = (int)std::lround(ttA * 255.0);
 			return;
 		}
 	}
@@ -2929,6 +3290,10 @@ void ZoominatorController::applyZoomToScene(double t)
 		pendingMarkerVisible = showCursorMarker && markerHasPoint;
 		pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 		pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
+		pendingFocusVisible = focusEnabled && mapped && snapInside;
+		pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
+		pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
+		pendingFocusOpacity = (int)std::lround(ttA * 255.0);
 	}
 }
 
@@ -3013,11 +3378,25 @@ void ZoominatorController::onTick()
 	if (obs_scene_t *sc = sceneSource ? obs_scene_from_source(sceneSource) : nullptr) {
 		bool markerVisible = false;
 		double markerX = 0.0, markerY = 0.0;
+		bool focusVisible = false;
+		double focusX = 0.0, focusY = 0.0;
+		int focusOpacity = 0;
 		{
 			std::lock_guard<std::mutex> lock(inputMutex);
 			markerVisible = pendingMarkerVisible;
 			markerX = pendingMarkerX;
 			markerY = pendingMarkerY;
+			focusVisible = pendingFocusVisible;
+			focusX = pendingFocusX;
+			focusY = pendingFocusY;
+			focusOpacity = pendingFocusOpacity;
+		}
+
+		if (focusEnabled && focusVisible && focusOpacity > 0) {
+			updateFocus(sc, focusX, focusY, focusOpacity);
+		} else if (focusShown) {
+			hideFocusInScene(sc);
+			focusShown = false;
 		}
 
 		if (showCursorMarker && markerVisible) {
@@ -3130,6 +3509,12 @@ void ZoominatorController::finishZoomOnMainThread()
 	tickingWanted.store(false, std::memory_order_release);
 	ensureTicking(false);
 	resetState();
+	hideFocusInAllScenes();
+	{
+		std::lock_guard<std::mutex> lock(inputMutex);
+		pendingFocusVisible = false;
+		pendingFocusOpacity = 0;
+	}
 
 	obs_source_t *staleRef = nullptr;
 	{
@@ -3350,6 +3735,11 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 			g_ctl->toggleFollowMouseRuntime();
 		}
 
+		if (g_ctl->pauseHkValid && down && vk_matches(vk, g_ctl->pauseHotkeyVk) &&
+		    mods_current(g_ctl->pauseModCtrl, g_ctl->pauseModAlt, g_ctl->pauseModShift, g_ctl->pauseModWin)) {
+			g_ctl->togglePauseZoom();
+		}
+
 		if (g_ctl->triggerType == "auto") {
 			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
 			 * are ignored so editor commands do not trigger it. */
@@ -3554,6 +3944,11 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 			ctl->toggleFollowMouseRuntime();
 		}
 
+		if (ctl->pauseHkValid && down && vk_matches(keycode, ctl->pauseHotkeyVk) &&
+		    mods_current(ctl->pauseModCtrl, ctl->pauseModAlt, ctl->pauseModShift, ctl->pauseModWin)) {
+			ctl->togglePauseZoom();
+		}
+
 		if (ctl->triggerType == "auto") {
 			const CGEventFlags flags = CGEventGetFlags(event);
 			const bool shortcut =
@@ -3755,6 +4150,11 @@ void ZoominatorController::processXInput2Events()
 				toggleFollowMouseRuntime();
 			}
 
+			if (pauseHkValid && down && vk_matches((int)sym, pauseHotkeyVk) &&
+			    mods_current(pauseModCtrl, pauseModAlt, pauseModShift, pauseModWin)) {
+				togglePauseZoom();
+			}
+
 			if (triggerType == "auto" && down && autoOnTyping && !is_modifier_vk((int)sym)) {
 				const ModifierState ms = current_modifiers();
 				const bool shortcut = ms.leftCtrl || ms.rightCtrl || ms.leftAlt || ms.rightAlt ||
@@ -3880,6 +4280,9 @@ bool ZoominatorController::triggerMatchesMouse(unsigned int msg, unsigned short 
 
 void ZoominatorController::onTriggerDown()
 {
+	if (zoomPaused)
+		return;
+
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Trigger DOWN");
 
@@ -3912,6 +4315,10 @@ void ZoominatorController::onTriggerUp()
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Trigger UP");
 	zoomPressed = false;
+	/* While paused no zoom was started by the matching key-down, so there is
+	 * nothing to release (a zoom already running was eased out by the pause). */
+	if (zoomPaused)
+		return;
 	startZoomOut();
 }
 
@@ -3942,7 +4349,7 @@ void ZoominatorController::onAutoActivity()
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
-	if (obs_window_is_foreground())
+	if (zoomPaused || obs_window_is_foreground())
 		return;
 
 	autoLastActivityMs = QDateTime::currentMSecsSinceEpoch();
@@ -3974,6 +4381,26 @@ void ZoominatorController::checkAutoIdle()
 
 	zoomLatched = false;
 	startZoomOut();
+}
+
+/* Global pause switch. While paused, no trigger starts a zoom (hold, toggle,
+ * mouse, wheel or automatic), and a zoom that is running eases back out.
+ * There is deliberately no on-screen indicator: anything drawn into the scene
+ * would end up in the recording. Progress is logged, and the dialog (if open)
+ * shows it. */
+void ZoominatorController::togglePauseZoom()
+{
+	zoomPaused = !zoomPaused;
+	blog(LOG_INFO, "[Zoominator] Zoom %s", zoomPaused ? "paused" : "resumed");
+
+	if (zoomPaused) {
+		zoomPressed = false;
+		zoomAdjustButtonHeld = false;
+		zoomLatched = false;
+		if (zoomActive.load(std::memory_order_acquire))
+			startZoomOut();
+	}
+	emit pauseStateChanged(zoomPaused);
 }
 
 void ZoominatorController::toggleFollowMouseRuntime()
@@ -4258,8 +4685,38 @@ static int qtKeyToVk(int qtKey)
 #endif
 }
 
+void ZoominatorController::rebuildPauseHotkey()
+{
+	pauseHkValid = false;
+	pauseHotkeyVk = 0;
+	pauseModCtrl = false;
+	pauseModAlt = false;
+	pauseModShift = false;
+	pauseModWin = false;
+
+	const QKeySequence seq(pauseHotkeySequence);
+	if (seq.isEmpty())
+		return;
+
+	const QKeyCombination kc = seq[0];
+	const auto mods = kc.keyboardModifiers();
+	const int key = int(kc.key());
+	/* A modifier on its own is not a usable pause key. */
+	if (key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr || key == Qt::Key_Shift ||
+	    key == Qt::Key_Meta || key == 0)
+		return;
+
+	pauseHotkeyVk = qtKeyToVk(key);
+	pauseModCtrl = mods.testFlag(Qt::ControlModifier);
+	pauseModAlt = mods.testFlag(Qt::AltModifier);
+	pauseModShift = mods.testFlag(Qt::ShiftModifier);
+	pauseModWin = mods.testFlag(Qt::MetaModifier);
+	pauseHkValid = pauseHotkeyVk != 0;
+}
+
 void ZoominatorController::rebuildTriggersFromSettings()
 {
+	rebuildPauseHotkey();
 	hkValid = false;
 	hotkeyVk = 0;
 	followToggleHkValid = false;
@@ -4474,7 +4931,8 @@ void ZoominatorController::rebuildTriggersFromSettings()
 
 bool ZoominatorController::needsKeyboardHook() const
 {
-	return triggerType == "keyboard" || followToggleHkValid || (triggerType == "auto" && autoOnTyping);
+	return triggerType == "keyboard" || followToggleHkValid || pauseHkValid ||
+	       (triggerType == "auto" && autoOnTyping);
 }
 
 bool ZoominatorController::needsMouseHook() const

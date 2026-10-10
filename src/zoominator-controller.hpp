@@ -102,6 +102,14 @@ public:
 	bool autoOnClick = true;
 	bool autoOnTyping = true;
 	int autoHoldMs = 2500;
+	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
+	bool focusEnabled = false;
+	int focusDimPct = 55;
+	int focusRadius = 300;
+	int focusSoftness = 80;
+	/* Global hotkey that pauses/resumes all zooming (empty = none). */
+	QString pauseHotkeySequence;
+	bool isZoomPaused() const { return zoomPaused; }
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
@@ -120,6 +128,7 @@ public:
 
 signals:
 	void settingsChanged();
+	void pauseStateChanged(bool paused);
 
 private slots:
 	void onTick();
@@ -150,6 +159,8 @@ private:
 	bool usesWheelZoomGesture() const;
 	void finishWheelZoomGesture();
 	void toggleFollowMouseRuntime();
+	void togglePauseZoom();
+	void rebuildPauseHotkey();
 	bool triggerMatchesKeyboard(int vk) const;
 	bool triggerMatchesMouse(unsigned int msg, unsigned short mouseData) const;
 	bool modsMatch() const;
@@ -179,6 +190,19 @@ private:
 	int currentMarkerOpacity(qint64 nowMs);
 	void applyZoomToScene(double t);
 
+	/* Focus spotlight (see updateFocus). Main thread only. */
+	QString focusImagePath() const;
+	void rebuildFocusImage(int canvasW, int canvasH);
+	void ensureFocusFilter();
+	void applyFocusOpacity(int opacity255);
+	void ensureFocusSource();
+	void updateFocusAppearance();
+	obs_sceneitem_t *ensureFocusItem(obs_scene_t *scene, bool &created);
+	void placeFocusBelowOverlays(obs_scene_t *scene, obs_sceneitem_t *item);
+	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255);
+	void hideFocusInScene(obs_scene_t *scene);
+	void hideFocusInAllScenes();
+
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
 	 * obs_add_tick_callback so the transform lands exactly once per rendered
 	 * frame, at whatever output fps is configured - a free-running Qt timer
@@ -205,6 +229,10 @@ private:
 	std::mutex inputMutex;
 	InputSnapshot input;
 	bool pendingMarkerVisible = false;
+	bool pendingFocusVisible = false;
+	double pendingFocusX = 0.0;
+	double pendingFocusY = 0.0;
+	int pendingFocusOpacity = 0;
 	double pendingMarkerX = 0.0;
 	double pendingMarkerY = 0.0;
 	bool tickCallbackAdded = false;
@@ -304,6 +332,18 @@ private:
 
 	QPointer<ZoominatorDialog> dialog;
 	obs_source_t *markerSource = nullptr;
+	obs_source_t *focusSource = nullptr;
+	obs_source_t *focusFilter = nullptr;
+	int focusCurrentOpacity = -1;
+	uint64_t focusAppearanceHash = 0;
+	bool focusShown = false;
+	bool zoomPaused = false;
+	int pauseHotkeyVk = 0;
+	bool pauseHkValid = false;
+	bool pauseModCtrl = false;
+	bool pauseModAlt = false;
+	bool pauseModShift = false;
+	bool pauseModWin = false;
 
 	int hotkeyVk = 0;
 	bool hkValid = false;

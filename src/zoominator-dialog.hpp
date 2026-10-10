@@ -29,6 +29,8 @@ private slots:
 	void testZoom();
 	void clearHotkey();
 	void clearFollowToggleHotkey();
+	void clearPauseHotkey();
+	void onPauseStateChanged(bool paused);
 	void chooseMarkerColor();
 	void populateSourcesTab();
 	void applyReelsPreset();
@@ -48,6 +50,8 @@ private:
 	QComboBox *cmbMode = nullptr;
 	QKeySequenceEdit *editFollowToggleHotkey = nullptr;
 	QPushButton *btnClearFollowToggleHotkey = nullptr;
+	QKeySequenceEdit *editPauseHotkey = nullptr;
+	QPushButton *btnClearPauseHotkey = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
 	QKeySequenceEdit *editHotkey = nullptr;
@@ -90,6 +94,10 @@ private:
 	QSpinBox *spMarkerSize = nullptr;
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
+	QCheckBox *chkFocus = nullptr;
+	QSpinBox *spFocusDim = nullptr;
+	QSpinBox *spFocusRadius = nullptr;
+	QSpinBox *spFocusSoftness = nullptr;
 	QCheckBox *chkDebug = nullptr;
 
 	QListWidget *lstSources = nullptr;
