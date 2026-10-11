@@ -393,6 +393,9 @@ private:
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
 	qint64 autoLastManualKeyMs = 0;
+	/* Set by the Zoom Out hotkey: clicks and typing no longer start a zoom until
+	 * the Zoom In hotkey is pressed (or the settings are applied again). */
+	bool autoSuspended = false;
 	int pauseHotkeyVk = 0;
 	bool pauseHkValid = false;
 	bool pauseModCtrl = false;

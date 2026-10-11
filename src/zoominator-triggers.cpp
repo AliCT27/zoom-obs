@@ -91,7 +91,7 @@ void ZoominatorController::onAutoActivity(bool typing)
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
-	if (zoomPaused || obs_window_is_foreground())
+	if (zoomPaused || autoSuspended || obs_window_is_foreground())
 		return;
 
 	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -109,22 +109,24 @@ void ZoominatorController::onAutoActivity(bool typing)
 	beginAutoZoom();
 }
 
-/* Zoom In hotkey: zoom in now. */
+/* Zoom In hotkey: zoom in now, and let clicks and typing zoom again. */
 void ZoominatorController::manualZoomIn()
 {
 	if (triggerType != "auto" || shuttingDown || zoomPaused)
 		return;
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
 	autoLastActivityMs = autoLastManualKeyMs;
+	autoSuspended = false;
 	beginAutoZoom();
 }
 
-/* Zoom Out hotkey: zoom out now. Clicking or typing zooms in again. */
+/* Zoom Out hotkey: zoom out now and keep automatic zooming off until Zoom In. */
 void ZoominatorController::manualZoomOut()
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
+	autoSuspended = true;
 	if (!zoomLatched)
 		return;
 	zoomLatched = false;
