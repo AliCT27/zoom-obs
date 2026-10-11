@@ -91,7 +91,7 @@ void ZoominatorController::onAutoActivity(bool typing)
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
-	if (zoomPaused || obs_window_is_foreground())
+	if (zoomPaused || autoSuspended || obs_window_is_foreground())
 		return;
 
 	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -109,24 +109,24 @@ void ZoominatorController::onAutoActivity(bool typing)
 	beginAutoZoom();
 }
 
-/* Zoom In hotkey: zoom in now and stay zoomed until Zoom Out is pressed. */
+/* Zoom In hotkey: zoom in now, and let clicks and typing zoom again. */
 void ZoominatorController::manualZoomIn()
 {
 	if (triggerType != "auto" || shuttingDown || zoomPaused)
 		return;
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
 	autoLastActivityMs = autoLastManualKeyMs;
-	autoManualHold = true;
+	autoSuspended = false;
 	beginAutoZoom();
 }
 
-/* Zoom Out hotkey: zoom out now and hand control back to the automatic triggers. */
+/* Zoom Out hotkey: zoom out now and keep automatic zooming off until Zoom In. */
 void ZoominatorController::manualZoomOut()
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
-	autoManualHold = false;
+	autoSuspended = true;
 	if (!zoomLatched)
 		return;
 	zoomLatched = false;
@@ -135,7 +135,7 @@ void ZoominatorController::manualZoomOut()
 
 void ZoominatorController::checkAutoIdle()
 {
-	if (triggerType != "auto" || !zoomLatched || autoManualHold)
+	if (triggerType != "auto" || !zoomLatched || !autoZoomOutEnabled)
 		return;
 	/* Do not cut a zoom-in short: wait until it has settled. */
 	if (animDir.load(std::memory_order_relaxed) > 0)

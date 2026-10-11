@@ -351,7 +351,11 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(chkAutoClick);
 			v->addWidget(chkAutoTyping);
 			v->addWidget(chkCaretFollow);
+			chkAutoZoomOut = new QCheckBox(T("Dialog.AutoZoomOut"), rowAutoWidget);
+			chkAutoZoomOut->setToolTip(T("Dialog.AutoZoomOutTooltip"));
+			v->addWidget(chkAutoZoomOut);
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
+			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
 
 			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
 				auto *row = new QWidget(rowAutoWidget);
@@ -471,6 +475,9 @@ void ZoominatorDialog::buildUi()
 		chkCenterCursorUntilEdge = new QCheckBox(T("Dialog.CenterCursorUntilEdge"), page);
 		chkCenterCursorUntilEdge->setToolTip(T("Dialog.CenterCursorUntilEdgeTooltip"));
 
+		chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
+		chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
+
 		spEdgeOverflowMargin = new QSpinBox(page);
 		spEdgeOverflowMargin->setRange(0, 50);
 		spEdgeOverflowMargin->setSingleStep(5);
@@ -500,6 +507,7 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(overflowRow);
 
 		lay->addWidget(chkCenterCursorUntilEdge);
+		lay->addWidget(chkCenterFocus);
 
 		/* Smoothing and the idle freeze only mean something while the anchor
 		 * actually tracks the cursor. */
@@ -864,6 +872,8 @@ void ZoominatorDialog::loadFromController()
 		chkAutoClick->setChecked(c.autoOnClick);
 		chkAutoTyping->setChecked(c.autoOnTyping);
 		chkCaretFollow->setChecked(c.caretFollow);
+		chkAutoZoomOut->setChecked(c.autoZoomOutEnabled);
+		spAutoHold->setEnabled(c.autoZoomOutEnabled);
 		spAutoHold->setValue(c.autoHoldMs);
 		updateTriggerRows();
 	}
@@ -884,6 +894,7 @@ void ZoominatorDialog::loadFromController()
 		spFollowSpeed->setValue(c.followSpeed);
 		chkCenterCursorUntilEdge->setChecked(c.centerCursorUntilEdge);
 		spEdgeOverflowMargin->setValue(c.edgeOverflowMarginPct);
+		chkCenterFocus->setChecked(c.centerFocus);
 		spMouseIdleTimeout->setValue(c.mouseIdleTimeoutMs);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
@@ -951,11 +962,13 @@ void ZoominatorDialog::applyToController()
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
 	c.caretFollow = chkCaretFollow->isChecked();
+	c.autoZoomOutEnabled = chkAutoZoomOut->isChecked();
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
 	c.centerCursorUntilEdge = chkCenterCursorUntilEdge->isChecked();
 	c.edgeOverflowMarginPct = spEdgeOverflowMargin->value();
+	c.centerFocus = chkCenterFocus->isChecked();
 	c.mouseIdleTimeoutMs = spMouseIdleTimeout->value();
 	c.portraitCover = chkPortraitCover->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
@@ -1004,6 +1017,7 @@ void ZoominatorDialog::applyReelsPreset()
 	chkAutoClick->setChecked(true);
 	chkAutoTyping->setChecked(true);
 	chkCaretFollow->setChecked(true);
+	chkAutoZoomOut->setChecked(true);
 	spAutoHold->setValue(2500);
 
 	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further

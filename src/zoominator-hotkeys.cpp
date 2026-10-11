@@ -314,6 +314,7 @@ void ZoominatorController::rebuildPauseHotkey()
 void ZoominatorController::rebuildTriggersFromSettings()
 {
 	rebuildPauseHotkey();
+	autoSuspended = false;
 	manualZoomInBinding = makeHotkeyBinding(manualZoomInSequence);
 	manualZoomOutBinding = makeHotkeyBinding(manualZoomOutSequence);
 	hkValid = false;

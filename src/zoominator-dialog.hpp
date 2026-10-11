@@ -53,6 +53,7 @@ private:
 	QKeySequenceEdit *editFollowToggleHotkey = nullptr;
 	QPushButton *btnClearFollowToggleHotkey = nullptr;
 	QKeySequenceEdit *editPauseHotkey = nullptr;
+	QCheckBox *chkAutoZoomOut = nullptr;
 	QKeySequenceEdit *editManualZoomIn = nullptr;
 	QKeySequenceEdit *editManualZoomOut = nullptr;
 	QPushButton *btnClearPauseHotkey = nullptr;
@@ -91,6 +92,7 @@ private:
 	QComboBox *cmbZoomAnchor = nullptr;
 	QDoubleSpinBox *spFollowSpeed = nullptr;
 	QCheckBox *chkCenterCursorUntilEdge = nullptr;
+	QCheckBox *chkCenterFocus = nullptr;
 	QSpinBox *spEdgeOverflowMargin = nullptr;
 	QSpinBox *spMouseIdleTimeout = nullptr;
 	QCheckBox *chkPortraitCover = nullptr;
