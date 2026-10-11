@@ -1,3 +1,4 @@
+#include "focus-blur-filter.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
@@ -16,6 +17,7 @@ bool obs_module_load(void)
 {
 	obs_log(LOG_INFO, "[Zoominator] loaded (version %s)", PLUGIN_VERSION);
 
+	zoominator_blur::registerFilter();
 	ZoominatorController::instance().initialize();
 
 	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.Zoominator"), open_dialog_cb, nullptr);

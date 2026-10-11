@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include <QDialog>
 
 class QCheckBox;
@@ -95,6 +97,9 @@ private:
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
 	QCheckBox *chkFocus = nullptr;
+	QComboBox *cmbFocusStyle = nullptr;
+	std::function<void()> syncFocusFieldsFn;
+	QSpinBox *spFocusBlur = nullptr;
 	QSpinBox *spFocusDim = nullptr;
 	QSpinBox *spFocusRadius = nullptr;
 	QSpinBox *spFocusSoftness = nullptr;

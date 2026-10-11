@@ -1,4 +1,5 @@
 #include "zoominator-controller.hpp"
+#include "focus-blur-filter.hpp"
 
 #include <obs-frontend-api.h>
 #include <obs.h>
@@ -351,6 +352,28 @@ ZoominatorController::ZoomEasing ZoominatorController::zoomEasingFromString(cons
 	return ZoomEasing::Smooth;
 }
 
+QString ZoominatorController::focusStyleToString(FocusStyle style)
+{
+	switch (style) {
+	case FocusStyle::Blur:
+		return QStringLiteral("blur");
+	case FocusStyle::BlurDim:
+		return QStringLiteral("blur_dim");
+	case FocusStyle::Dim:
+		break;
+	}
+	return QStringLiteral("dim");
+}
+
+ZoominatorController::FocusStyle ZoominatorController::focusStyleFromString(const QString &value)
+{
+	if (value == QLatin1String("blur"))
+		return FocusStyle::Blur;
+	if (value == QLatin1String("blur_dim"))
+		return FocusStyle::BlurDim;
+	return FocusStyle::Dim;
+}
+
 ZoominatorController::ZoominatorController()
 {
 	tickTimer.setInterval(16);
@@ -699,6 +722,7 @@ void ZoominatorController::shutdown()
 	obs_frontend_remove_event_callback(frontendEventCallback, this);
 	uninstallHooks();
 	ensureTicking(false);
+	detachBlurFilters();
 
 	obs_source_t *staleRef = nullptr;
 	{
@@ -762,6 +786,8 @@ void ZoominatorController::loadSettings()
 	focusDimPct = 55;
 	focusRadius = 300;
 	focusSoftness = 80;
+	focusStyle = FocusStyle::Dim;
+	focusBlurPx = 16;
 	pauseHotkeySequence.clear();
 	followMouseRuntimeEnabled = true;
 	followSpeed = 8.0;
@@ -950,6 +976,10 @@ void ZoominatorController::loadSettings()
 		focusRadius = (int)obs_data_get_int(data, "focus_radius");
 	if (obs_data_has_user_value(data, "focus_softness"))
 		focusSoftness = (int)obs_data_get_int(data, "focus_softness");
+	if (obs_data_has_user_value(data, "focus_style"))
+		focusStyle = focusStyleFromString(getStr("focus_style"));
+	if (obs_data_has_user_value(data, "focus_blur_px"))
+		focusBlurPx = std::clamp((int)obs_data_get_int(data, "focus_blur_px"), 2, 60);
 	focusDimPct = std::clamp(focusDimPct, 0, 95);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
@@ -1076,6 +1106,8 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
 	obs_data_set_int(data, "focus_radius", focusRadius);
 	obs_data_set_int(data, "focus_softness", focusSoftness);
+	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
+	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
 	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */
 	obs_data_set_bool(data, "follow_mouse", zoomAnchor == ZoomAnchorMode::CursorFollow);
@@ -1164,6 +1196,7 @@ void ZoominatorController::startZoomOut()
 
 void ZoominatorController::resetState()
 {
+	detachBlurFilters();
 	zoomPressed = false;
 	zoomLatched = false;
 	zoomActive.store(false, std::memory_order_release);
@@ -2989,6 +3022,45 @@ void ZoominatorController::restoreOriginalSceneItemsFromState()
 	}
 }
 
+void ZoominatorController::attachBlurFilters()
+{
+	blurUnavailable = false;
+	if (!wantsBlur())
+		return;
+	int attached = 0;
+	for (auto &state : sceneItems) {
+		if (!state.item || !state.orig.valid || state.blurFilter)
+			continue;
+		obs_source_t *src = obs_sceneitem_get_source(state.item);
+		if (!src)
+			continue;
+		obs_source_t *filter = zoominator_blur::attach(src);
+		if (!filter)
+			continue;
+		state.blurTarget = obs_source_get_ref(src);
+		state.blurFilter = filter;
+		++attached;
+	}
+	if (attached == 0) {
+		blurUnavailable = true;
+		blog(LOG_WARNING, "[Zoominator] Focus blur unavailable (shader not loaded); falling back to dim.");
+	}
+}
+
+void ZoominatorController::detachBlurFilters()
+{
+	for (auto &state : sceneItems) {
+		if (!state.blurFilter)
+			continue;
+		zoominator_blur::detach(state.blurTarget, state.blurFilter);
+		state.blurFilter = nullptr;
+		if (state.blurTarget) {
+			obs_source_release(state.blurTarget);
+			state.blurTarget = nullptr;
+		}
+	}
+}
+
 void ZoominatorController::applyZoomToScene(double t)
 {
 	if (sceneItems.empty())
@@ -3278,6 +3350,21 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 
 		state.lastAppliedValid = true;
+
+		if (state.blurFilter) {
+			/* The cursor is in unzoomed scene coordinates, so mapping it through the
+			 * item's original transform gives the source pixel under it directly;
+			 * only sizes depend on the current zoom. Rotation is ignored. */
+			const float osx = std::max(state.orig.effectiveScale.x, 0.0001f);
+			const float osy = std::max(state.orig.effectiveScale.y, 0.0001f);
+			const float cxSrc = (mx - state.orig.effectivePos.x) / osx + (float)state.orig.crop.left;
+			const float cySrc = (my - state.orig.effectivePos.y) / osy + (float)state.orig.crop.top;
+			const float shown = std::max(0.0001f, (osx + osy) * 0.5f * (float)z);
+			const float blurSrc = std::min(12.0f, (float)focusBlurPx / shown);
+			const bool on = focusEnabled && mapped && snapInside;
+			zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)focusRadius / shown,
+						   (float)focusSoftness / shown, blurSrc, on ? (float)ttA : 0.0f);
+		}
 	}
 
 	/* Marker placement is published rather than applied: creating the marker
@@ -3366,9 +3453,11 @@ void ZoominatorController::onTick()
 		 * reading sceneItems while this mutates it. captureOriginalSceneItems
 		 * may also saveSettings(), which does file IO - another reason it has
 		 * to stay off the render path. */
+		detachBlurFilters();
 		captureOriginalSceneItems(items);
 		if (sceneItems.empty())
 			return;
+		attachBlurFilters();
 	}
 
 	obs_source_t *sceneSource = obs_frontend_get_current_scene();
@@ -3392,7 +3481,7 @@ void ZoominatorController::onTick()
 			focusOpacity = pendingFocusOpacity;
 		}
 
-		if (focusEnabled && focusVisible && focusOpacity > 0) {
+		if (wantsDim() && focusVisible && focusOpacity > 0) {
 			updateFocus(sc, focusX, focusY, focusOpacity);
 		} else if (focusShown) {
 			hideFocusInScene(sc);

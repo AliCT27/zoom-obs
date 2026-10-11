@@ -58,6 +58,17 @@ public:
 	static QString zoomEasingToString(ZoomEasing easing);
 	static ZoomEasing zoomEasingFromString(const QString &value);
 
+	/* How Focus highlights the area around the cursor. Blur needs the shader
+	 * in data/focus_blur.effect; without it the controller falls back to Dim. */
+	enum class FocusStyle {
+		Dim,
+		Blur,
+		BlurDim,
+	};
+
+	static QString focusStyleToString(FocusStyle style);
+	static FocusStyle focusStyleFromString(const QString &value);
+
 	static ZoominatorController &instance();
 
 	void initialize();
@@ -107,6 +118,9 @@ public:
 	int focusDimPct = 55;
 	int focusRadius = 300;
 	int focusSoftness = 80;
+	FocusStyle focusStyle = FocusStyle::Dim;
+	/* Blur radius in canvas pixels for the Blur styles. */
+	int focusBlurPx = 16;
 	/* Global hotkey that pauses/resumes all zooming (empty = none). */
 	QString pauseHotkeySequence;
 	bool isZoomPaused() const { return zoomPaused; }
@@ -306,7 +320,21 @@ private:
 		bool lastAppliedValid = false;
 		vec2 lastAppliedPos{};
 		vec2 lastAppliedScale{};
+		/* Focus blur: the source the filter sits on (strong ref) and the
+		 * filter itself (strong ref). Both null when blur is not in use. */
+		obs_source_t *blurTarget = nullptr;
+		obs_source_t *blurFilter = nullptr;
 	};
+
+	/* Focus blur plumbing. attach/detach are main thread only. */
+	bool wantsBlur() const { return focusEnabled && focusStyle != FocusStyle::Dim; }
+	bool wantsDim() const
+	{
+		return focusEnabled && (focusStyle != FocusStyle::Blur || blurUnavailable);
+	}
+	void attachBlurFilters();
+	void detachBlurFilters();
+	bool blurUnavailable = false;
 
 	QString sceneItemKey(obs_sceneitem_t *item) const;
 	OrigState readSceneItemTransform(obs_sceneitem_t *item) const;

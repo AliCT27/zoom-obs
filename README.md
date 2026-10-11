@@ -57,6 +57,14 @@ It operates at the **scene level**, meaning it works with any source automatical
   tab, such as a webcam or logo, stay above the dimming and are not darkened.
   Off by default.
 
+- **Focus styles (new in 2.3)**
+  Choose how the area outside the spotlight is treated: Dim, Blur, or
+  Blur + Dim. Blur uses a small shader (`data/focus_blur.effect`), so the
+  plugin's `data` folder must be installed next to the DLL; if the shader
+  cannot be loaded the plugin falls back to Dim and logs a warning. Blur is
+  applied only while zooming and removed from the source afterwards, so it never
+  shows up in your filter lists.
+
 - **Pause / Resume hotkey (new in 2.2)**
   One key that switches all zooming off and on, for when you are talking and
   do not want the view to move. Works while OBS is in the background.
