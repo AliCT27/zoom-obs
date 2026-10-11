@@ -1,5 +1,6 @@
 #include "zoominator-controller.hpp"
 #include "focus-blur-filter.hpp"
+#include "caret-locator.hpp"
 
 #include <obs-frontend-api.h>
 #include <obs.h>
@@ -702,6 +703,7 @@ void ZoominatorController::initialize()
 	obs_frontend_add_event_callback(frontendEventCallback, this);
 	obs_add_tick_callback(videoTickCallback, this);
 	tickCallbackAdded = true;
+	zoominator_caret::start();
 	QTimer::singleShot(1500, this, [this]() { installHooks(); });
 	QTimer::singleShot(3000, this, [this]() { requestRecoveryRestore(); });
 	QTimer::singleShot(5000, this, [this]() { cleanup_legacy_marker_items_all_scenes(markerSource); });
@@ -721,6 +723,7 @@ void ZoominatorController::shutdown()
 	tickingWanted.store(false, std::memory_order_release);
 	obs_frontend_remove_event_callback(frontendEventCallback, this);
 	uninstallHooks();
+	zoominator_caret::stop();
 	ensureTicking(false);
 	detachBlurFilters();
 
@@ -782,6 +785,7 @@ void ZoominatorController::loadSettings()
 	autoOnClick = true;
 	autoOnTyping = true;
 	autoHoldMs = 2500;
+	caretFollow = true;
 	focusEnabled = false;
 	focusDimPct = 55;
 	focusRadius = 300;
@@ -964,6 +968,8 @@ void ZoominatorController::loadSettings()
 		autoOnClick = obs_data_get_bool(data, "auto_on_click");
 	if (obs_data_has_user_value(data, "auto_on_typing"))
 		autoOnTyping = obs_data_get_bool(data, "auto_on_typing");
+	if (obs_data_has_user_value(data, "caret_follow"))
+		caretFollow = obs_data_get_bool(data, "caret_follow");
 	if (obs_data_has_user_value(data, "auto_hold_ms"))
 		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
 	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
@@ -1101,6 +1107,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "easing", zoomEasingToString(easing).toUtf8().constData());
 	obs_data_set_bool(data, "auto_on_click", autoOnClick);
 	obs_data_set_bool(data, "auto_on_typing", autoOnTyping);
+	obs_data_set_bool(data, "caret_follow", caretFollow);
 	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
 	obs_data_set_bool(data, "focus_enabled", focusEnabled);
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
@@ -3502,7 +3509,18 @@ void ZoominatorController::onTick()
 	int cx = 0, cy = 0;
 	float sx = 0.0f, sy = 0.0f;
 	bool insideNow = false;
-	const bool mappedNow = getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, insideNow);
+	/* While typing in auto mode, aim at the text caret instead of the mouse so the
+	 * view follows what is being written. A click or mouse-driven zoom, or an app
+	 * that does not expose its caret, leaves the mouse in charge. */
+	bool haveAim = false;
+	if (caretFollow && triggerType == "auto") {
+		const qint64 nowAimMs = QDateTime::currentMSecsSinceEpoch();
+		if (autoLastTypingMs > 0 && nowAimMs - autoLastTypingMs < 1500 && autoLastTypingMs >= autoLastClickMs)
+			haveAim = zoominator_caret::latestLogical(cx, cy, 600);
+	}
+	if (!haveAim)
+		haveAim = getCursorPos(cx, cy);
+	const bool mappedNow = haveAim && mapCursorToScenePixels(cx, cy, sx, sy, insideNow);
 
 	obs_source_t *previousRef = nullptr;
 	{
@@ -3833,7 +3851,7 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
 			 * are ignored so editor commands do not trigger it. */
 			if (down && g_ctl->autoOnTyping && !is_modifier_vk(vk) && !shortcut_modifier_held())
-				g_ctl->onAutoActivity();
+				g_ctl->onAutoActivity(true);
 			return CallNextHookEx((HHOOK)g_ctl->keyboardHook, nCode, wParam, lParam);
 		}
 
@@ -4043,7 +4061,7 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 			const bool shortcut =
 				(flags & (kCGEventFlagMaskCommand | kCGEventFlagMaskControl | kCGEventFlagMaskAlternate)) != 0;
 			if (down && ctl->autoOnTyping && !shortcut)
-				ctl->onAutoActivity();
+				ctl->onAutoActivity(true);
 			return event;
 		}
 	}
@@ -4434,7 +4452,7 @@ static bool obs_window_is_foreground()
 #endif
 }
 
-void ZoominatorController::onAutoActivity()
+void ZoominatorController::onAutoActivity(bool typing)
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
@@ -4442,6 +4460,12 @@ void ZoominatorController::onAutoActivity()
 		return;
 
 	autoLastActivityMs = QDateTime::currentMSecsSinceEpoch();
+	if (typing) {
+		autoLastTypingMs = autoLastActivityMs;
+		zoominator_caret::noteTyping();
+	} else {
+		autoLastClickMs = autoLastActivityMs;
+	}
 	if (zoomLatched)
 		return;
 

@@ -113,6 +113,8 @@ public:
 	bool autoOnClick = true;
 	bool autoOnTyping = true;
 	int autoHoldMs = 2500;
+	/* While typing in auto mode, follow the text caret instead of the mouse (Windows). */
+	bool caretFollow = true;
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
 	int focusDimPct = 55;
@@ -166,7 +168,7 @@ private:
 	bool needsMouseHook() const;
 	void onTriggerDown();
 	void onTriggerUp();
-	void onAutoActivity();
+	void onAutoActivity(bool typing = false);
 	void checkAutoIdle();
 	void beginWheelZoomGesture();
 	void adjustActiveZoomFromWheel(int direction, int steps = 1);
@@ -257,6 +259,8 @@ private:
 	bool zoomPressed = false;
 	bool zoomLatched = false;
 	qint64 autoLastActivityMs = 0;
+	qint64 autoLastTypingMs = 0;
+	qint64 autoLastClickMs = 0;
 	bool zoomAdjustButtonHeld = false;
 	bool zoomAdjustedDuringButtonHold = false;
 	int wheelDeltaRemainder = 0;

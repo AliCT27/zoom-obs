@@ -338,6 +338,11 @@ void ZoominatorDialog::buildUi()
 			chkAutoClick = new QCheckBox(T("Dialog.AutoOnClick"), rowAutoWidget);
 			chkAutoTyping = new QCheckBox(T("Dialog.AutoOnTyping"), rowAutoWidget);
 			chkAutoTyping->setToolTip(T("Dialog.AutoOnTypingTooltip"));
+			chkCaretFollow = new QCheckBox(T("Dialog.CaretFollow"), rowAutoWidget);
+			chkCaretFollow->setToolTip(T("Dialog.CaretFollowTooltip"));
+#ifndef _WIN32
+			chkCaretFollow->setEnabled(false);
+#endif
 			spAutoHold = new QSpinBox(rowAutoWidget);
 			spAutoHold->setRange(300, 60000);
 			spAutoHold->setSingleStep(100);
@@ -345,6 +350,7 @@ void ZoominatorDialog::buildUi()
 			spAutoHold->setToolTip(T("Dialog.AutoHoldTooltip"));
 			v->addWidget(chkAutoClick);
 			v->addWidget(chkAutoTyping);
+			v->addWidget(chkCaretFollow);
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
 		}
 		lay->addWidget(rowAutoWidget);
@@ -838,6 +844,7 @@ void ZoominatorDialog::loadFromController()
 			syncFocusFieldsFn();
 		chkAutoClick->setChecked(c.autoOnClick);
 		chkAutoTyping->setChecked(c.autoOnTyping);
+		chkCaretFollow->setChecked(c.caretFollow);
 		spAutoHold->setValue(c.autoHoldMs);
 		updateTriggerRows();
 	}
@@ -922,6 +929,7 @@ void ZoominatorDialog::applyToController()
 	c.focusSoftness = spFocusSoftness->value();
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
+	c.caretFollow = chkCaretFollow->isChecked();
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
@@ -974,6 +982,7 @@ void ZoominatorDialog::applyReelsPreset()
 		cmbTrigger->setCurrentIndex(autoIdx);
 	chkAutoClick->setChecked(true);
 	chkAutoTyping->setChecked(true);
+	chkCaretFollow->setChecked(true);
 	spAutoHold->setValue(2500);
 
 	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further

@@ -66,6 +66,7 @@ private:
 	QWidget *rowAutoWidget = nullptr;
 	QCheckBox *chkAutoClick = nullptr;
 	QCheckBox *chkAutoTyping = nullptr;
+	QCheckBox *chkCaretFollow = nullptr;
 	QSpinBox *spAutoHold = nullptr;
 	QComboBox *cmbEasing = nullptr;
 	QPushButton *btnReelsPreset = nullptr;
