@@ -54,6 +54,8 @@ if(UNIX AND NOT APPLE)
 endif()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+  src/focus-blur-filter.cpp
+  src/focus-blur-filter.hpp
   src/plugin-main.cpp
   src/zoominator-controller.cpp
   src/zoominator-controller.hpp

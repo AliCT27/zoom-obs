@@ -1,0 +1,77 @@
+// Zoominator focus blur: leaves a soft circle around the cursor sharp and blurs
+// everything outside it. All positions and sizes are in pixels of the source
+// this filter is applied to, not canvas pixels.
+//
+// A single pass with a golden-angle spiral of 48 taps. It is much cheaper than a
+// two-pass gaussian and looks smooth enough for a background that is only
+// there to pull the eye towards the cursor.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 texel_size;  // 1 / source size
+uniform float2 center_px;   // cursor position inside the source
+uniform float radius_px;    // radius of the sharp area
+uniform float soft_px;      // width of the sharp -> blurred transition
+uniform float blur_px;      // maximum blur radius
+uniform float strength;     // 0 = off, 1 = full (animated while zooming)
+
+sampler_state blur_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = vert_in.uv;
+	return vert_out;
+}
+
+float4 PSFocusBlur(VertInOut vert_in) : TARGET
+{
+	float4 base = image.Sample(blur_sampler, vert_in.uv);
+
+	if (strength <= 0.001 || blur_px <= 0.5)
+		return base;
+
+	float2 p = vert_in.uv / texel_size;
+	float d = length(p - center_px);
+
+	float inner = max(0.0, radius_px - soft_px * 0.5);
+	float outer = radius_px + soft_px * 0.5;
+	float t = saturate((d - inner) / max(outer - inner, 0.001));
+	t = t * t * (3.0 - 2.0 * t);
+
+	float r = blur_px * t * strength;
+	if (r < 0.5)
+		return base;
+
+	float4 acc = base;
+	float wsum = 1.0;
+	for (int i = 1; i <= 48; i++) {
+		float fi = float(i);
+		float a = fi * 2.39996323;
+		float rad = sqrt(fi / 48.0) * r;
+		float2 off = float2(cos(a), sin(a)) * rad * texel_size;
+		acc += image.Sample(blur_sampler, vert_in.uv + off);
+		wsum += 1.0;
+	}
+	return acc / wsum;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSFocusBlur(vert_in);
+	}
+}
