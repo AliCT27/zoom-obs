@@ -113,6 +113,9 @@ public:
 	bool autoOnClick = true;
 	bool autoOnTyping = true;
 	int autoHoldMs = 2500;
+	/* Automatic mode: zoom back out by itself after autoHoldMs without activity.
+	 * When off, only the Zoom Out hotkey zooms out. */
+	bool autoZoomOutEnabled = true;
 	/* While typing in auto mode, follow the text caret instead of the mouse (Windows). */
 	bool caretFollow = true;
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
@@ -389,8 +392,6 @@ private:
 	static HotkeyBinding makeHotkeyBinding(const QString &sequence);
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
-	/* Set by Zoom In hotkey: the idle timer must not zoom back out. */
-	bool autoManualHold = false;
 	qint64 autoLastManualKeyMs = 0;
 	int pauseHotkeyVk = 0;
 	bool pauseHkValid = false;

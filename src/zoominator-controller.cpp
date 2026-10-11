@@ -253,7 +253,6 @@ void ZoominatorController::resetState()
 	detachBlurFilters();
 	zoomPressed = false;
 	zoomLatched = false;
-	autoManualHold = false;
 	zoomActive.store(false, std::memory_order_release);
 	tickingWanted.store(false, std::memory_order_release);
 	pendingFinish.store(false, std::memory_order_release);

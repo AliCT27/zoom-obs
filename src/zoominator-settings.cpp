@@ -136,6 +136,7 @@ void ZoominatorController::loadSettings()
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
 	pauseHotkeySequence.clear();
+	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
 	followMouseRuntimeEnabled = true;
@@ -335,6 +336,8 @@ void ZoominatorController::loadSettings()
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	pauseHotkeySequence = getStr("pause_hotkey");
+	if (obs_data_has_user_value(data, "auto_zoom_out_enabled"))
+		autoZoomOutEnabled = obs_data_get_bool(data, "auto_zoom_out_enabled");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
 	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
 
@@ -463,6 +466,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
 	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
+	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */

@@ -351,7 +351,11 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(chkAutoClick);
 			v->addWidget(chkAutoTyping);
 			v->addWidget(chkCaretFollow);
+			chkAutoZoomOut = new QCheckBox(T("Dialog.AutoZoomOut"), rowAutoWidget);
+			chkAutoZoomOut->setToolTip(T("Dialog.AutoZoomOutTooltip"));
+			v->addWidget(chkAutoZoomOut);
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
+			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
 
 			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
 				auto *row = new QWidget(rowAutoWidget);
@@ -864,6 +868,8 @@ void ZoominatorDialog::loadFromController()
 		chkAutoClick->setChecked(c.autoOnClick);
 		chkAutoTyping->setChecked(c.autoOnTyping);
 		chkCaretFollow->setChecked(c.caretFollow);
+		chkAutoZoomOut->setChecked(c.autoZoomOutEnabled);
+		spAutoHold->setEnabled(c.autoZoomOutEnabled);
 		spAutoHold->setValue(c.autoHoldMs);
 		updateTriggerRows();
 	}
@@ -951,6 +957,7 @@ void ZoominatorDialog::applyToController()
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
 	c.caretFollow = chkCaretFollow->isChecked();
+	c.autoZoomOutEnabled = chkAutoZoomOut->isChecked();
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
@@ -1004,6 +1011,7 @@ void ZoominatorDialog::applyReelsPreset()
 	chkAutoClick->setChecked(true);
 	chkAutoTyping->setChecked(true);
 	chkCaretFollow->setChecked(true);
+	chkAutoZoomOut->setChecked(true);
 	spAutoHold->setValue(2500);
 
 	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further
