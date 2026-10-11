@@ -258,6 +258,30 @@ int qtKeyToVk(int qtKey)
 #endif
 }
 
+ZoominatorController::HotkeyBinding ZoominatorController::makeHotkeyBinding(const QString &sequence)
+{
+	HotkeyBinding b;
+	const QKeySequence seq(sequence);
+	if (seq.isEmpty())
+		return b;
+
+	const QKeyCombination kc = seq[0];
+	const auto mods = kc.keyboardModifiers();
+	const int key = int(kc.key());
+	/* A modifier on its own is not a usable key. */
+	if (key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr || key == Qt::Key_Shift ||
+	    key == Qt::Key_Meta || key == 0)
+		return b;
+
+	b.vk = qtKeyToVk(key);
+	b.ctrl = mods.testFlag(Qt::ControlModifier);
+	b.alt = mods.testFlag(Qt::AltModifier);
+	b.shift = mods.testFlag(Qt::ShiftModifier);
+	b.win = mods.testFlag(Qt::MetaModifier);
+	b.valid = b.vk != 0;
+	return b;
+}
+
 void ZoominatorController::rebuildPauseHotkey()
 {
 	pauseHkValid = false;
@@ -290,6 +314,8 @@ void ZoominatorController::rebuildPauseHotkey()
 void ZoominatorController::rebuildTriggersFromSettings()
 {
 	rebuildPauseHotkey();
+	manualZoomInBinding = makeHotkeyBinding(manualZoomInSequence);
+	manualZoomOutBinding = makeHotkeyBinding(manualZoomOutSequence);
 	hkValid = false;
 	hotkeyVk = 0;
 	followToggleHkValid = false;

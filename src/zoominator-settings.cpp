@@ -136,6 +136,8 @@ void ZoominatorController::loadSettings()
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
 	pauseHotkeySequence.clear();
+	manualZoomInSequence.clear();
+	manualZoomOutSequence.clear();
 	followMouseRuntimeEnabled = true;
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
@@ -333,6 +335,8 @@ void ZoominatorController::loadSettings()
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	pauseHotkeySequence = getStr("pause_hotkey");
+	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
+	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
 
 	/* `zoom_anchor` supersedes the `follow_mouse` boolean. Configs written by
 	 * older builds only have the boolean, so migrate it: following stays
@@ -459,6 +463,8 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
 	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
+	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
+	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */
 	obs_data_set_bool(data, "follow_mouse", zoomAnchor == ZoomAnchorMode::CursorFollow);
 	followMouseRuntimeEnabled = true;

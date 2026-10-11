@@ -69,20 +69,8 @@ static bool obs_window_is_foreground()
 #endif
 }
 
-void ZoominatorController::onAutoActivity(bool typing)
+void ZoominatorController::beginAutoZoom()
 {
-	if (triggerType != "auto" || shuttingDown)
-		return;
-	if (zoomPaused || obs_window_is_foreground())
-		return;
-
-	autoLastActivityMs = QDateTime::currentMSecsSinceEpoch();
-	if (typing) {
-		autoLastTypingMs = autoLastActivityMs;
-		zoominator_caret::noteTyping();
-	} else {
-		autoLastClickMs = autoLastActivityMs;
-	}
 	if (zoomLatched)
 		return;
 
@@ -99,9 +87,55 @@ void ZoominatorController::onAutoActivity(bool typing)
 	startZoomIn();
 }
 
+void ZoominatorController::onAutoActivity(bool typing)
+{
+	if (triggerType != "auto" || shuttingDown)
+		return;
+	if (zoomPaused || obs_window_is_foreground())
+		return;
+
+	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+	/* The key that just ran a Zoom In / Zoom Out hotkey is not typing. */
+	if (typing && nowMs - autoLastManualKeyMs < 80)
+		return;
+
+	autoLastActivityMs = nowMs;
+	if (typing) {
+		autoLastTypingMs = autoLastActivityMs;
+		zoominator_caret::noteTyping();
+	} else {
+		autoLastClickMs = autoLastActivityMs;
+	}
+	beginAutoZoom();
+}
+
+/* Zoom In hotkey: zoom in now and stay zoomed until Zoom Out is pressed. */
+void ZoominatorController::manualZoomIn()
+{
+	if (triggerType != "auto" || shuttingDown || zoomPaused)
+		return;
+	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
+	autoLastActivityMs = autoLastManualKeyMs;
+	autoManualHold = true;
+	beginAutoZoom();
+}
+
+/* Zoom Out hotkey: zoom out now and hand control back to the automatic triggers. */
+void ZoominatorController::manualZoomOut()
+{
+	if (triggerType != "auto" || shuttingDown)
+		return;
+	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
+	autoManualHold = false;
+	if (!zoomLatched)
+		return;
+	zoomLatched = false;
+	startZoomOut();
+}
+
 void ZoominatorController::checkAutoIdle()
 {
-	if (triggerType != "auto" || !zoomLatched)
+	if (triggerType != "auto" || !zoomLatched || autoManualHold)
 		return;
 	/* Do not cut a zoom-in short: wait until it has settled. */
 	if (animDir.load(std::memory_order_relaxed) > 0)

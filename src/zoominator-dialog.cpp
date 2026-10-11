@@ -352,6 +352,23 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(chkAutoTyping);
 			v->addWidget(chkCaretFollow);
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
+
+			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
+				auto *row = new QWidget(rowAutoWidget);
+				auto *h = new QHBoxLayout(row);
+				h->setContentsMargins(0, 0, 0, 0);
+				h->setSpacing(6);
+				edit = new QKeySequenceEdit(row);
+				edit->setToolTip(T(tip));
+				auto *clear = new QPushButton(T("Dialog.Clear"), row);
+				QKeySequenceEdit *e = edit;
+				connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+				h->addWidget(edit, 1);
+				h->addWidget(clear);
+				v->addWidget(mkField(T(label), row));
+			};
+			makeKeyRow(editManualZoomIn, "Dialog.ManualZoomIn", "Dialog.ManualZoomInTooltip");
+			makeKeyRow(editManualZoomOut, "Dialog.ManualZoomOut", "Dialog.ManualZoomOutTooltip");
 		}
 		lay->addWidget(rowAutoWidget);
 
@@ -807,6 +824,8 @@ void ZoominatorDialog::loadFromController()
 
 		editFollowToggleHotkey->setKeySequence(QKeySequence(c.followToggleHotkeySequence));
 		editPauseHotkey->setKeySequence(QKeySequence(c.pauseHotkeySequence));
+		editManualZoomIn->setKeySequence(QKeySequence(c.manualZoomInSequence));
+		editManualZoomOut->setKeySequence(QKeySequence(c.manualZoomOutSequence));
 	}
 
 	{
@@ -894,6 +913,8 @@ void ZoominatorDialog::applyToController()
 	c.hotkeyMode = cmbMode->currentData().toString();
 	c.followToggleHotkeySequence = editFollowToggleHotkey->keySequence().toString(QKeySequence::NativeText);
 	c.pauseHotkeySequence = editPauseHotkey->keySequence().toString(QKeySequence::NativeText);
+	c.manualZoomInSequence = editManualZoomIn->keySequence().toString(QKeySequence::NativeText);
+	c.manualZoomOutSequence = editManualZoomOut->keySequence().toString(QKeySequence::NativeText);
 
 	c.triggerType = cmbTrigger->currentData().toString();
 	c.mouseButton = cmbMouseBtn->currentData().toString();
