@@ -135,6 +135,9 @@ public:
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
+	/* Keep the focus point (cursor or text caret) exactly in the middle of the
+	 * canvas while zoomed, even near the edges of the capture. */
+	bool centerFocus = false;
 	int edgeOverflowMarginPct = 0;
 	int mouseIdleTimeoutMs = 0;
 	bool portraitCover = true;

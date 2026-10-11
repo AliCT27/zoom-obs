@@ -475,6 +475,9 @@ void ZoominatorDialog::buildUi()
 		chkCenterCursorUntilEdge = new QCheckBox(T("Dialog.CenterCursorUntilEdge"), page);
 		chkCenterCursorUntilEdge->setToolTip(T("Dialog.CenterCursorUntilEdgeTooltip"));
 
+		chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
+		chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
+
 		spEdgeOverflowMargin = new QSpinBox(page);
 		spEdgeOverflowMargin->setRange(0, 50);
 		spEdgeOverflowMargin->setSingleStep(5);
@@ -504,6 +507,7 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(overflowRow);
 
 		lay->addWidget(chkCenterCursorUntilEdge);
+		lay->addWidget(chkCenterFocus);
 
 		/* Smoothing and the idle freeze only mean something while the anchor
 		 * actually tracks the cursor. */
@@ -890,6 +894,7 @@ void ZoominatorDialog::loadFromController()
 		spFollowSpeed->setValue(c.followSpeed);
 		chkCenterCursorUntilEdge->setChecked(c.centerCursorUntilEdge);
 		spEdgeOverflowMargin->setValue(c.edgeOverflowMarginPct);
+		chkCenterFocus->setChecked(c.centerFocus);
 		spMouseIdleTimeout->setValue(c.mouseIdleTimeoutMs);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
@@ -963,6 +968,7 @@ void ZoominatorDialog::applyToController()
 	c.followSpeed = spFollowSpeed->value();
 	c.centerCursorUntilEdge = chkCenterCursorUntilEdge->isChecked();
 	c.edgeOverflowMarginPct = spEdgeOverflowMargin->value();
+	c.centerFocus = chkCenterFocus->isChecked();
 	c.mouseIdleTimeoutMs = spMouseIdleTimeout->value();
 	c.portraitCover = chkPortraitCover->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();

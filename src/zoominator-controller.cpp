@@ -396,7 +396,7 @@ void ZoominatorController::applyZoomToScene(double t)
 	/* Re-centre the view on the cursor when the margin is enabled or when cover
 	 * mode is zooming far past the canvas; the clamp below still keeps the
 	 * capture covering the canvas. */
-	const bool centerAnchor = allowOverflow || coverActive;
+	const bool centerAnchor = allowOverflow || coverActive || centerFocus;
 
 	if (zoomAnchor == ZoomAnchorMode::CursorFollow && followMouseRuntimeEnabled && !mouseTrackingIdle) {
 		targetHasPos = false;
@@ -520,6 +520,13 @@ void ZoominatorController::applyZoomToScene(double t)
 		offsetY = clampd(0.0, minOffsetYClamped, maxOffsetYClamped);
 	} else {
 		offsetY = (minOffsetYClamped + maxOffsetYClamped) * 0.5;
+	}
+
+	/* Centre-focus: no edge clamp at all, so the focus point stays in the middle
+	 * of the canvas. Near the capture edges this shows empty canvas. */
+	if (centerFocus) {
+		offsetX = 0.0;
+		offsetY = 0.0;
 	}
 
 	const qint64 nowApplyMs = nowMs;

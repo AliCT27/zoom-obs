@@ -143,6 +143,7 @@ void ZoominatorController::loadSettings()
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
 	edgeOverflowMarginPct = 0;
+	centerFocus = false;
 	mouseIdleTimeoutMs = 0;
 	portraitCover = true;
 	showCursorMarker = false;
@@ -362,6 +363,8 @@ void ZoominatorController::loadSettings()
 	else if (obs_data_has_user_value(data, "allow_canvas_overflow"))
 		edgeOverflowMarginPct = obs_data_get_bool(data, "allow_canvas_overflow") ? 50 : 0;
 	edgeOverflowMarginPct = std::clamp(edgeOverflowMarginPct, 0, 50);
+	if (obs_data_has_user_value(data, "center_focus"))
+		centerFocus = obs_data_get_bool(data, "center_focus");
 	if (obs_data_has_user_value(data, "mouse_idle_timeout_ms"))
 		mouseIdleTimeoutMs = (int)obs_data_get_int(data, "mouse_idle_timeout_ms");
 	mouseIdleTimeoutMs = std::clamp(mouseIdleTimeoutMs, 0, 60000);
@@ -475,6 +478,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "follow_speed", followSpeed);
 	obs_data_set_bool(data, "center_cursor_until_edge", centerCursorUntilEdge);
 	obs_data_set_int(data, "edge_overflow_margin_pct", edgeOverflowMarginPct);
+	obs_data_set_bool(data, "center_focus", centerFocus);
 	obs_data_set_bool(data, "allow_canvas_overflow", edgeOverflowMarginPct > 0);
 	obs_data_set_int(data, "mouse_idle_timeout_ms", mouseIdleTimeoutMs);
 	obs_data_set_bool(data, "portrait_cover", portraitCover);
