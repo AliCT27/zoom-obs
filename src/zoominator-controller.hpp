@@ -125,6 +125,9 @@ public:
 	int focusBlurPx = 16;
 	/* Global hotkey that pauses/resumes all zooming (empty = none). */
 	QString pauseHotkeySequence;
+	/* Automatic mode only: zoom in (and stay zoomed) / zoom out on demand. */
+	QString manualZoomInSequence;
+	QString manualZoomOutSequence;
 	bool isZoomPaused() const { return zoomPaused; }
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
@@ -170,6 +173,10 @@ private:
 	void onTriggerUp();
 	void onAutoActivity(bool typing = false);
 	void checkAutoIdle();
+	/* Automatic mode: hotkeys that zoom in and hold, and zoom out and release. */
+	void manualZoomIn();
+	void manualZoomOut();
+	void beginAutoZoom();
 	void beginWheelZoomGesture();
 	void adjustActiveZoomFromWheel(int direction, int steps = 1);
 	bool usesWheelZoomGesture() const;
@@ -370,6 +377,21 @@ private:
 	uint64_t focusAppearanceHash = 0;
 	bool focusShown = false;
 	bool zoomPaused = false;
+	/* A global key and the modifiers it needs, ready for the hook procs. */
+	struct HotkeyBinding {
+		int vk = 0;
+		bool valid = false;
+		bool ctrl = false;
+		bool alt = false;
+		bool shift = false;
+		bool win = false;
+	};
+	static HotkeyBinding makeHotkeyBinding(const QString &sequence);
+	HotkeyBinding manualZoomInBinding;
+	HotkeyBinding manualZoomOutBinding;
+	/* Set by Zoom In hotkey: the idle timer must not zoom back out. */
+	bool autoManualHold = false;
+	qint64 autoLastManualKeyMs = 0;
 	int pauseHotkeyVk = 0;
 	bool pauseHkValid = false;
 	bool pauseModCtrl = false;

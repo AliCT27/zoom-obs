@@ -213,6 +213,17 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 			g_ctl->togglePauseZoom();
 		}
 
+		if (down && g_ctl->manualZoomInBinding.valid && vk_matches(vk, g_ctl->manualZoomInBinding.vk) &&
+		    mods_current(g_ctl->manualZoomInBinding.ctrl, g_ctl->manualZoomInBinding.alt,
+				 g_ctl->manualZoomInBinding.shift, g_ctl->manualZoomInBinding.win)) {
+			g_ctl->manualZoomIn();
+		}
+		if (down && g_ctl->manualZoomOutBinding.valid && vk_matches(vk, g_ctl->manualZoomOutBinding.vk) &&
+		    mods_current(g_ctl->manualZoomOutBinding.ctrl, g_ctl->manualZoomOutBinding.alt,
+				 g_ctl->manualZoomOutBinding.shift, g_ctl->manualZoomOutBinding.win)) {
+			g_ctl->manualZoomOut();
+		}
+
 		if (g_ctl->triggerType == "auto") {
 			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
 			 * are ignored so editor commands do not trigger it. */
@@ -422,6 +433,17 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 			ctl->togglePauseZoom();
 		}
 
+		if (down && ctl->manualZoomInBinding.valid && vk_matches(keycode, ctl->manualZoomInBinding.vk) &&
+		    mods_current(ctl->manualZoomInBinding.ctrl, ctl->manualZoomInBinding.alt,
+				 ctl->manualZoomInBinding.shift, ctl->manualZoomInBinding.win)) {
+			ctl->manualZoomIn();
+		}
+		if (down && ctl->manualZoomOutBinding.valid && vk_matches(keycode, ctl->manualZoomOutBinding.vk) &&
+		    mods_current(ctl->manualZoomOutBinding.ctrl, ctl->manualZoomOutBinding.alt,
+				 ctl->manualZoomOutBinding.shift, ctl->manualZoomOutBinding.win)) {
+			ctl->manualZoomOut();
+		}
+
 		if (ctl->triggerType == "auto") {
 			const CGEventFlags flags = CGEventGetFlags(event);
 			const bool shortcut =
@@ -628,6 +650,17 @@ void ZoominatorController::processXInput2Events()
 				togglePauseZoom();
 			}
 
+			if (down && manualZoomInBinding.valid && vk_matches((int)sym, manualZoomInBinding.vk) &&
+			    mods_current(manualZoomInBinding.ctrl, manualZoomInBinding.alt, manualZoomInBinding.shift,
+					 manualZoomInBinding.win)) {
+				manualZoomIn();
+			}
+			if (down && manualZoomOutBinding.valid && vk_matches((int)sym, manualZoomOutBinding.vk) &&
+			    mods_current(manualZoomOutBinding.ctrl, manualZoomOutBinding.alt, manualZoomOutBinding.shift,
+					 manualZoomOutBinding.win)) {
+				manualZoomOut();
+			}
+
 			if (triggerType == "auto" && down && autoOnTyping && !is_modifier_vk((int)sym)) {
 				const ModifierState ms = current_modifiers();
 				const bool shortcut = ms.leftCtrl || ms.rightCtrl || ms.leftAlt || ms.rightAlt ||
@@ -754,7 +787,8 @@ bool ZoominatorController::triggerMatchesMouse(unsigned int msg, unsigned short 
 
 bool ZoominatorController::needsKeyboardHook() const
 {
-	return triggerType == "keyboard" || followToggleHkValid || pauseHkValid ||
+	return triggerType == "keyboard" || followToggleHkValid || pauseHkValid || manualZoomInBinding.valid ||
+	       manualZoomOutBinding.valid ||
 	       (triggerType == "auto" && autoOnTyping);
 }
 

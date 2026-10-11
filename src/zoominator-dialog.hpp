@@ -53,6 +53,8 @@ private:
 	QKeySequenceEdit *editFollowToggleHotkey = nullptr;
 	QPushButton *btnClearFollowToggleHotkey = nullptr;
 	QKeySequenceEdit *editPauseHotkey = nullptr;
+	QKeySequenceEdit *editManualZoomIn = nullptr;
+	QKeySequenceEdit *editManualZoomOut = nullptr;
 	QPushButton *btnClearPauseHotkey = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
