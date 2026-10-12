@@ -8,8 +8,6 @@
 #include "zoominator-internal.hpp"
 #include "frame-source.hpp"
 
-static constexpr const char *kZoominatorFrameSourceName = "Zoominator Frame";
-
 static void normalize_frame_scene_item(obs_sceneitem_t *item)
 {
 	if (!item)
