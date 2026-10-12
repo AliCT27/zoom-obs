@@ -127,6 +127,16 @@ public:
 	uint32_t frameBgColor2 = 0xFF0B3A52;
 	int frameBgMode = 0; /* 0 solid, 1 linear gradient, 2 radial gradient */
 	int frameBgAngle = 90;
+
+	/* Webcam ring: turns the chosen source (a phone camera, a webcam) into a circle
+	 * with a ring and glow, and scales it with the zoom. */
+	bool camRingEnabled = false;
+	QString camSourceName;
+	uint32_t camRingColor = 0xFF2EA8DC;
+	int camRingPx = 6;
+	int camGlowPx = 28;
+	int camGlowPct = 80;
+	int camZoomPct = 125; /* size at full zoom, in percent of normal; 100 = unchanged */
 	int frameBorderPx = 4;
 	int frameRadiusPx = 24;
 	int frameGlowPx = 80;
@@ -248,6 +258,9 @@ private:
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
 	void refreshFrame();
+	void refreshCamRing();
+	void captureCamItem(obs_scene_t *scene);
+	void restoreCamItem();
 	void hideFrameInAllScenes();
 
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
@@ -405,6 +418,15 @@ private:
 	uint64_t focusAppearanceHash = 0;
 	bool focusShown = false;
 	obs_source_t *frameSource = nullptr;
+	obs_source_t *camFilter = nullptr;
+	obs_source_t *camFilterTarget = nullptr;
+	bool camRingUnavailable = false;
+	/* The webcam's scene item while a zoom runs, so it can be scaled with the zoom. */
+	obs_sceneitem_t *camItem = nullptr;
+	OrigState camOrig;
+	bool camLastValid = false;
+	vec2 camLastScale{};
+	vec2 camLastPos{};
 	bool zoomPaused = false;
 	/* A global key and the modifiers it needs, ready for the hook procs. */
 	struct HotkeyBinding {

@@ -139,7 +139,10 @@ ZoominatorController::ZoominatorController()
 	tickTimer.setTimerType(Qt::PreciseTimer);
 	connect(&tickTimer, &QTimer::timeout, this, &ZoominatorController::onTick);
 	frameTimer.setInterval(500);
-	connect(&frameTimer, &QTimer::timeout, this, &ZoominatorController::refreshFrame);
+	connect(&frameTimer, &QTimer::timeout, this, [this]() {
+		refreshFrame();
+		refreshCamRing();
+	});
 }
 
 ZoominatorController::~ZoominatorController()
@@ -181,6 +184,14 @@ void ZoominatorController::shutdown()
 	ensureTicking(false);
 	detachBlurFilters();
 	zoominator_frame::clearRect();
+	if (camFilter) {
+		zoominator_camring::detach(camFilterTarget, camFilter);
+		camFilter = nullptr;
+	}
+	if (camFilterTarget) {
+		obs_source_release(camFilterTarget);
+		camFilterTarget = nullptr;
+	}
 
 	obs_source_t *staleRef = nullptr;
 	{
@@ -209,7 +220,9 @@ void ZoominatorController::showDialog()
 
 void ZoominatorController::rebuildRuntimeHooks()
 {
+	camRingUnavailable = false;
 	refreshFrame();
+	refreshCamRing();
 	rebuildTriggersFromSettings();
 	uninstallHooks();
 	installHooks();
@@ -260,6 +273,7 @@ void ZoominatorController::resetState()
 	zoomPressed = false;
 	zoomLatched = false;
 	zoomActive.store(false, std::memory_order_release);
+	restoreCamItem();
 	tickingWanted.store(false, std::memory_order_release);
 	pendingFinish.store(false, std::memory_order_release);
 	animT = 0.0;
@@ -609,6 +623,37 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 	}
 
+	/* Webcam: grows or shrinks around its own centre with the zoom. */
+	if (camItem && isLiveItem(camItem)) {
+		obs_source_t *camSrc = obs_sceneitem_get_source(camItem);
+		const double kk = 1.0 + ((double)camZoomPct / 100.0 - 1.0) * ttA;
+		const float rw = std::max(1.0f, (float)obs_source_get_width(camSrc) - (float)camOrig.crop.left -
+							(float)camOrig.crop.right) *
+				 camOrig.effectiveScale.x;
+		const float rh = std::max(1.0f, (float)obs_source_get_height(camSrc) - (float)camOrig.crop.top -
+							(float)camOrig.crop.bottom) *
+				 camOrig.effectiveScale.y;
+		vec2 csc{};
+		csc.x = camOrig.effectiveScale.x * (float)kk;
+		csc.y = camOrig.effectiveScale.y * (float)kk;
+		vec2 cpos{};
+		cpos.x = camOrig.effectivePos.x + rw * 0.5f - rw * (float)kk * 0.5f;
+		cpos.y = camOrig.effectivePos.y + rh * 0.5f - rh * (float)kk * 0.5f;
+		if (!camLastValid) {
+			obs_sceneitem_set_bounds_type(camItem, OBS_BOUNDS_NONE);
+			obs_sceneitem_set_alignment(camItem, topLeftAlign);
+		}
+		if (!camLastValid || !nearly_equal_vec2(camLastScale, csc, kScaleEpsilon)) {
+			obs_sceneitem_set_scale(camItem, &csc);
+			camLastScale = csc;
+		}
+		if (!camLastValid || !nearly_equal_vec2(camLastPos, cpos)) {
+			obs_sceneitem_set_pos(camItem, &cpos);
+			camLastPos = cpos;
+		}
+		camLastValid = true;
+	}
+
 	/* Frame: the screen's rectangle as it appears right now. */
 	if (frameEnabled) {
 		vec2 fmn{}, fmx{};
@@ -717,6 +762,10 @@ void ZoominatorController::onTick()
 		captureOriginalSceneItems(items);
 		if (sceneItems.empty())
 			return;
+		if (obs_source_t *capScene = obs_frontend_get_current_scene()) {
+			captureCamItem(obs_scene_from_source(capScene));
+			obs_source_release(capScene);
+		}
 		attachBlurFilters();
 	}
 

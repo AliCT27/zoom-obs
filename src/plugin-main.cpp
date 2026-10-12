@@ -1,4 +1,5 @@
 #include "frame-source.hpp"
+#include "cam-ring-filter.hpp"
 #include "focus-blur-filter.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
@@ -20,6 +21,7 @@ bool obs_module_load(void)
 
 	zoominator_blur::registerFilter();
 	zoominator_frame::registerSource();
+	zoominator_camring::registerFilter();
 	ZoominatorController::instance().initialize();
 
 	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.Zoominator"), open_dialog_cb, nullptr);

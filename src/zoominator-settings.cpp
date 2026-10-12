@@ -141,6 +141,13 @@ void ZoominatorController::loadSettings()
 	frameBgColor2 = 0xFF0B3A52;
 	frameBgMode = 0;
 	frameBgAngle = 90;
+	camRingEnabled = false;
+	camSourceName.clear();
+	camRingColor = 0xFF2EA8DC;
+	camRingPx = 6;
+	camGlowPx = 28;
+	camGlowPct = 80;
+	camZoomPct = 125;
 	frameBorderPx = 4;
 	frameRadiusPx = 24;
 	frameGlowPx = 80;
@@ -347,6 +354,19 @@ void ZoominatorController::loadSettings()
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	pauseHotkeySequence = getStr("pause_hotkey");
+	if (obs_data_has_user_value(data, "cam_ring_enabled"))
+		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
+	camSourceName = getStr("cam_source");
+	if (obs_data_has_user_value(data, "cam_ring_color"))
+		camRingColor = (uint32_t)obs_data_get_int(data, "cam_ring_color");
+	if (obs_data_has_user_value(data, "cam_ring_px"))
+		camRingPx = std::clamp((int)obs_data_get_int(data, "cam_ring_px"), 0, 60);
+	if (obs_data_has_user_value(data, "cam_glow_px"))
+		camGlowPx = std::clamp((int)obs_data_get_int(data, "cam_glow_px"), 0, 150);
+	if (obs_data_has_user_value(data, "cam_glow_pct"))
+		camGlowPct = std::clamp((int)obs_data_get_int(data, "cam_glow_pct"), 0, 100);
+	if (obs_data_has_user_value(data, "cam_zoom_pct"))
+		camZoomPct = std::clamp((int)obs_data_get_int(data, "cam_zoom_pct"), 30, 300);
 	if (obs_data_has_user_value(data, "frame_enabled"))
 		frameEnabled = obs_data_get_bool(data, "frame_enabled");
 	if (obs_data_has_user_value(data, "frame_color"))
@@ -498,6 +518,13 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "focus_softness", focusSoftness);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
+	obs_data_set_bool(data, "cam_ring_enabled", camRingEnabled);
+	obs_data_set_string(data, "cam_source", camSourceName.toUtf8().constData());
+	obs_data_set_int(data, "cam_ring_color", (long long)camRingColor);
+	obs_data_set_int(data, "cam_ring_px", camRingPx);
+	obs_data_set_int(data, "cam_glow_px", camGlowPx);
+	obs_data_set_int(data, "cam_glow_pct", camGlowPct);
+	obs_data_set_int(data, "cam_zoom_pct", camZoomPct);
 	obs_data_set_bool(data, "frame_enabled", frameEnabled);
 	obs_data_set_int(data, "frame_color", (long long)frameColor);
 	obs_data_set_int(data, "frame_bg_color", (long long)frameBgColor);

@@ -7,6 +7,7 @@
 #include "zoominator-controller.hpp"
 #include "focus-blur-filter.hpp"
 #include "frame-source.hpp"
+#include "cam-ring-filter.hpp"
 #include "caret-locator.hpp"
 
 
