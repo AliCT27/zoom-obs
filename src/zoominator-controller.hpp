@@ -234,6 +234,7 @@ private:
 
 	/* Focus spotlight (see updateFocus). Main thread only. */
 	QString focusImagePath() const;
+	double focusImagePad() const;
 	void rebuildFocusImage(int canvasW, int canvasH);
 	void ensureFocusFilter();
 	void applyFocusOpacity(int opacity255);
