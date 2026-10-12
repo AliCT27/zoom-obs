@@ -20,6 +20,9 @@ uniform float glow_px;
 uniform float glow_strength;
 uniform float4 border_color;
 uniform float4 bg_color;
+uniform float4 bg_color2;
+uniform float bg_mode;   // 0 solid, 1 linear, 2 radial
+uniform float bg_angle;  // radians, linear only: 0 = left to right, pi/2 = top to bottom
 
 struct VertInOut {
 	float4 pos : POSITION;
@@ -47,6 +50,18 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
 	float3 col = bg_color.rgb;
+	if (bg_mode > 0.5) {
+		float2 cc = canvas_px * 0.5;
+		float t;
+		if (bg_mode < 1.5) {
+			float2 dir = float2(cos(bg_angle), sin(bg_angle));
+			float ext = abs(dir.x) * canvas_px.x + abs(dir.y) * canvas_px.y;
+			t = saturate(dot(p - cc, dir) / max(ext, 1.0) + 0.5);
+		} else {
+			t = saturate(length(p - cc) / max(0.5 * length(canvas_px), 1.0));
+		}
+		col = lerp(bg_color.rgb, bg_color2.rgb, t);
+	}
 
 	// Glow: fades out quadratically from the outer edge of the border.
 	if (glow_px > 0.5) {

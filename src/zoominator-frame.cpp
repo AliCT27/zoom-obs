@@ -51,6 +51,9 @@ void ZoominatorController::refreshFrame()
 		zoominator_frame::Style st;
 		rgba(frameColor, st.borderColor);
 		rgba(frameBgColor, st.bgColor);
+		rgba(frameBgColor2, st.bgColor2);
+		st.bgMode = std::clamp(frameBgMode, 0, 2);
+		st.bgAngleDeg = (float)frameBgAngle;
 		st.borderPx = (float)std::clamp(frameBorderPx, 0, 80);
 		st.radiusPx = (float)std::clamp(frameRadiusPx, 0, 400);
 		st.glowPx = (float)std::clamp(frameGlowPx, 0, 200);

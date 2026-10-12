@@ -15,6 +15,9 @@ namespace zoominator_frame {
 struct Style {
 	float borderColor[4] = {0.18f, 0.80f, 0.25f, 1.0f};
 	float bgColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+	float bgColor2[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+	int bgMode = 0;        /* 0 solid, 1 linear gradient, 2 radial gradient */
+	float bgAngleDeg = 90; /* linear: 0 = left to right, 90 = top to bottom */
 	float borderPx = 4.0f;
 	float radiusPx = 24.0f;
 	float glowPx = 80.0f;

@@ -106,6 +106,9 @@ private:
 	QCheckBox *chkFrame = nullptr;
 	QPushButton *btnFrameColor = nullptr;
 	QPushButton *btnFrameBg = nullptr;
+	QPushButton *btnFrameBg2 = nullptr;
+	QComboBox *cmbFrameBgMode = nullptr;
+	QSpinBox *spFrameBgAngle = nullptr;
 	QSpinBox *spFrameBorder = nullptr;
 	QSpinBox *spFrameRadius = nullptr;
 	QSpinBox *spFrameGlow = nullptr;

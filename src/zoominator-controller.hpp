@@ -124,6 +124,9 @@ public:
 	bool frameEnabled = false;
 	uint32_t frameColor = 0xFF2ECC40;
 	uint32_t frameBgColor = 0xFF000000;
+	uint32_t frameBgColor2 = 0xFF0B3A52;
+	int frameBgMode = 0; /* 0 solid, 1 linear gradient, 2 radial gradient */
+	int frameBgAngle = 90;
 	int frameBorderPx = 4;
 	int frameRadiusPx = 24;
 	int frameGlowPx = 80;
