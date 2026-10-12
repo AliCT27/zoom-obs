@@ -648,6 +648,66 @@ void ZoominatorDialog::buildUi()
 			[syncFrameFields](int) { syncFrameFields(); });
 		syncFrameFields();
 
+		addSection(lay, T("Dialog.Section.CamRing"));
+
+		chkCamRing = new QCheckBox(T("Dialog.CamRingEnable"), page);
+		chkCamRing->setToolTip(T("Dialog.CamRingEnableTooltip"));
+		lay->addWidget(chkCamRing);
+		lay->addSpacing(6);
+
+		cmbCamSource = new QComboBox(page);
+		cmbCamSource->setToolTip(T("Dialog.CamSourceTooltip"));
+		btnCamColor = new QPushButton(page);
+		btnCamColor->setMinimumHeight(28);
+		btnCamColor->setToolTip(T("Dialog.CamColorTooltip"));
+
+		auto *camTopRow = new QHBoxLayout;
+		camTopRow->setSpacing(12);
+		camTopRow->addWidget(mkField(T("Dialog.CamSource"), cmbCamSource), 2);
+		camTopRow->addWidget(mkField(T("Dialog.CamColor"), btnCamColor), 1);
+		lay->addLayout(camTopRow);
+
+		spCamRing = new QSpinBox(page);
+		spCamRing->setRange(0, 60);
+		spCamRing->setSuffix(T("Unit.Pixels"));
+		spCamRing->setToolTip(T("Dialog.CamRingTooltip"));
+		spCamGlow = new QSpinBox(page);
+		spCamGlow->setRange(0, 150);
+		spCamGlow->setSingleStep(4);
+		spCamGlow->setSuffix(T("Unit.Pixels"));
+		spCamGlow->setToolTip(T("Dialog.CamGlowTooltip"));
+		spCamGlowPct = new QSpinBox(page);
+		spCamGlowPct->setRange(0, 100);
+		spCamGlowPct->setSingleStep(5);
+		spCamGlowPct->setSuffix(T("Unit.Percent"));
+		spCamGlowPct->setToolTip(T("Dialog.CamGlowStrengthTooltip"));
+		spCamZoom = new QSpinBox(page);
+		spCamZoom->setRange(30, 300);
+		spCamZoom->setSingleStep(5);
+		spCamZoom->setSuffix(T("Unit.Percent"));
+		spCamZoom->setToolTip(T("Dialog.CamZoomTooltip"));
+
+		auto *camShapeRow = new QHBoxLayout;
+		camShapeRow->setSpacing(12);
+		camShapeRow->addWidget(mkField(T("Dialog.CamRing"), spCamRing), 1);
+		camShapeRow->addWidget(mkField(T("Dialog.CamGlow"), spCamGlow), 1);
+		camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
+		camShapeRow->addWidget(mkField(T("Dialog.CamZoom"), spCamZoom), 1);
+		lay->addLayout(camShapeRow);
+		lay->addSpacing(10);
+
+		auto syncCamFields = [this]() {
+			const bool on = chkCamRing->isChecked();
+			cmbCamSource->setEnabled(on);
+			btnCamColor->setEnabled(on);
+			spCamRing->setEnabled(on);
+			spCamGlow->setEnabled(on);
+			spCamGlowPct->setEnabled(on);
+			spCamZoom->setEnabled(on);
+		};
+		connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+		syncCamFields();
+
 		addSection(lay, T("Dialog.Section.Focus"));
 
 		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
@@ -775,6 +835,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnFrameColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameColor); });
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
 	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
+	connect(btnCamColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamColor); });
 	connect(chkShowCursorMarker, &QCheckBox::toggled, chkShowMarkerWhenNotZoomed, &QWidget::setEnabled);
 }
 
@@ -862,6 +923,27 @@ void ZoominatorDialog::populateSourcesTab()
 		litem->setData(Qt::UserRole, name);
 		litem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
 		litem->setCheckState(included.contains(name) ? Qt::Checked : Qt::Unchecked);
+	}
+
+	/* Webcam source list: every video source in the collection. */
+	if (cmbCamSource) {
+		QString want = cmbCamSource->currentData().toString();
+		if (want.isEmpty())
+			want = cmbCamSource->property("savedName").toString();
+		if (want.isEmpty())
+			want = c.camSourceName;
+		cmbCamSource->clear();
+		cmbCamSource->addItem(T("Dialog.CamSourceNone"), QString());
+		for (const QString &name : names) {
+			const QString kind = friendlySourceKind(sourceMap.value(name));
+			cmbCamSource->addItem(kind.isEmpty() ? name : QStringLiteral("%1  [%2]").arg(name, kind), name);
+		}
+		int idx = cmbCamSource->findData(want);
+		if (idx < 0 && !want.isEmpty()) {
+			cmbCamSource->addItem(want, want);
+			idx = cmbCamSource->count() - 1;
+		}
+		cmbCamSource->setCurrentIndex(std::max(0, idx));
 	}
 }
 
@@ -1012,6 +1094,19 @@ void ZoominatorDialog::loadFromController()
 		spFrameRadius->setEnabled(c.frameEnabled);
 		spFrameGlow->setEnabled(c.frameEnabled);
 		spFrameGlowPct->setEnabled(c.frameEnabled);
+		chkCamRing->setChecked(c.camRingEnabled);
+		setColorButton(btnCamColor, c.camRingColor);
+		spCamRing->setValue(c.camRingPx);
+		spCamGlow->setValue(c.camGlowPx);
+		spCamGlowPct->setValue(c.camGlowPct);
+		spCamZoom->setValue(c.camZoomPct);
+		cmbCamSource->setProperty("savedName", c.camSourceName);
+		cmbCamSource->setEnabled(c.camRingEnabled);
+		btnCamColor->setEnabled(c.camRingEnabled);
+		spCamRing->setEnabled(c.camRingEnabled);
+		spCamGlow->setEnabled(c.camRingEnabled);
+		spCamGlowPct->setEnabled(c.camRingEnabled);
+		spCamZoom->setEnabled(c.camRingEnabled);
 		chkDebug->setChecked(c.debug);
 	}
 
@@ -1095,6 +1190,13 @@ void ZoominatorDialog::applyToController()
 	c.frameRadiusPx = spFrameRadius->value();
 	c.frameGlowPx = spFrameGlow->value();
 	c.frameGlowPct = spFrameGlowPct->value();
+	c.camRingEnabled = chkCamRing->isChecked();
+	c.camSourceName = cmbCamSource->currentData().toString();
+	c.camRingColor = (uint32_t)btnCamColor->property("rgba").toUInt();
+	c.camRingPx = spCamRing->value();
+	c.camGlowPx = spCamGlow->value();
+	c.camGlowPct = spCamGlowPct->value();
+	c.camZoomPct = spCamZoom->value();
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();

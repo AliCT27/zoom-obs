@@ -107,6 +107,13 @@ private:
 	QPushButton *btnFrameColor = nullptr;
 	QPushButton *btnFrameBg = nullptr;
 	QPushButton *btnFrameBg2 = nullptr;
+	QCheckBox *chkCamRing = nullptr;
+	QComboBox *cmbCamSource = nullptr;
+	QPushButton *btnCamColor = nullptr;
+	QSpinBox *spCamRing = nullptr;
+	QSpinBox *spCamGlow = nullptr;
+	QSpinBox *spCamGlowPct = nullptr;
+	QSpinBox *spCamZoom = nullptr;
 	QComboBox *cmbFrameBgMode = nullptr;
 	QSpinBox *spFrameBgAngle = nullptr;
 	QSpinBox *spFrameBorder = nullptr;
