@@ -138,6 +138,9 @@ void ZoominatorController::loadSettings()
 	frameEnabled = false;
 	frameColor = 0xFF2ECC40;
 	frameBgColor = 0xFF000000;
+	frameBgColor2 = 0xFF0B3A52;
+	frameBgMode = 0;
+	frameBgAngle = 90;
 	frameBorderPx = 4;
 	frameRadiusPx = 24;
 	frameGlowPx = 80;
@@ -350,6 +353,12 @@ void ZoominatorController::loadSettings()
 		frameColor = (uint32_t)obs_data_get_int(data, "frame_color");
 	if (obs_data_has_user_value(data, "frame_bg_color"))
 		frameBgColor = (uint32_t)obs_data_get_int(data, "frame_bg_color");
+	if (obs_data_has_user_value(data, "frame_bg_color2"))
+		frameBgColor2 = (uint32_t)obs_data_get_int(data, "frame_bg_color2");
+	if (obs_data_has_user_value(data, "frame_bg_mode"))
+		frameBgMode = std::clamp((int)obs_data_get_int(data, "frame_bg_mode"), 0, 2);
+	if (obs_data_has_user_value(data, "frame_bg_angle"))
+		frameBgAngle = std::clamp((int)obs_data_get_int(data, "frame_bg_angle"), 0, 360);
 	if (obs_data_has_user_value(data, "frame_border_px"))
 		frameBorderPx = std::clamp((int)obs_data_get_int(data, "frame_border_px"), 0, 80);
 	if (obs_data_has_user_value(data, "frame_radius_px"))
@@ -492,6 +501,9 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "frame_enabled", frameEnabled);
 	obs_data_set_int(data, "frame_color", (long long)frameColor);
 	obs_data_set_int(data, "frame_bg_color", (long long)frameBgColor);
+	obs_data_set_int(data, "frame_bg_color2", (long long)frameBgColor2);
+	obs_data_set_int(data, "frame_bg_mode", frameBgMode);
+	obs_data_set_int(data, "frame_bg_angle", frameBgAngle);
 	obs_data_set_int(data, "frame_border_px", frameBorderPx);
 	obs_data_set_int(data, "frame_radius_px", frameRadiusPx);
 	obs_data_set_int(data, "frame_glow_px", frameGlowPx);

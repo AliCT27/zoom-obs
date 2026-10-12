@@ -34,6 +34,9 @@ struct FrameData {
 	gs_eparam_t *pGlowStrength = nullptr;
 	gs_eparam_t *pBorderColor = nullptr;
 	gs_eparam_t *pBgColor = nullptr;
+	gs_eparam_t *pBgColor2 = nullptr;
+	gs_eparam_t *pBgMode = nullptr;
+	gs_eparam_t *pBgAngle = nullptr;
 };
 
 const char *getName(void *)
@@ -65,8 +68,11 @@ void loadEffect(FrameData *d)
 		d->pGlowStrength = gs_effect_get_param_by_name(d->effect, "glow_strength");
 		d->pBorderColor = gs_effect_get_param_by_name(d->effect, "border_color");
 		d->pBgColor = gs_effect_get_param_by_name(d->effect, "bg_color");
+		d->pBgColor2 = gs_effect_get_param_by_name(d->effect, "bg_color2");
+		d->pBgMode = gs_effect_get_param_by_name(d->effect, "bg_mode");
+		d->pBgAngle = gs_effect_get_param_by_name(d->effect, "bg_angle");
 		if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
-		    !d->pBorderColor || !d->pBgColor) {
+		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle) {
 			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -154,6 +160,9 @@ void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pGlowStrength, s.glowStrength);
 	setColor(d->pBorderColor, s.borderColor);
 	setColor(d->pBgColor, s.bgColor);
+	setColor(d->pBgColor2, s.bgColor2);
+	gs_effect_set_float(d->pBgMode, (float)s.bgMode);
+	gs_effect_set_float(d->pBgAngle, s.bgAngleDeg * 3.14159265f / 180.0f);
 
 	while (gs_effect_loop(d->effect, "Draw"))
 		gs_draw_sprite(nullptr, 0, (uint32_t)w, (uint32_t)h);

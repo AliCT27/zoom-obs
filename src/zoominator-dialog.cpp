@@ -581,6 +581,27 @@ void ZoominatorDialog::buildUi()
 		frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
 		lay->addLayout(frameColorRow);
 
+		cmbFrameBgMode = new QComboBox(page);
+		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Solid"), 0);
+		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Linear"), 1);
+		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Radial"), 2);
+		cmbFrameBgMode->setToolTip(T("Dialog.FrameBgModeTooltip"));
+		btnFrameBg2 = new QPushButton(page);
+		btnFrameBg2->setMinimumHeight(28);
+		btnFrameBg2->setToolTip(T("Dialog.FrameBg2Tooltip"));
+		spFrameBgAngle = new QSpinBox(page);
+		spFrameBgAngle->setRange(0, 360);
+		spFrameBgAngle->setSingleStep(15);
+		spFrameBgAngle->setSuffix(QString::fromUtf8("\xC2\xB0"));
+		spFrameBgAngle->setToolTip(T("Dialog.FrameBgAngleTooltip"));
+
+		auto *frameGradRow = new QHBoxLayout;
+		frameGradRow->setSpacing(12);
+		frameGradRow->addWidget(mkField(T("Dialog.FrameBgMode"), cmbFrameBgMode), 1);
+		frameGradRow->addWidget(mkField(T("Dialog.FrameBg2"), btnFrameBg2), 1);
+		frameGradRow->addWidget(mkField(T("Dialog.FrameBgAngle"), spFrameBgAngle), 1);
+		lay->addLayout(frameGradRow);
+
 		spFrameBorder = new QSpinBox(page);
 		spFrameBorder->setRange(0, 80);
 		spFrameBorder->setSuffix(T("Unit.Pixels"));
@@ -614,12 +635,17 @@ void ZoominatorDialog::buildUi()
 			const bool on = chkFrame->isChecked();
 			btnFrameColor->setEnabled(on);
 			btnFrameBg->setEnabled(on);
+			cmbFrameBgMode->setEnabled(on);
+			btnFrameBg2->setEnabled(on && cmbFrameBgMode->currentData().toInt() != 0);
+			spFrameBgAngle->setEnabled(on && cmbFrameBgMode->currentData().toInt() == 1);
 			spFrameBorder->setEnabled(on);
 			spFrameRadius->setEnabled(on);
 			spFrameGlow->setEnabled(on);
 			spFrameGlowPct->setEnabled(on);
 		};
 		connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+		connect(cmbFrameBgMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+			[syncFrameFields](int) { syncFrameFields(); });
 		syncFrameFields();
 
 		addSection(lay, T("Dialog.Section.Focus"));
@@ -748,6 +774,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
 	connect(btnFrameColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameColor); });
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
+	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
 	connect(chkShowCursorMarker, &QCheckBox::toggled, chkShowMarkerWhenNotZoomed, &QWidget::setEnabled);
 }
 
@@ -969,12 +996,18 @@ void ZoominatorDialog::loadFromController()
 		chkFrame->setChecked(c.frameEnabled);
 		setColorButton(btnFrameColor, c.frameColor);
 		setColorButton(btnFrameBg, c.frameBgColor);
+		setColorButton(btnFrameBg2, c.frameBgColor2);
+		cmbFrameBgMode->setCurrentIndex(std::clamp(c.frameBgMode, 0, 2));
+		spFrameBgAngle->setValue(c.frameBgAngle);
 		spFrameBorder->setValue(c.frameBorderPx);
 		spFrameRadius->setValue(c.frameRadiusPx);
 		spFrameGlow->setValue(c.frameGlowPx);
 		spFrameGlowPct->setValue(c.frameGlowPct);
 		btnFrameColor->setEnabled(c.frameEnabled);
 		btnFrameBg->setEnabled(c.frameEnabled);
+		cmbFrameBgMode->setEnabled(c.frameEnabled);
+		btnFrameBg2->setEnabled(c.frameEnabled && c.frameBgMode != 0);
+		spFrameBgAngle->setEnabled(c.frameEnabled && c.frameBgMode == 1);
 		spFrameBorder->setEnabled(c.frameEnabled);
 		spFrameRadius->setEnabled(c.frameEnabled);
 		spFrameGlow->setEnabled(c.frameEnabled);
@@ -1055,6 +1088,9 @@ void ZoominatorDialog::applyToController()
 	c.frameEnabled = chkFrame->isChecked();
 	c.frameColor = (uint32_t)btnFrameColor->property("rgba").toUInt();
 	c.frameBgColor = (uint32_t)btnFrameBg->property("rgba").toUInt();
+	c.frameBgColor2 = (uint32_t)btnFrameBg2->property("rgba").toUInt();
+	c.frameBgMode = cmbFrameBgMode->currentData().toInt();
+	c.frameBgAngle = spFrameBgAngle->value();
 	c.frameBorderPx = spFrameBorder->value();
 	c.frameRadiusPx = spFrameRadius->value();
 	c.frameGlowPx = spFrameGlow->value();
