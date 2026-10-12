@@ -1,0 +1,76 @@
+// Zoominator frame: draws the area around a rectangle (the zoomed screen) as a
+// solid background colour, with a glowing border along the rectangle's edges.
+// The inside of the rectangle is left transparent so the content shows through.
+//
+// Everything is computed per pixel from a signed distance to a rounded
+// rectangle, so the frame can follow the content every frame while it zooms and
+// pans, without rebuilding any image.
+//
+// All positions and sizes are in canvas pixels. rect_px = (left, top, right,
+// bottom). The rectangle may extend past the canvas; edges that are off screen
+// simply draw nothing.
+
+uniform float4x4 ViewProj;
+
+uniform float2 canvas_px;
+uniform float4 rect_px;
+uniform float radius_px;
+uniform float border_px;
+uniform float glow_px;
+uniform float glow_strength;
+uniform float4 border_color;
+uniform float4 bg_color;
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = vert_in.uv;
+	return vert_out;
+}
+
+float4 PSFrame(VertInOut vert_in) : TARGET
+{
+	float2 p = vert_in.uv * canvas_px;
+
+	float2 center = float2(rect_px.x + rect_px.z, rect_px.y + rect_px.w) * 0.5;
+	float2 half_size = float2(rect_px.z - rect_px.x, rect_px.w - rect_px.y) * 0.5;
+	float r = min(radius_px, min(half_size.x, half_size.y));
+
+	// Signed distance to the rounded rectangle: negative inside, positive outside.
+	float2 q = abs(p - center) - (half_size - float2(r, r));
+	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
+
+	float3 col = bg_color.rgb;
+
+	// Glow: fades out quadratically from the outer edge of the border.
+	if (glow_px > 0.5) {
+		float g = saturate(1.0 - (d - border_px) / glow_px);
+		float ga = glow_strength * g * g * saturate(d - border_px + 0.5);
+		col = lerp(col, border_color.rgb, ga);
+	}
+
+	// Border ring.
+	if (border_px > 0.5) {
+		float bm = saturate(border_px - d + 0.5);
+		col = lerp(col, border_color.rgb, bm);
+	}
+
+	// The window itself is transparent, with a one pixel soft edge.
+	float inside = saturate(0.5 - d);
+	return float4(col, 1.0 - inside);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSFrame(vert_in);
+	}
+}

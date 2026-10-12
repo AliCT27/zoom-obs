@@ -1,85 +1,14 @@
-/* Frame: a canvas-sized overlay that fills everything outside the captured area
- * with a colour, rounds its corners and draws a glowing border around it. It sits
- * above the zoomed sources and below the ones that are not zoomed (a webcam), and
- * stays put while the content zooms inside it. */
+/* Frame: a canvas-sized shader overlay that fills everything outside the captured
+ * screen with a colour and draws a glowing, rounded border along the screen's own
+ * edges. The screen's current rectangle is pushed to it every frame while zooming
+ * (see applyZoomToScene), so the border follows the content as it zooms and pans.
+ * It sits above the zoomed sources and below the ones that are not zoomed (a
+ * webcam). */
 
 #include "zoominator-internal.hpp"
-
-#include <QPainterPath>
+#include "frame-source.hpp"
 
 static constexpr const char *kZoominatorFrameSourceName = "Zoominator Frame";
-
-QString ZoominatorController::frameImagePath() const
-{
-	char *path = obs_module_config_path("zoominator-frame.png");
-	if (!path)
-		return {};
-	QString p = QString::fromUtf8(path);
-	bfree(path);
-	return p;
-}
-
-void ZoominatorController::rebuildFrameImage(int canvasW, int canvasH, const QRectF &rect)
-{
-	const QString path = frameImagePath();
-	if (path.isEmpty())
-		return;
-	ensure_parent_dir_exists(path);
-
-	const int w = std::max(8, canvasW);
-	const int h = std::max(8, canvasH);
-
-	const QColor color = QColor::fromRgba(frameColor);
-	const QColor bg = QColor::fromRgba(frameBgColor);
-	const int border = std::clamp(frameBorderPx, 0, 80);
-	const int glow = std::clamp(frameGlowPx, 0, 200);
-	const double glowStrength = (double)std::clamp(frameGlowPct, 0, 100) / 100.0;
-	const double radius = std::clamp((double)frameRadiusPx, 0.0, std::min(rect.width(), rect.height()) * 0.5);
-
-	QImage img(w, h, QImage::Format_ARGB32_Premultiplied);
-	img.fill(bg);
-
-	QPainter p(&img);
-	p.setRenderHint(QPainter::Antialiasing, true);
-
-	auto roundedRect = [&](double grow) {
-		QPainterPath path;
-		const QRectF r = rect.adjusted(-grow, -grow, grow, grow);
-		path.addRoundedRect(r, radius + grow, radius + grow);
-		return path;
-	};
-
-	/* Glow: thin rings that fade out away from the border, drawn outwards only. */
-	for (int i = 0; i < glow; ++i) {
-		const double t = (double)i / (double)glow;
-		const double a = glowStrength * (1.0 - t) * (1.0 - t);
-		if (a <= 0.004)
-			continue;
-		QColor c = color;
-		c.setAlphaF(std::clamp(a, 0.0, 1.0));
-		QPen pen(c);
-		pen.setWidthF(1.6);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawPath(roundedRect((double)border + (double)i + 0.8));
-	}
-
-	/* Border ring around the window. */
-	if (border > 0) {
-		p.setPen(Qt::NoPen);
-		p.setBrush(color);
-		p.drawPath(roundedRect((double)border));
-	}
-
-	/* The window itself: transparent, so the zoomed content shows through. */
-	p.setCompositionMode(QPainter::CompositionMode_Clear);
-	p.setPen(Qt::NoPen);
-	p.setBrush(Qt::transparent);
-	p.drawPath(roundedRect(0.0));
-	p.end();
-
-	img.save(path, "PNG");
-}
 
 static void normalize_frame_scene_item(obs_sceneitem_t *item)
 {
@@ -107,9 +36,28 @@ void ZoominatorController::refreshFrame()
 		return;
 
 	if (!frameEnabled) {
-		if (frameSource)
+		if (frameSource) {
+			zoominator_frame::clearRect();
 			hideFrameInAllScenes();
+		}
 		return;
+	}
+
+	{
+		auto rgba = [](uint32_t c, float *out) {
+			out[0] = (float)((c >> 16) & 0xFF) / 255.0f;
+			out[1] = (float)((c >> 8) & 0xFF) / 255.0f;
+			out[2] = (float)(c & 0xFF) / 255.0f;
+			out[3] = (float)((c >> 24) & 0xFF) / 255.0f;
+		};
+		zoominator_frame::Style st;
+		rgba(frameColor, st.borderColor);
+		rgba(frameBgColor, st.bgColor);
+		st.borderPx = (float)std::clamp(frameBorderPx, 0, 80);
+		st.radiusPx = (float)std::clamp(frameRadiusPx, 0, 400);
+		st.glowPx = (float)std::clamp(frameGlowPx, 0, 200);
+		st.glowStrength = (float)std::clamp(frameGlowPct, 0, 100) / 100.0f;
+		zoominator_frame::setStyle(st);
 	}
 
 	obs_source_t *sceneSource = obs_frontend_get_current_scene();
@@ -127,70 +75,29 @@ void ZoominatorController::refreshFrame()
 	std::vector<obs_sceneitem_t *> items;
 	enumerateTargetItemsInCurrentScene(items);
 
-	/* While zooming, the originals' bounds are the reference; the live items are moving. */
+	/* While zooming, the graphics thread publishes the rectangle every frame.
+	 * Otherwise it is the content's current (unzoomed) bounds. */
 	vec2 mn{}, mx{};
-	bool haveBounds = false;
-	if (zoomActive.load(std::memory_order_acquire)) {
-		haveBounds = sceneContentBoundsValid;
-		mn = sceneContentMin;
-		mx = sceneContentMax;
-	} else {
-		haveBounds = computeTargetBounds(items, mn, mx);
-	}
-
-	if (!haveBounds || mx.x - mn.x < 4.0f || mx.y - mn.y < 4.0f) {
-		if (frameSource) {
-			if (obs_sceneitem_t *item = find_scene_item_for_source(scene, frameSource)) {
-				if (obs_sceneitem_visible(item))
-					obs_sceneitem_set_visible(item, false);
+	const bool zooming = zoomActive.load(std::memory_order_acquire);
+	const bool haveBounds = zooming ? true : computeTargetBounds(items, mn, mx);
+	if (!zooming) {
+		if (!haveBounds || mx.x - mn.x < 4.0f || mx.y - mn.y < 4.0f) {
+			zoominator_frame::clearRect();
+			if (frameSource) {
+				if (obs_sceneitem_t *hidden = find_scene_item_for_source(scene, frameSource)) {
+					if (obs_sceneitem_visible(hidden))
+						obs_sceneitem_set_visible(hidden, false);
+				}
 			}
+			return;
 		}
-		return;
+		zoominator_frame::setRect(mn.x, mn.y, mx.x, mx.y);
 	}
-
-	int cw = 0, ch = 0;
-	get_canvas_size(cw, ch);
-	const QRectF rect((double)mn.x, (double)mn.y, (double)(mx.x - mn.x), (double)(mx.y - mn.y));
-
-	uint64_t hash = 1469598103934665603ULL;
-	auto mix = [&hash](uint64_t v) {
-		hash ^= v + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2);
-	};
-	mix((uint64_t)cw);
-	mix((uint64_t)ch);
-	mix((uint64_t)std::lround(rect.x() * 2.0));
-	mix((uint64_t)std::lround(rect.y() * 2.0));
-	mix((uint64_t)std::lround(rect.width() * 2.0));
-	mix((uint64_t)std::lround(rect.height() * 2.0));
-	mix(frameColor);
-	mix(frameBgColor);
-	mix((uint64_t)frameBorderPx);
-	mix((uint64_t)frameRadiusPx);
-	mix((uint64_t)frameGlowPx);
-	mix((uint64_t)frameGlowPct);
-
-	const QString path = frameImagePath();
-	if (path.isEmpty())
-		return;
 
 	if (!frameSource) {
-		rebuildFrameImage(cw, ch, rect);
-		obs_data_t *settings = obs_data_create();
-		obs_data_set_string(settings, "file", path.toUtf8().constData());
-		obs_data_set_bool(settings, "unload", false);
-		frameSource = obs_source_create_private("image_source", kZoominatorFrameSourceName, settings);
-		obs_data_release(settings);
+		frameSource = zoominator_frame::create();
 		if (!frameSource)
 			return;
-		frameHash = hash;
-	} else if (frameHash != hash) {
-		rebuildFrameImage(cw, ch, rect);
-		obs_data_t *settings = obs_data_create();
-		obs_data_set_string(settings, "file", path.toUtf8().constData());
-		obs_data_set_bool(settings, "unload", false);
-		obs_source_update(frameSource, settings);
-		obs_data_release(settings);
-		frameHash = hash;
 	}
 
 	obs_sceneitem_t *item = find_scene_item_for_source(scene, frameSource);
