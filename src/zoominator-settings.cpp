@@ -152,7 +152,6 @@ void ZoominatorController::loadSettings()
 	frameRadiusPx = 24;
 	frameGlowPx = 80;
 	frameGlowPct = 70;
-	pauseHotkeySequence.clear();
 	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
@@ -353,7 +352,6 @@ void ZoominatorController::loadSettings()
 	focusDimPct = std::clamp(focusDimPct, 0, 95);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
-	pauseHotkeySequence = getStr("pause_hotkey");
 	if (obs_data_has_user_value(data, "cam_ring_enabled"))
 		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
 	camSourceName = getStr("cam_source");
@@ -535,7 +533,6 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "frame_radius_px", frameRadiusPx);
 	obs_data_set_int(data, "frame_glow_px", frameGlowPx);
 	obs_data_set_int(data, "frame_glow_pct", frameGlowPct);
-	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
 	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());

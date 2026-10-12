@@ -4,8 +4,6 @@
 
 bool ZoominatorController::usesWheelZoomGesture() const
 {
-	if (zoomPaused)
-		return false;
 	return triggerType == "mouse" && mouseButton == "x2" && hotkeyMode == "toggle" && !modCtrl && !modAlt &&
 	       !modShift && !modWin && !modLeftCtrl && !modRightCtrl && !modLeftAlt && !modRightAlt && !modLeftShift &&
 	       !modRightShift && !modLeftWin && !modRightWin;
