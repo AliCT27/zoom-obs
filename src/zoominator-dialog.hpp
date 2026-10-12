@@ -31,8 +31,6 @@ private slots:
 	void testZoom();
 	void clearHotkey();
 	void clearFollowToggleHotkey();
-	void clearPauseHotkey();
-	void onPauseStateChanged(bool paused);
 	void chooseMarkerColor();
 	void chooseFrameColor(QPushButton *button);
 	void setColorButton(QPushButton *button, uint32_t rgba);
@@ -54,11 +52,9 @@ private:
 	QComboBox *cmbMode = nullptr;
 	QKeySequenceEdit *editFollowToggleHotkey = nullptr;
 	QPushButton *btnClearFollowToggleHotkey = nullptr;
-	QKeySequenceEdit *editPauseHotkey = nullptr;
 	QCheckBox *chkAutoZoomOut = nullptr;
 	QKeySequenceEdit *editManualZoomIn = nullptr;
 	QKeySequenceEdit *editManualZoomOut = nullptr;
-	QPushButton *btnClearPauseHotkey = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
 	QKeySequenceEdit *editHotkey = nullptr;

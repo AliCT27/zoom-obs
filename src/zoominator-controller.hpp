@@ -149,12 +149,9 @@ public:
 	FocusStyle focusStyle = FocusStyle::Dim;
 	/* Blur radius in canvas pixels for the Blur styles. */
 	int focusBlurPx = 16;
-	/* Global hotkey that pauses/resumes all zooming (empty = none). */
-	QString pauseHotkeySequence;
 	/* Automatic mode only: zoom in (and stay zoomed) / zoom out on demand. */
 	QString manualZoomInSequence;
 	QString manualZoomOutSequence;
-	bool isZoomPaused() const { return zoomPaused; }
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
@@ -176,7 +173,6 @@ public:
 
 signals:
 	void settingsChanged();
-	void pauseStateChanged(bool paused);
 
 private slots:
 	void onTick();
@@ -211,8 +207,6 @@ private:
 	bool usesWheelZoomGesture() const;
 	void finishWheelZoomGesture();
 	void toggleFollowMouseRuntime();
-	void togglePauseZoom();
-	void rebuildPauseHotkey();
 	bool triggerMatchesKeyboard(int vk) const;
 	bool triggerMatchesMouse(unsigned int msg, unsigned short mouseData) const;
 	bool modsMatch() const;
@@ -427,7 +421,6 @@ private:
 	bool camLastValid = false;
 	vec2 camLastScale{};
 	vec2 camLastPos{};
-	bool zoomPaused = false;
 	/* A global key and the modifiers it needs, ready for the hook procs. */
 	struct HotkeyBinding {
 		int vk = 0;
@@ -444,12 +437,6 @@ private:
 	/* Set by the Zoom Out hotkey: clicks and typing no longer start a zoom until
 	 * the Zoom In hotkey is pressed (or the settings are applied again). */
 	bool autoSuspended = false;
-	int pauseHotkeyVk = 0;
-	bool pauseHkValid = false;
-	bool pauseModCtrl = false;
-	bool pauseModAlt = false;
-	bool pauseModShift = false;
-	bool pauseModWin = false;
 
 	int hotkeyVk = 0;
 	bool hkValid = false;

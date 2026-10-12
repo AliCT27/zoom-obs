@@ -4,9 +4,6 @@
 
 void ZoominatorController::onTriggerDown()
 {
-	if (zoomPaused)
-		return;
-
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Trigger DOWN");
 
@@ -39,10 +36,6 @@ void ZoominatorController::onTriggerUp()
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Trigger UP");
 	zoomPressed = false;
-	/* While paused no zoom was started by the matching key-down, so there is
-	 * nothing to release (a zoom already running was eased out by the pause). */
-	if (zoomPaused)
-		return;
 	startZoomOut();
 }
 
@@ -91,7 +84,7 @@ void ZoominatorController::onAutoActivity(bool typing)
 {
 	if (triggerType != "auto" || shuttingDown)
 		return;
-	if (zoomPaused || autoSuspended || obs_window_is_foreground())
+	if (autoSuspended || obs_window_is_foreground())
 		return;
 
 	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -112,7 +105,7 @@ void ZoominatorController::onAutoActivity(bool typing)
 /* Zoom In hotkey: zoom in now, and let clicks and typing zoom again. */
 void ZoominatorController::manualZoomIn()
 {
-	if (triggerType != "auto" || shuttingDown || zoomPaused)
+	if (triggerType != "auto" || shuttingDown)
 		return;
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
 	autoLastActivityMs = autoLastManualKeyMs;
@@ -145,26 +138,6 @@ void ZoominatorController::checkAutoIdle()
 
 	zoomLatched = false;
 	startZoomOut();
-}
-
-/* Global pause switch. While paused, no trigger starts a zoom (hold, toggle,
- * mouse, wheel or automatic), and a zoom that is running eases back out.
- * There is deliberately no on-screen indicator: anything drawn into the scene
- * would end up in the recording. Progress is logged, and the dialog (if open)
- * shows it. */
-void ZoominatorController::togglePauseZoom()
-{
-	zoomPaused = !zoomPaused;
-	blog(LOG_INFO, "[Zoominator] Zoom %s", zoomPaused ? "paused" : "resumed");
-
-	if (zoomPaused) {
-		zoomPressed = false;
-		zoomAdjustButtonHeld = false;
-		zoomLatched = false;
-		if (zoomActive.load(std::memory_order_acquire))
-			startZoomOut();
-	}
-	emit pauseStateChanged(zoomPaused);
 }
 
 void ZoominatorController::toggleFollowMouseRuntime()

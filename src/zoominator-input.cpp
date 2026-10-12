@@ -208,11 +208,6 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 			g_ctl->toggleFollowMouseRuntime();
 		}
 
-		if (g_ctl->pauseHkValid && down && vk_matches(vk, g_ctl->pauseHotkeyVk) &&
-		    mods_current(g_ctl->pauseModCtrl, g_ctl->pauseModAlt, g_ctl->pauseModShift, g_ctl->pauseModWin)) {
-			g_ctl->togglePauseZoom();
-		}
-
 		if (down && g_ctl->manualZoomInBinding.valid && vk_matches(vk, g_ctl->manualZoomInBinding.vk) &&
 		    mods_current(g_ctl->manualZoomInBinding.ctrl, g_ctl->manualZoomInBinding.alt,
 				 g_ctl->manualZoomInBinding.shift, g_ctl->manualZoomInBinding.win)) {
@@ -428,11 +423,6 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 			ctl->toggleFollowMouseRuntime();
 		}
 
-		if (ctl->pauseHkValid && down && vk_matches(keycode, ctl->pauseHotkeyVk) &&
-		    mods_current(ctl->pauseModCtrl, ctl->pauseModAlt, ctl->pauseModShift, ctl->pauseModWin)) {
-			ctl->togglePauseZoom();
-		}
-
 		if (down && ctl->manualZoomInBinding.valid && vk_matches(keycode, ctl->manualZoomInBinding.vk) &&
 		    mods_current(ctl->manualZoomInBinding.ctrl, ctl->manualZoomInBinding.alt,
 				 ctl->manualZoomInBinding.shift, ctl->manualZoomInBinding.win)) {
@@ -645,11 +635,6 @@ void ZoominatorController::processXInput2Events()
 				toggleFollowMouseRuntime();
 			}
 
-			if (pauseHkValid && down && vk_matches((int)sym, pauseHotkeyVk) &&
-			    mods_current(pauseModCtrl, pauseModAlt, pauseModShift, pauseModWin)) {
-				togglePauseZoom();
-			}
-
 			if (down && manualZoomInBinding.valid && vk_matches((int)sym, manualZoomInBinding.vk) &&
 			    mods_current(manualZoomInBinding.ctrl, manualZoomInBinding.alt, manualZoomInBinding.shift,
 					 manualZoomInBinding.win)) {
@@ -787,7 +772,7 @@ bool ZoominatorController::triggerMatchesMouse(unsigned int msg, unsigned short 
 
 bool ZoominatorController::needsKeyboardHook() const
 {
-	return triggerType == "keyboard" || followToggleHkValid || pauseHkValid || manualZoomInBinding.valid ||
+	return triggerType == "keyboard" || followToggleHkValid || manualZoomInBinding.valid ||
 	       manualZoomOutBinding.valid ||
 	       (triggerType == "auto" && autoOnTyping);
 }

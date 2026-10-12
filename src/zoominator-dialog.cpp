@@ -214,20 +214,6 @@ void ZoominatorDialog::buildUi()
 		lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
 		lay->addSpacing(16);
 
-		auto *pauseHkRow = new QWidget(page);
-		{
-			auto *h = new QHBoxLayout(pauseHkRow);
-			h->setContentsMargins(0, 0, 0, 0);
-			h->setSpacing(6);
-			editPauseHotkey = new QKeySequenceEdit(pauseHkRow);
-			editPauseHotkey->setToolTip(T("Dialog.PauseHotkeyTooltip"));
-			btnClearPauseHotkey = new QPushButton(T("Dialog.Clear"), pauseHkRow);
-			btnClearPauseHotkey->setToolTip(T("Dialog.ClearPauseHotkeyTooltip"));
-			h->addWidget(editPauseHotkey, 1);
-			h->addWidget(btnClearPauseHotkey);
-		}
-		lay->addWidget(mkField(T("Dialog.PauseHotkey"), pauseHkRow));
-
 		lay->addStretch(1);
 		lay->addSpacing(16);
 
@@ -821,9 +807,6 @@ void ZoominatorDialog::buildUi()
 	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
-	connect(btnClearPauseHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearPauseHotkey);
-	connect(&ZoominatorController::instance(), &ZoominatorController::pauseStateChanged, this,
-		&ZoominatorDialog::onPauseStateChanged);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
 	connect(btnFrameColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameColor); });
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
@@ -996,7 +979,6 @@ void ZoominatorDialog::loadFromController()
 			cmbMode->setCurrentIndex(idx);
 
 		editFollowToggleHotkey->setKeySequence(QKeySequence(c.followToggleHotkeySequence));
-		editPauseHotkey->setKeySequence(QKeySequence(c.pauseHotkeySequence));
 		editManualZoomIn->setKeySequence(QKeySequence(c.manualZoomInSequence));
 		editManualZoomOut->setKeySequence(QKeySequence(c.manualZoomOutSequence));
 	}
@@ -1120,7 +1102,6 @@ void ZoominatorDialog::applyToController()
 	c.screenKey = cmbSource->currentData().toString();
 	c.hotkeyMode = cmbMode->currentData().toString();
 	c.followToggleHotkeySequence = editFollowToggleHotkey->keySequence().toString(QKeySequence::NativeText);
-	c.pauseHotkeySequence = editPauseHotkey->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomInSequence = editManualZoomIn->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomOutSequence = editManualZoomOut->keySequence().toString(QKeySequence::NativeText);
 
@@ -1263,17 +1244,6 @@ void ZoominatorDialog::clearHotkey()
 void ZoominatorDialog::clearFollowToggleHotkey()
 {
 	editFollowToggleHotkey->setKeySequence(QKeySequence());
-}
-
-void ZoominatorDialog::clearPauseHotkey()
-{
-	editPauseHotkey->setKeySequence(QKeySequence());
-}
-
-void ZoominatorDialog::onPauseStateChanged(bool paused)
-{
-	if (lblStatus)
-		lblStatus->setText(T(paused ? "Dialog.ZoomPaused" : "Dialog.ZoomResumed"));
 }
 
 void ZoominatorDialog::updateMarkerColorButton(const QColor &color)

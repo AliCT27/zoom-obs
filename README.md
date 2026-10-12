@@ -65,11 +65,6 @@ It operates at the **scene level**, meaning it works with any source automatical
   applied only while zooming and removed from the source afterwards, so it never
   shows up in your filter lists.
 
-- **Pause / Resume hotkey (new in 2.2)**
-  One key that switches all zooming off and on, for when you are talking and
-  do not want the view to move. Works while OBS is in the background.
-  Set it on the Target tab.
-
 - **Portrait Cover (now functional)**
   On a canvas taller than wide, the capture is scaled up while zoomed so it
   fills the canvas with no gaps, and the view stays centred on the cursor.
