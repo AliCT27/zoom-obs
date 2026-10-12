@@ -135,6 +135,13 @@ void ZoominatorController::loadSettings()
 	focusSoftness = 80;
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
+	frameEnabled = false;
+	frameColor = 0xFF2ECC40;
+	frameBgColor = 0xFF000000;
+	frameBorderPx = 4;
+	frameRadiusPx = 24;
+	frameGlowPx = 80;
+	frameGlowPct = 70;
 	pauseHotkeySequence.clear();
 	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
@@ -337,6 +344,20 @@ void ZoominatorController::loadSettings()
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	pauseHotkeySequence = getStr("pause_hotkey");
+	if (obs_data_has_user_value(data, "frame_enabled"))
+		frameEnabled = obs_data_get_bool(data, "frame_enabled");
+	if (obs_data_has_user_value(data, "frame_color"))
+		frameColor = (uint32_t)obs_data_get_int(data, "frame_color");
+	if (obs_data_has_user_value(data, "frame_bg_color"))
+		frameBgColor = (uint32_t)obs_data_get_int(data, "frame_bg_color");
+	if (obs_data_has_user_value(data, "frame_border_px"))
+		frameBorderPx = std::clamp((int)obs_data_get_int(data, "frame_border_px"), 0, 80);
+	if (obs_data_has_user_value(data, "frame_radius_px"))
+		frameRadiusPx = std::clamp((int)obs_data_get_int(data, "frame_radius_px"), 0, 400);
+	if (obs_data_has_user_value(data, "frame_glow_px"))
+		frameGlowPx = std::clamp((int)obs_data_get_int(data, "frame_glow_px"), 0, 200);
+	if (obs_data_has_user_value(data, "frame_glow_pct"))
+		frameGlowPct = std::clamp((int)obs_data_get_int(data, "frame_glow_pct"), 0, 100);
 	if (obs_data_has_user_value(data, "auto_zoom_out_enabled"))
 		autoZoomOutEnabled = obs_data_get_bool(data, "auto_zoom_out_enabled");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
@@ -468,6 +489,13 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "focus_softness", focusSoftness);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
+	obs_data_set_bool(data, "frame_enabled", frameEnabled);
+	obs_data_set_int(data, "frame_color", (long long)frameColor);
+	obs_data_set_int(data, "frame_bg_color", (long long)frameBgColor);
+	obs_data_set_int(data, "frame_border_px", frameBorderPx);
+	obs_data_set_int(data, "frame_radius_px", frameRadiusPx);
+	obs_data_set_int(data, "frame_glow_px", frameGlowPx);
+	obs_data_set_int(data, "frame_glow_pct", frameGlowPct);
 	obs_data_set_string(data, "pause_hotkey", pauseHotkeySequence.toUtf8().constData());
 	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());

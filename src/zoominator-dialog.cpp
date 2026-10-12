@@ -561,6 +561,67 @@ void ZoominatorDialog::buildUi()
 		haloRow->addWidget(mkField(T("Dialog.Color"), btnMarkerColor), 1);
 		lay->addLayout(haloRow);
 
+		addSection(lay, T("Dialog.Section.Frame"));
+
+		chkFrame = new QCheckBox(T("Dialog.FrameEnable"), page);
+		chkFrame->setToolTip(T("Dialog.FrameEnableTooltip"));
+		lay->addWidget(chkFrame);
+		lay->addSpacing(6);
+
+		btnFrameColor = new QPushButton(page);
+		btnFrameColor->setMinimumHeight(28);
+		btnFrameColor->setToolTip(T("Dialog.FrameColorTooltip"));
+		btnFrameBg = new QPushButton(page);
+		btnFrameBg->setMinimumHeight(28);
+		btnFrameBg->setToolTip(T("Dialog.FrameBgTooltip"));
+
+		auto *frameColorRow = new QHBoxLayout;
+		frameColorRow->setSpacing(12);
+		frameColorRow->addWidget(mkField(T("Dialog.FrameColor"), btnFrameColor), 1);
+		frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
+		lay->addLayout(frameColorRow);
+
+		spFrameBorder = new QSpinBox(page);
+		spFrameBorder->setRange(0, 80);
+		spFrameBorder->setSuffix(T("Unit.Pixels"));
+		spFrameBorder->setToolTip(T("Dialog.FrameBorderTooltip"));
+		spFrameRadius = new QSpinBox(page);
+		spFrameRadius->setRange(0, 400);
+		spFrameRadius->setSingleStep(2);
+		spFrameRadius->setSuffix(T("Unit.Pixels"));
+		spFrameRadius->setToolTip(T("Dialog.FrameRadiusTooltip"));
+		spFrameGlow = new QSpinBox(page);
+		spFrameGlow->setRange(0, 200);
+		spFrameGlow->setSingleStep(4);
+		spFrameGlow->setSuffix(T("Unit.Pixels"));
+		spFrameGlow->setToolTip(T("Dialog.FrameGlowTooltip"));
+		spFrameGlowPct = new QSpinBox(page);
+		spFrameGlowPct->setRange(0, 100);
+		spFrameGlowPct->setSingleStep(5);
+		spFrameGlowPct->setSuffix(T("Unit.Percent"));
+		spFrameGlowPct->setToolTip(T("Dialog.FrameGlowStrengthTooltip"));
+
+		auto *frameShapeRow = new QHBoxLayout;
+		frameShapeRow->setSpacing(12);
+		frameShapeRow->addWidget(mkField(T("Dialog.FrameBorder"), spFrameBorder), 1);
+		frameShapeRow->addWidget(mkField(T("Dialog.FrameRadius"), spFrameRadius), 1);
+		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlow"), spFrameGlow), 1);
+		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlowStrength"), spFrameGlowPct), 1);
+		lay->addLayout(frameShapeRow);
+		lay->addSpacing(10);
+
+		auto syncFrameFields = [this]() {
+			const bool on = chkFrame->isChecked();
+			btnFrameColor->setEnabled(on);
+			btnFrameBg->setEnabled(on);
+			spFrameBorder->setEnabled(on);
+			spFrameRadius->setEnabled(on);
+			spFrameGlow->setEnabled(on);
+			spFrameGlowPct->setEnabled(on);
+		};
+		connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+		syncFrameFields();
+
 		addSection(lay, T("Dialog.Section.Focus"));
 
 		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
@@ -685,6 +746,8 @@ void ZoominatorDialog::buildUi()
 	connect(&ZoominatorController::instance(), &ZoominatorController::pauseStateChanged, this,
 		&ZoominatorDialog::onPauseStateChanged);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
+	connect(btnFrameColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameColor); });
+	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
 	connect(chkShowCursorMarker, &QCheckBox::toggled, chkShowMarkerWhenNotZoomed, &QWidget::setEnabled);
 }
 
@@ -903,6 +966,19 @@ void ZoominatorDialog::loadFromController()
 		spMarkerSize->setValue(c.markerSize);
 		spMarkerThickness->setValue(c.markerThickness);
 		updateMarkerColorButton(QColor::fromRgba(c.markerColor));
+		chkFrame->setChecked(c.frameEnabled);
+		setColorButton(btnFrameColor, c.frameColor);
+		setColorButton(btnFrameBg, c.frameBgColor);
+		spFrameBorder->setValue(c.frameBorderPx);
+		spFrameRadius->setValue(c.frameRadiusPx);
+		spFrameGlow->setValue(c.frameGlowPx);
+		spFrameGlowPct->setValue(c.frameGlowPct);
+		btnFrameColor->setEnabled(c.frameEnabled);
+		btnFrameBg->setEnabled(c.frameEnabled);
+		spFrameBorder->setEnabled(c.frameEnabled);
+		spFrameRadius->setEnabled(c.frameEnabled);
+		spFrameGlow->setEnabled(c.frameEnabled);
+		spFrameGlowPct->setEnabled(c.frameEnabled);
 		chkDebug->setChecked(c.debug);
 	}
 
@@ -976,6 +1052,13 @@ void ZoominatorDialog::applyToController()
 	c.markerOnlyOnClick = true;
 	c.markerSize = spMarkerSize->value();
 	c.markerThickness = spMarkerThickness->value();
+	c.frameEnabled = chkFrame->isChecked();
+	c.frameColor = (uint32_t)btnFrameColor->property("rgba").toUInt();
+	c.frameBgColor = (uint32_t)btnFrameBg->property("rgba").toUInt();
+	c.frameBorderPx = spFrameBorder->value();
+	c.frameRadiusPx = spFrameRadius->value();
+	c.frameGlowPx = spFrameGlow->value();
+	c.frameGlowPct = spFrameGlowPct->value();
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
@@ -1073,6 +1156,32 @@ void ZoominatorDialog::updateMarkerColorButton(const QColor &color)
 						     " border:1px solid palette(mid); padding:4px 8px; }")
 					      .arg(c.name(QColor::HexArgb))
 					      .arg(c.lightness() < 128 ? "#ffffff" : "#000000"));
+}
+
+void ZoominatorDialog::setColorButton(QPushButton *button, uint32_t rgba)
+{
+	if (!button)
+		return;
+	const QColor c = QColor::fromRgba(rgba);
+	button->setProperty("rgba", c.rgba());
+	button->setText(c.name(QColor::HexRgb).toUpper());
+	button->setStyleSheet(QStringLiteral("QPushButton { background:%1; color:%2;"
+					     " border:1px solid palette(mid); padding:4px 8px; }")
+				      .arg(c.name(QColor::HexRgb))
+				      .arg(c.lightness() < 128 ? "#ffffff" : "#000000"));
+}
+
+void ZoominatorDialog::chooseFrameColor(QPushButton *button)
+{
+	if (!button)
+		return;
+	const QColor picked = QColorDialog::getColor(QColor::fromRgba(button->property("rgba").toUInt()), this,
+						     T("Dialog.PickFrameColor"));
+	if (picked.isValid()) {
+		QColor opaque = picked;
+		opaque.setAlpha(255);
+		setColorButton(button, opaque.rgba());
+	}
 }
 
 void ZoominatorDialog::chooseMarkerColor()

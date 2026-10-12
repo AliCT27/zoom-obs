@@ -138,6 +138,8 @@ ZoominatorController::ZoominatorController()
 	tickTimer.setInterval(16);
 	tickTimer.setTimerType(Qt::PreciseTimer);
 	connect(&tickTimer, &QTimer::timeout, this, &ZoominatorController::onTick);
+	frameTimer.setInterval(500);
+	connect(&frameTimer, &QTimer::timeout, this, &ZoominatorController::refreshFrame);
 }
 
 ZoominatorController::~ZoominatorController()
@@ -153,6 +155,7 @@ void ZoominatorController::initialize()
 	obs_frontend_add_event_callback(frontendEventCallback, this);
 	obs_add_tick_callback(videoTickCallback, this);
 	tickCallbackAdded = true;
+	frameTimer.start();
 	zoominator_caret::start();
 	QTimer::singleShot(1500, this, [this]() { installHooks(); });
 	QTimer::singleShot(3000, this, [this]() { requestRecoveryRestore(); });
@@ -172,6 +175,7 @@ void ZoominatorController::shutdown()
 	zoomActive.store(false, std::memory_order_release);
 	tickingWanted.store(false, std::memory_order_release);
 	obs_frontend_remove_event_callback(frontendEventCallback, this);
+	frameTimer.stop();
 	uninstallHooks();
 	zoominator_caret::stop();
 	ensureTicking(false);
@@ -204,6 +208,7 @@ void ZoominatorController::showDialog()
 
 void ZoominatorController::rebuildRuntimeHooks()
 {
+	refreshFrame();
 	rebuildTriggersFromSettings();
 	uninstallHooks();
 	installHooks();
