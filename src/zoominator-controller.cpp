@@ -180,6 +180,7 @@ void ZoominatorController::shutdown()
 	zoominator_caret::stop();
 	ensureTicking(false);
 	detachBlurFilters();
+	zoominator_frame::clearRect();
 
 	obs_source_t *staleRef = nullptr;
 	{
@@ -608,6 +609,24 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 	}
 
+	/* Frame: the screen's rectangle as it appears right now. */
+	if (frameEnabled) {
+		vec2 fmn{}, fmx{};
+		bool fvalid = false;
+		for (auto &state : sceneItems) {
+			if (!state.item || !state.orig.valid || !state.lastAppliedValid || !isLiveItem(state.item))
+				continue;
+			if (!obs_sceneitem_visible(state.item))
+				continue;
+			OrigState moved = state.orig;
+			moved.effectivePos = state.lastAppliedPos;
+			moved.effectiveScale = state.lastAppliedScale;
+			accumulateItemBounds(moved, obs_sceneitem_get_source(state.item), fmn, fmx, fvalid);
+		}
+		if (fvalid)
+			zoominator_frame::setRect(fmn.x, fmn.y, fmx.x, fmx.y);
+	}
+
 	/* Marker placement is published rather than applied: creating the marker
 	 * source, rebuilding its image and setting filter values all mutate the
 	 * scene graph, which must not happen from the graphics tick. The Qt timer
@@ -851,6 +870,7 @@ void ZoominatorController::finishZoomOnMainThread()
 	ensureTicking(false);
 	resetState();
 	hideFocusInAllScenes();
+	refreshFrame();
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
 		pendingFocusVisible = false;

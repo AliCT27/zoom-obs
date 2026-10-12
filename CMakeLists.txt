@@ -61,6 +61,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/plugin-main.cpp
   src/zoominator-controller.cpp
   src/zoominator-frame.cpp
+  src/frame-source.cpp
   src/zoominator-hotkeys.cpp
   src/zoominator-input.cpp
   src/zoominator-internal.hpp

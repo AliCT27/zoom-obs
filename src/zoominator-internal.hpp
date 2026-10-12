@@ -6,6 +6,7 @@
 
 #include "zoominator-controller.hpp"
 #include "focus-blur-filter.hpp"
+#include "frame-source.hpp"
 #include "caret-locator.hpp"
 
 

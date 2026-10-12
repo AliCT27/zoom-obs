@@ -243,8 +243,6 @@ private:
 	void hideFocusInAllScenes();
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
-	QString frameImagePath() const;
-	void rebuildFrameImage(int canvasW, int canvasH, const QRectF &rect);
 	void refreshFrame();
 	void hideFrameInAllScenes();
 
@@ -403,7 +401,6 @@ private:
 	uint64_t focusAppearanceHash = 0;
 	bool focusShown = false;
 	obs_source_t *frameSource = nullptr;
-	uint64_t frameHash = 0;
 	bool zoomPaused = false;
 	/* A global key and the modifiers it needs, ready for the hook procs. */
 	struct HotkeyBinding {
