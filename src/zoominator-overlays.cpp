@@ -398,6 +398,13 @@ QString ZoominatorController::focusImagePath() const
 	return p;
 }
 
+/* Canvas pixels the dim image extends beyond "twice the canvas" on each side:
+ * the spotlight's full outer radius plus a little slack. */
+double ZoominatorController::focusImagePad() const
+{
+	return (double)std::clamp(focusRadius, 40, 2000) + (double)std::clamp(focusSoftness, 0, 600) * 0.5 + 4.0;
+}
+
 void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 {
 	const QString path = focusImagePath();
@@ -407,8 +414,12 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 
 	/* +2 px (8 canvas px after scaling) so rounding or bilinear filtering at the
 	 * border can never expose an undimmed sliver when the cursor sits on an edge. */
-	const int w = std::max(8, (int)std::ceil(2.0 * canvasW / kFocusImageScale) + 2);
-	const int h = std::max(8, (int)std::ceil(2.0 * canvasH / kFocusImageScale) + 2);
+	/* Extra room on every side lets the spotlight sit entirely off the canvas
+	 * (cursor outside the video, e.g. after the view was frozen) while the dim
+	 * still covers the whole canvas. */
+	const double pad = focusImagePad();
+	const int w = std::max(8, (int)std::ceil((2.0 * canvasW + 2.0 * pad) / kFocusImageScale) + 2);
+	const int h = std::max(8, (int)std::ceil((2.0 * canvasH + 2.0 * pad) / kFocusImageScale) + 2);
 	const double radius = (double)std::clamp(focusRadius, 40, 2000) / kFocusImageScale;
 	const double soft = (double)std::clamp(focusSoftness, 0, 600) / kFocusImageScale;
 	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
@@ -629,9 +640,14 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 	if (!scene_item_pointer_is_live(scene, item))
 		return;
 
+	/* Keep the image covering the whole canvas: the centre may leave the canvas
+	 * by at most the padding, which is enough to push the spotlight fully off it. */
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	const double pad = focusImagePad();
 	vec2 pos{};
-	pos.x = (float)x;
-	pos.y = (float)y;
+	pos.x = (float)clampd(x, -pad, (double)cw + pad);
+	pos.y = (float)clampd(y, -pad, (double)ch + pad);
 	obs_sceneitem_set_pos(item, &pos);
 
 	if (!obs_sceneitem_visible(item)) {
