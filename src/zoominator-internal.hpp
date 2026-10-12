@@ -195,6 +195,44 @@ inline void ensure_parent_dir_exists(const QString &filePath)
 }
 
 
+inline void get_canvas_size(int &w, int &h)
+{
+	obs_video_info ovi{};
+	if (obs_get_video_info(&ovi)) {
+		w = (int)ovi.base_width;
+		h = (int)ovi.base_height;
+	} else {
+		w = 1920;
+		h = 1080;
+	}
+}
+
+inline obs_sceneitem_t *find_scene_item_for_source(obs_scene_t *scene, obs_source_t *source)
+{
+	struct Finder {
+		obs_source_t *want = nullptr;
+		obs_sceneitem_t *found = nullptr;
+
+		static bool enum_cb(obs_scene_t *, obs_sceneitem_t *item, void *param)
+		{
+			auto *f = static_cast<Finder *>(param);
+			if (!f || f->found)
+				return false;
+			if (obs_sceneitem_get_source(item) == f->want) {
+				f->found = item;
+				return false;
+			}
+			return true;
+		}
+	};
+
+	if (!scene || !source)
+		return nullptr;
+	Finder finder{source, nullptr};
+	obs_scene_enum_items(scene, Finder::enum_cb, &finder);
+	return finder.found;
+}
+
 int qtKeyToVk(int qtKey); /* zoominator-hotkeys.cpp */
 
 /* Defined in zoominator-overlays.cpp. */

@@ -34,6 +34,8 @@ private slots:
 	void clearPauseHotkey();
 	void onPauseStateChanged(bool paused);
 	void chooseMarkerColor();
+	void chooseFrameColor(QPushButton *button);
+	void setColorButton(QPushButton *button, uint32_t rgba);
 	void populateSourcesTab();
 	void applyReelsPreset();
 
@@ -101,6 +103,13 @@ private:
 	QSpinBox *spMarkerSize = nullptr;
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
+	QCheckBox *chkFrame = nullptr;
+	QPushButton *btnFrameColor = nullptr;
+	QPushButton *btnFrameBg = nullptr;
+	QSpinBox *spFrameBorder = nullptr;
+	QSpinBox *spFrameRadius = nullptr;
+	QSpinBox *spFrameGlow = nullptr;
+	QSpinBox *spFrameGlowPct = nullptr;
 	QCheckBox *chkFocus = nullptr;
 	QComboBox *cmbFocusStyle = nullptr;
 	std::function<void()> syncFocusFieldsFn;

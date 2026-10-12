@@ -60,6 +60,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/focus-blur-filter.hpp
   src/plugin-main.cpp
   src/zoominator-controller.cpp
+  src/zoominator-frame.cpp
   src/zoominator-hotkeys.cpp
   src/zoominator-input.cpp
   src/zoominator-internal.hpp

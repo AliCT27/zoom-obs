@@ -58,13 +58,15 @@ void ZoominatorController::applySceneItemTransform(obs_sceneitem_t *item, const 
 }
 
 
-void ZoominatorController::captureOriginal(obs_sceneitem_t *item)
+/* The item's transform plus the position and scale it effectively has once
+ * bounds and alignment are taken into account. */
+ZoominatorController::OrigState ZoominatorController::computeOrigState(obs_sceneitem_t *item) const
 {
 	if (!item)
-		return;
+		return {};
 	OrigState orig = readSceneItemTransform(item);
 	if (!orig.valid)
-		return;
+		return orig;
 
 	float renderedW = 0.0f;
 	float renderedH = 0.0f;
@@ -128,6 +130,14 @@ void ZoominatorController::captureOriginal(obs_sceneitem_t *item)
 	orig.effectivePos.y = orig.pos.y - (originOffset.x * originSin + originOffset.y * originCos);
 
 	orig.valid = true;
+	return orig;
+}
+
+void ZoominatorController::captureOriginal(obs_sceneitem_t *item)
+{
+	const OrigState orig = computeOrigState(item);
+	if (!orig.valid)
+		return;
 
 	const QString key = sceneItemKey(item);
 	if (!key.isEmpty())
@@ -157,56 +167,77 @@ void ZoominatorController::captureOriginalSceneItems(const std::vector<obs_scene
 		 * they show nothing, and scenes routinely park them far off-canvas. */
 		if (!obs_sceneitem_visible(state.item))
 			continue;
-		obs_source_t *src = obs_sceneitem_get_source(state.item);
-		if (!src)
-			continue;
-		const float sw = (float)obs_source_get_width(src);
-		const float sh = (float)obs_source_get_height(src);
-		const float visibleW = std::max(1.0f, sw - (float)state.orig.crop.left - (float)state.orig.crop.right);
-		const float visibleH = std::max(1.0f, sh - (float)state.orig.crop.top - (float)state.orig.crop.bottom);
-		const float renderedW = visibleW * state.orig.effectiveScale.x;
-		const float renderedH = visibleH * state.orig.effectiveScale.y;
-
-		/* Axis-aligned bounds of the item as it actually appears, i.e. of the
-		 * rotated quad anchored at effectivePos. Treating a rotated item as an
-		 * upright renderedW x renderedH box puts these bounds somewhere the
-		 * source is not, and the framing clamp below then pushes the real
-		 * source off-canvas by exactly that error. */
-		float boundsSin = 0.0f;
-		float boundsCos = 1.0f;
-		rotation_sin_cos(state.orig.rot, boundsSin, boundsCos);
-
-		const float cornerX[4] = {0.0f, renderedW, 0.0f, renderedW};
-		const float cornerY[4] = {0.0f, 0.0f, renderedH, renderedH};
-
-		float minX = state.orig.effectivePos.x;
-		float minY = state.orig.effectivePos.y;
-		float maxX = minX;
-		float maxY = minY;
-		for (int corner = 0; corner < 4; ++corner) {
-			const float px =
-				state.orig.effectivePos.x + cornerX[corner] * boundsCos - cornerY[corner] * boundsSin;
-			const float py =
-				state.orig.effectivePos.y + cornerX[corner] * boundsSin + cornerY[corner] * boundsCos;
-			minX = std::min(minX, px);
-			maxX = std::max(maxX, px);
-			minY = std::min(minY, py);
-			maxY = std::max(maxY, py);
-		}
-
-		if (!sceneContentBoundsValid) {
-			sceneContentMin.x = minX;
-			sceneContentMin.y = minY;
-			sceneContentMax.x = maxX;
-			sceneContentMax.y = maxY;
-			sceneContentBoundsValid = true;
-		} else {
-			sceneContentMin.x = std::min(sceneContentMin.x, minX);
-			sceneContentMin.y = std::min(sceneContentMin.y, minY);
-			sceneContentMax.x = std::max(sceneContentMax.x, maxX);
-			sceneContentMax.y = std::max(sceneContentMax.y, maxY);
-		}
+		accumulateItemBounds(state.orig, obs_sceneitem_get_source(state.item), sceneContentMin, sceneContentMax,
+				     sceneContentBoundsValid);
 	}
+}
+
+/* Grows [mn, mx] by the axis-aligned bounds of an item as it actually appears,
+ * i.e. of the rotated quad anchored at its effective position. Treating a
+ * rotated item as an upright box puts the bounds somewhere the source is not,
+ * and the framing clamp then pushes the real source off-canvas by exactly that
+ * error. */
+void ZoominatorController::accumulateItemBounds(const OrigState &orig, obs_source_t *src, vec2 &mn, vec2 &mx,
+						bool &valid) const
+{
+	if (!src)
+		return;
+	const float sw = (float)obs_source_get_width(src);
+	const float sh = (float)obs_source_get_height(src);
+	const float visibleW = std::max(1.0f, sw - (float)orig.crop.left - (float)orig.crop.right);
+	const float visibleH = std::max(1.0f, sh - (float)orig.crop.top - (float)orig.crop.bottom);
+	const float renderedW = visibleW * orig.effectiveScale.x;
+	const float renderedH = visibleH * orig.effectiveScale.y;
+
+	float boundsSin = 0.0f;
+	float boundsCos = 1.0f;
+	rotation_sin_cos(orig.rot, boundsSin, boundsCos);
+
+	const float cornerX[4] = {0.0f, renderedW, 0.0f, renderedW};
+	const float cornerY[4] = {0.0f, 0.0f, renderedH, renderedH};
+
+	float minX = orig.effectivePos.x;
+	float minY = orig.effectivePos.y;
+	float maxX = minX;
+	float maxY = minY;
+	for (int corner = 0; corner < 4; ++corner) {
+		const float px = orig.effectivePos.x + cornerX[corner] * boundsCos - cornerY[corner] * boundsSin;
+		const float py = orig.effectivePos.y + cornerX[corner] * boundsSin + cornerY[corner] * boundsCos;
+		minX = std::min(minX, px);
+		maxX = std::max(maxX, px);
+		minY = std::min(minY, py);
+		maxY = std::max(maxY, py);
+	}
+
+	if (!valid) {
+		mn.x = minX;
+		mn.y = minY;
+		mx.x = maxX;
+		mx.y = maxY;
+		valid = true;
+	} else {
+		mn.x = std::min(mn.x, minX);
+		mn.y = std::min(mn.y, minY);
+		mx.x = std::max(mx.x, maxX);
+		mx.y = std::max(mx.y, maxY);
+	}
+}
+
+/* Bounds of live items as they are right now (not zooming). */
+bool ZoominatorController::computeTargetBounds(const std::vector<obs_sceneitem_t *> &items, vec2 &mn, vec2 &mx) const
+{
+	bool valid = false;
+	mn = {};
+	mx = {};
+	for (auto *item : items) {
+		if (!item || !obs_sceneitem_visible(item))
+			continue;
+		const OrigState orig = computeOrigState(item);
+		if (!orig.valid)
+			continue;
+		accumulateItemBounds(orig, obs_sceneitem_get_source(item), mn, mx, valid);
+	}
+	return valid;
 }
 
 void ZoominatorController::restoreOriginal(obs_sceneitem_t *item)

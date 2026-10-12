@@ -4,6 +4,7 @@
 #include <obs-frontend-api.h>
 
 #include <QObject>
+#include <QRectF>
 #include <QPointer>
 #include <QKeySequence>
 #include <QSet>
@@ -118,6 +119,15 @@ public:
 	bool autoZoomOutEnabled = true;
 	/* While typing in auto mode, follow the text caret instead of the mouse (Windows). */
 	bool caretFollow = true;
+	/* Frame: fills everything outside the captured area with a colour and draws a
+	 * glowing border around it. The zoom happens inside the frame. */
+	bool frameEnabled = false;
+	uint32_t frameColor = 0xFF2ECC40;
+	uint32_t frameBgColor = 0xFF000000;
+	int frameBorderPx = 4;
+	int frameRadiusPx = 24;
+	int frameGlowPx = 80;
+	int frameGlowPct = 70;
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
 	int focusDimPct = 55;
@@ -232,6 +242,12 @@ private:
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
 
+	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
+	QString frameImagePath() const;
+	void rebuildFrameImage(int canvasW, int canvasH, const QRectF &rect);
+	void refreshFrame();
+	void hideFrameInAllScenes();
+
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
 	 * obs_add_tick_callback so the transform lands exactly once per rendered
 	 * frame, at whatever output fps is configured - a free-running Qt timer
@@ -269,6 +285,7 @@ private:
 	std::atomic<bool> pendingFinish{false};
 
 	QTimer tickTimer;
+	QTimer frameTimer;
 	bool zoomPressed = false;
 	bool zoomLatched = false;
 	qint64 autoLastActivityMs = 0;
@@ -355,6 +372,9 @@ private:
 
 	QString sceneItemKey(obs_sceneitem_t *item) const;
 	OrigState readSceneItemTransform(obs_sceneitem_t *item) const;
+	OrigState computeOrigState(obs_sceneitem_t *item) const;
+	void accumulateItemBounds(const OrigState &orig, obs_source_t *src, vec2 &mn, vec2 &mx, bool &valid) const;
+	bool computeTargetBounds(const std::vector<obs_sceneitem_t *> &items, vec2 &mn, vec2 &mx) const;
 	void applySceneItemTransform(obs_sceneitem_t *item, const OrigState &state);
 	void loadRecoveryMap(obs_data_t *data);
 	void saveRecoveryMap(obs_data_t *data);
@@ -382,6 +402,8 @@ private:
 	int focusCurrentOpacity = -1;
 	uint64_t focusAppearanceHash = 0;
 	bool focusShown = false;
+	obs_source_t *frameSource = nullptr;
+	uint64_t frameHash = 0;
 	bool zoomPaused = false;
 	/* A global key and the modifiers it needs, ready for the hook procs. */
 	struct HotkeyBinding {

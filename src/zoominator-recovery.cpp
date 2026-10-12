@@ -199,6 +199,9 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 	if (!ctl || ctl->shuttingDown)
 		return;
 
+	if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED)
+		QTimer::singleShot(0, ctl, [ctl]() { ctl->refreshFrame(); });
+
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING || event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED ||
 	    event == OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED) {
 		QTimer::singleShot(750, ctl, [ctl]() { ctl->requestRecoveryRestore(); });
