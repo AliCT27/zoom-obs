@@ -4,9 +4,8 @@
 
 bool ZoominatorController::usesWheelZoomGesture() const
 {
-	return triggerType == "mouse" && mouseButton == "x2" && hotkeyMode == "toggle" && !modCtrl && !modAlt &&
-	       !modShift && !modWin && !modLeftCtrl && !modRightCtrl && !modLeftAlt && !modRightAlt && !modLeftShift &&
-	       !modRightShift && !modLeftWin && !modRightWin;
+	/* The wheel-zoom gesture and its settings were removed; X2 toggle is a plain toggle now. */
+	return false;
 }
 
 void ZoominatorController::beginWheelZoomGesture()

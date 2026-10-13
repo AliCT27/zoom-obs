@@ -416,12 +416,13 @@ void ZoominatorController::loadSettings()
 		edgeOverflowMarginPct = (int)obs_data_get_int(data, "edge_overflow_margin_pct");
 	else if (obs_data_has_user_value(data, "allow_canvas_overflow"))
 		edgeOverflowMarginPct = obs_data_get_bool(data, "allow_canvas_overflow") ? 50 : 0;
-	edgeOverflowMarginPct = std::clamp(edgeOverflowMarginPct, 0, 50);
+	edgeOverflowMarginPct = 0; /* not offered any more */
 	if (obs_data_has_user_value(data, "center_focus"))
 		centerFocus = obs_data_get_bool(data, "center_focus");
 	if (obs_data_has_user_value(data, "mouse_idle_timeout_ms"))
 		mouseIdleTimeoutMs = (int)obs_data_get_int(data, "mouse_idle_timeout_ms");
-	mouseIdleTimeoutMs = std::clamp(mouseIdleTimeoutMs, 0, 60000);
+	mouseIdleTimeoutMs = 0; /* not offered any more */
+	centerCursorUntilEdge = true;
 
 	if (obs_data_has_user_value(data, "portrait_cover"))
 		portraitCover = obs_data_get_bool(data, "portrait_cover");

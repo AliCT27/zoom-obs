@@ -87,18 +87,11 @@ private:
 	QCheckBox *chkRightWin = nullptr;
 
 	QDoubleSpinBox *spZoom = nullptr;
-	QDoubleSpinBox *spWheelZoomInStep = nullptr;
-	QDoubleSpinBox *spWheelZoomOutStep = nullptr;
-	QDoubleSpinBox *spWheelZoomMinimum = nullptr;
-	QDoubleSpinBox *spWheelZoomMaximum = nullptr;
 	QSpinBox *spIn = nullptr;
 	QSpinBox *spOut = nullptr;
 	QComboBox *cmbZoomAnchor = nullptr;
 	QDoubleSpinBox *spFollowSpeed = nullptr;
-	QCheckBox *chkCenterCursorUntilEdge = nullptr;
 	QCheckBox *chkCenterFocus = nullptr;
-	QSpinBox *spEdgeOverflowMargin = nullptr;
-	QSpinBox *spMouseIdleTimeout = nullptr;
 	QCheckBox *chkPortraitCover = nullptr;
 	QCheckBox *chkShowCursorMarker = nullptr;
 	QCheckBox *chkShowMarkerWhenNotZoomed = nullptr;

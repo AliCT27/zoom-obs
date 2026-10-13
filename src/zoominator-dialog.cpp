@@ -385,30 +385,6 @@ void ZoominatorDialog::buildUi()
 		spZoom->setDecimals(2);
 		spZoom->setToolTip(T("Dialog.ZoomFactorTooltip"));
 
-		spWheelZoomInStep = new QDoubleSpinBox(page);
-		spWheelZoomInStep->setRange(0.01, 2.0);
-		spWheelZoomInStep->setSingleStep(0.05);
-		spWheelZoomInStep->setDecimals(2);
-		spWheelZoomInStep->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomOutStep = new QDoubleSpinBox(page);
-		spWheelZoomOutStep->setRange(0.01, 2.0);
-		spWheelZoomOutStep->setSingleStep(0.05);
-		spWheelZoomOutStep->setDecimals(2);
-		spWheelZoomOutStep->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomMinimum = new QDoubleSpinBox(page);
-		spWheelZoomMinimum->setRange(1.0, 19.0);
-		spWheelZoomMinimum->setSingleStep(0.1);
-		spWheelZoomMinimum->setDecimals(1);
-		spWheelZoomMinimum->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomMaximum = new QDoubleSpinBox(page);
-		spWheelZoomMaximum->setRange(1.1, 20.0);
-		spWheelZoomMaximum->setSingleStep(0.5);
-		spWheelZoomMaximum->setDecimals(1);
-		spWheelZoomMaximum->setSuffix(QStringLiteral("x"));
-
 		spIn = new QSpinBox(page);
 		spIn->setRange(0, 5000);
 		spIn->setSingleStep(10);
@@ -440,13 +416,6 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(easingRow);
 		lay->addSpacing(12);
 
-		auto *wheelZoomRow = new QHBoxLayout;
-		wheelZoomRow->setSpacing(12);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomInStep"), spWheelZoomInStep), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomOutStep"), spWheelZoomOutStep), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomMinimum"), spWheelZoomMinimum), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomMaximum"), spWheelZoomMaximum), 1);
-		lay->addLayout(wheelZoomRow);
 
 		addSection(lay, T("Dialog.Section.MouseFollow"));
 
@@ -461,49 +430,23 @@ void ZoominatorDialog::buildUi()
 		spFollowSpeed->setSingleStep(0.5);
 		spFollowSpeed->setDecimals(1);
 
-		chkCenterCursorUntilEdge = new QCheckBox(T("Dialog.CenterCursorUntilEdge"), page);
-		chkCenterCursorUntilEdge->setToolTip(T("Dialog.CenterCursorUntilEdgeTooltip"));
-
 		chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
 		chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
-
-		spEdgeOverflowMargin = new QSpinBox(page);
-		spEdgeOverflowMargin->setRange(0, 50);
-		spEdgeOverflowMargin->setSingleStep(5);
-		spEdgeOverflowMargin->setSuffix(T("Unit.Percent"));
-		spEdgeOverflowMargin->setSpecialValueText(T("Dialog.EdgeOverflow.Disabled"));
-		spEdgeOverflowMargin->setToolTip(T("Dialog.EdgeOverflowMarginTooltip"));
-
-		spMouseIdleTimeout = new QSpinBox(page);
-		spMouseIdleTimeout->setRange(0, 60000);
-		spMouseIdleTimeout->setSingleStep(100);
-		spMouseIdleTimeout->setSuffix(T("Unit.Milliseconds"));
-		spMouseIdleTimeout->setSpecialValueText(T("Dialog.Disabled"));
-		spMouseIdleTimeout->setToolTip(T("Dialog.MouseIdleTimeoutTooltip"));
 
 		auto *followRow = new QHBoxLayout;
 		followRow->setSpacing(12);
 
 		followRow->addWidget(mkField(T("Dialog.ZoomAnchor"), cmbZoomAnchor), 1);
 		followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
-		followRow->addWidget(mkField(T("Dialog.MouseIdleTimeout"), spMouseIdleTimeout), 1);
 		lay->addLayout(followRow);
 
-		auto *overflowRow = new QHBoxLayout;
-		overflowRow->setSpacing(12);
-		overflowRow->addWidget(mkField(T("Dialog.EdgeOverflowMargin"), spEdgeOverflowMargin), 1);
-		overflowRow->addStretch(2);
-		lay->addLayout(overflowRow);
-
-		lay->addWidget(chkCenterCursorUntilEdge);
 		lay->addWidget(chkCenterFocus);
 
-		/* Smoothing and the idle freeze only mean something while the anchor
+		/* Smoothing only means something while the anchor
 		 * actually tracks the cursor. */
 		auto syncFollowOnlyFields = [this]() {
 			const bool follows = (cmbZoomAnchor->currentData().toString() == "cursor_follow");
 			spFollowSpeed->setEnabled(follows);
-			spMouseIdleTimeout->setEnabled(follows);
 		};
 		connect(cmbZoomAnchor, &QComboBox::currentIndexChanged, this,
 			[syncFollowOnlyFields](int) { syncFollowOnlyFields(); });
@@ -1090,10 +1033,6 @@ void ZoominatorDialog::loadFromController()
 
 	{
 		spZoom->setValue(c.zoomFactor);
-		spWheelZoomInStep->setValue(c.wheelZoomInStep);
-		spWheelZoomOutStep->setValue(c.wheelZoomOutStep);
-		spWheelZoomMinimum->setValue(c.wheelZoomMinimum);
-		spWheelZoomMaximum->setValue(c.wheelZoomMaximum);
 		spIn->setValue(c.animInMs);
 		spOut->setValue(c.animOutMs);
 		const int easingIdx = cmbEasing->findData(ZoominatorController::zoomEasingToString(c.easing));
@@ -1102,10 +1041,7 @@ void ZoominatorDialog::loadFromController()
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
 		spFollowSpeed->setValue(c.followSpeed);
-		chkCenterCursorUntilEdge->setChecked(c.centerCursorUntilEdge);
-		spEdgeOverflowMargin->setValue(c.edgeOverflowMarginPct);
 		chkCenterFocus->setChecked(c.centerFocus);
-		spMouseIdleTimeout->setValue(c.mouseIdleTimeoutMs);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
@@ -1190,10 +1126,6 @@ void ZoominatorDialog::applyToController()
 	c.hotkeySequence.clear();
 
 	c.zoomFactor = spZoom->value();
-	c.wheelZoomInStep = spWheelZoomInStep->value();
-	c.wheelZoomOutStep = spWheelZoomOutStep->value();
-	c.wheelZoomMinimum = spWheelZoomMinimum->value();
-	c.wheelZoomMaximum = std::max(spWheelZoomMaximum->value(), c.wheelZoomMinimum + 0.1);
 	c.animInMs = spIn->value();
 	c.animOutMs = spOut->value();
 	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
@@ -1210,10 +1142,11 @@ void ZoominatorDialog::applyToController()
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
-	c.centerCursorUntilEdge = chkCenterCursorUntilEdge->isChecked();
-	c.edgeOverflowMarginPct = spEdgeOverflowMargin->value();
+	/* Fixed: no longer offered in the dialog. */
+	c.centerCursorUntilEdge = true;
+	c.edgeOverflowMarginPct = 0;
 	c.centerFocus = chkCenterFocus->isChecked();
-	c.mouseIdleTimeoutMs = spMouseIdleTimeout->value();
+	c.mouseIdleTimeoutMs = 0;
 	c.portraitCover = chkPortraitCover->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
@@ -1306,8 +1239,6 @@ void ZoominatorDialog::applyReelsPreset()
 	cmbEasing->setCurrentIndex(std::max(0, cmbEasing->findData("punch")));
 	cmbZoomAnchor->setCurrentIndex(std::max(0, cmbZoomAnchor->findData("cursor_follow")));
 	spFollowSpeed->setValue(6.0);
-	spEdgeOverflowMargin->setValue(0);
-	spMouseIdleTimeout->setValue(0);
 	chkPortraitCover->setChecked(true);
 	chkShowCursorMarker->setChecked(true);
 
