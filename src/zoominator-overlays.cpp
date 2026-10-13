@@ -82,7 +82,10 @@ static void normalize_marker_scene_item(obs_sceneitem_t *item)
 
 void ZoominatorController::rebuildMarkerImage()
 {
-	const int size = std::clamp(markerSize, 6, 512);
+	/* The image is drawn for the larger of the zoomed and not-zoomed sizes and the
+	 * scene item is scaled down to the one in use, so neither looks soft. */
+	const int size = std::clamp(std::max(markerSize, markerIdleSize), 6, 512);
+	const double f = (double)size / (double)std::clamp(markerSize, 6, 512);
 	const QString path = markerImagePath();
 	if (path.isEmpty())
 		return;
@@ -102,7 +105,7 @@ void ZoominatorController::rebuildMarkerImage()
 		stroke.setAlpha(255);
 	stroke.setAlpha(255);
 
-	const qreal thickness = std::clamp<qreal>((qreal)markerThickness, 1.0, std::max<qreal>(1.0, size / 2.0 - 2.0));
+	const qreal thickness = std::clamp<qreal>((qreal)markerThickness * f, 1.0, std::max<qreal>(1.0, size / 2.0 - 2.0));
 	const qreal margin = thickness * 0.5 + 1.5;
 	const QRectF ringRect(margin, margin, size - margin * 2.0, size - margin * 2.0);
 
@@ -257,8 +260,9 @@ void ZoominatorController::hideMarkerInScene(obs_scene_t *scene)
 
 void ZoominatorController::updateMarkerAppearance()
 {
-	const uint32_t appearanceHash = ((uint32_t)std::clamp(markerSize, 6, 512) << 24) ^
-					((uint32_t)std::clamp(markerThickness, 1, 64) << 16) ^ markerColor;
+	const uint32_t appearanceHash = ((uint32_t)std::clamp(markerSize, 6, 512) * 73856093u) ^
+					((uint32_t)std::clamp(markerThickness, 1, 64) * 19349663u) ^
+					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u);
 
 	if (markerSource && markerAppearanceHash == appearanceHash)
 		return;
@@ -343,7 +347,7 @@ int ZoominatorController::currentMarkerOpacity(qint64 nowMs)
 	return (int)std::round((1.0 - smoothstep(tOut)) * 255.0);
 }
 
-void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255)
+void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle)
 {
 	if (!showCursorMarker)
 		return;
@@ -365,6 +369,13 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 		return;
 
 	normalize_marker_scene_item(item);
+	{
+		const double imgSize = (double)std::clamp(std::max(markerSize, markerIdleSize), 6, 512);
+		const double wanted = (double)std::clamp(idle ? markerIdleSize : markerSize, 6, 512);
+		vec2 sc{};
+		sc.x = sc.y = (float)(wanted / imgSize);
+		obs_sceneitem_set_scale(item, &sc);
+	}
 
 	vec2 pos{};
 	pos.x = (float)x;

@@ -465,13 +465,8 @@ void ZoominatorDialog::buildUi()
 		chkShowMarkerWhenNotZoomed = new QCheckBox(T("Dialog.ShowHaloWhenNotZoomed"), page);
 		chkShowMarkerWhenNotZoomed->setToolTip(T("Dialog.ShowHaloWhenNotZoomedTooltip"));
 
-		auto *haloFlagsRow = new QHBoxLayout;
-		haloFlagsRow->setSpacing(20);
-		haloFlagsRow->addWidget(chkShowCursorMarker);
-		haloFlagsRow->addWidget(chkShowMarkerWhenNotZoomed);
-		haloFlagsRow->addStretch(1);
-		lay->addLayout(haloFlagsRow);
-		lay->addSpacing(10);
+		lay->addWidget(chkShowCursorMarker);
+		lay->addSpacing(6);
 
 		spMarkerSize = new QSpinBox(page);
 		spMarkerSize->setRange(6, 256);
@@ -492,6 +487,22 @@ void ZoominatorDialog::buildUi()
 		haloRow->addWidget(mkField(T("Dialog.RingThickness"), spMarkerThickness), 1);
 		haloRow->addWidget(mkField(T("Dialog.Color"), btnMarkerColor), 1);
 		lay->addLayout(haloRow);
+		lay->addSpacing(10);
+
+		lay->addWidget(chkShowMarkerWhenNotZoomed);
+		lay->addSpacing(4);
+		spMarkerIdleSize = new QSpinBox(page);
+		spMarkerIdleSize->setRange(6, 256);
+		spMarkerIdleSize->setSingleStep(2);
+		spMarkerIdleSize->setSuffix(T("Unit.Pixels"));
+		spMarkerIdleSize->setToolTip(T("Dialog.HaloIdleSizeTooltip"));
+		spMarkerIdleSize->setEnabled(chkShowMarkerWhenNotZoomed->isChecked());
+		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, spMarkerIdleSize, &QWidget::setEnabled);
+		auto *haloIdleRow = new QHBoxLayout;
+		haloIdleRow->setSpacing(12);
+		haloIdleRow->addWidget(mkField(T("Dialog.HaloIdleSize"), spMarkerIdleSize), 1);
+		haloIdleRow->addStretch(2);
+		lay->addLayout(haloIdleRow);
 
 		addSection(lay, T("Dialog.Section.Frame"));
 
@@ -1068,6 +1079,7 @@ void ZoominatorDialog::loadFromController()
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
 		chkShowMarkerWhenNotZoomed->setEnabled(c.showCursorMarker);
 		spMarkerSize->setValue(c.markerSize);
+		spMarkerIdleSize->setValue(c.markerIdleSize);
 		spMarkerThickness->setValue(c.markerThickness);
 		updateMarkerColorButton(QColor::fromRgba(c.markerColor));
 		chkFrame->setChecked(c.frameEnabled);
@@ -1175,6 +1187,7 @@ void ZoominatorDialog::applyToController()
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
 	c.markerOnlyOnClick = true;
 	c.markerSize = spMarkerSize->value();
+	c.markerIdleSize = spMarkerIdleSize->value();
 	c.markerThickness = spMarkerThickness->value();
 	c.frameEnabled = chkFrame->isChecked();
 	c.frameColor = (uint32_t)btnFrameColor->property("rgba").toUInt();

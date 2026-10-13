@@ -728,7 +728,7 @@ void ZoominatorController::onTick()
 		if (obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr) {
 			const int opacity = currentMarkerOpacity(nowMs);
 			if (showCursorMarker && opacity > 0)
-				updateMarkerPosition(scene, markerClickX, markerClickY, opacity);
+				updateMarkerPosition(scene, markerClickX, markerClickY, opacity, true);
 			else
 				hideMarkerInScene(scene);
 		}

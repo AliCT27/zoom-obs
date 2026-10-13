@@ -172,6 +172,7 @@ void ZoominatorController::loadSettings()
 	markerOnlyOnClick = true;
 	markerColor = 0xFFFF0000;
 	markerSize = 26;
+	markerIdleSize = 26;
 	markerThickness = 4;
 	debug = false;
 
@@ -447,6 +448,10 @@ void ZoominatorController::loadSettings()
 		markerSize = (int)obs_data_get_int(data, "marker_size");
 	if (obs_data_has_user_value(data, "marker_thickness"))
 		markerThickness = (int)obs_data_get_int(data, "marker_thickness");
+	markerIdleSize = markerSize;
+	if (obs_data_has_user_value(data, "marker_idle_size"))
+		markerIdleSize = (int)obs_data_get_int(data, "marker_idle_size");
+	markerIdleSize = std::clamp(markerIdleSize, 6, 256);
 
 	if (obs_data_has_user_value(data, "debug"))
 		debug = obs_data_get_bool(data, "debug");
@@ -650,6 +655,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "marker_only_on_click", true);
 	obs_data_set_int(data, "marker_color", (long long)markerColor);
 	obs_data_set_int(data, "marker_size", markerSize);
+	obs_data_set_int(data, "marker_idle_size", markerIdleSize);
 	obs_data_set_int(data, "marker_thickness", markerThickness);
 	obs_data_set_bool(data, "debug", debug);
 	obs_data_set_bool(data, "recovery_active", recoveryActive);

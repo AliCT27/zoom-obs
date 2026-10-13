@@ -96,6 +96,7 @@ private:
 	QCheckBox *chkShowCursorMarker = nullptr;
 	QCheckBox *chkShowMarkerWhenNotZoomed = nullptr;
 	QSpinBox *spMarkerSize = nullptr;
+	QSpinBox *spMarkerIdleSize = nullptr;
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
 	QCheckBox *chkFrame = nullptr;
