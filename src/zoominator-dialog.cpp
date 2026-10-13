@@ -647,7 +647,6 @@ void ZoominatorDialog::buildUi()
 		lay->addWidget(chkFocus);
 		chkFocusWhenNotZoomed = new QCheckBox(T("Dialog.FocusWhenNotZoomed"), page);
 		chkFocusWhenNotZoomed->setToolTip(T("Dialog.FocusWhenNotZoomedTooltip"));
-		lay->addWidget(chkFocusWhenNotZoomed);
 		lay->addSpacing(6);
 
 		{
@@ -745,6 +744,8 @@ void ZoominatorDialog::buildUi()
 		spFocusIdleRadius->setSingleStep(10);
 		spFocusIdleRadius->setSuffix(T("Unit.Pixels"));
 		spFocusIdleRadius->setToolTip(T("Dialog.FocusIdleRadiusTooltip"));
+		lay->addWidget(chkFocusWhenNotZoomed);
+		lay->addSpacing(4);
 		auto *focusIdleRow = new QHBoxLayout;
 		focusIdleRow->setSpacing(12);
 		focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
