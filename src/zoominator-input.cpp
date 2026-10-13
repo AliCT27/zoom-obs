@@ -223,6 +223,14 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 				 g_ctl->focusToggleBinding.shift, g_ctl->focusToggleBinding.win)) {
 			g_ctl->toggleFocusRuntime();
 		}
+		if (down && g_ctl->focusOnBinding.valid && vk_matches(vk, g_ctl->focusOnBinding.vk) &&
+		    mods_current(g_ctl->focusOnBinding.ctrl, g_ctl->focusOnBinding.alt, g_ctl->focusOnBinding.shift, g_ctl->focusOnBinding.win)) {
+			g_ctl->setFocusRuntime(true);
+		}
+		if (down && g_ctl->focusOffBinding.valid && vk_matches(vk, g_ctl->focusOffBinding.vk) &&
+		    mods_current(g_ctl->focusOffBinding.ctrl, g_ctl->focusOffBinding.alt, g_ctl->focusOffBinding.shift, g_ctl->focusOffBinding.win)) {
+			g_ctl->setFocusRuntime(false);
+		}
 
 		if (g_ctl->triggerType == "auto") {
 			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
@@ -443,6 +451,14 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 				 ctl->focusToggleBinding.shift, ctl->focusToggleBinding.win)) {
 			ctl->toggleFocusRuntime();
 		}
+		if (down && ctl->focusOnBinding.valid && vk_matches(keycode, ctl->focusOnBinding.vk) &&
+		    mods_current(ctl->focusOnBinding.ctrl, ctl->focusOnBinding.alt, ctl->focusOnBinding.shift, ctl->focusOnBinding.win)) {
+			ctl->setFocusRuntime(true);
+		}
+		if (down && ctl->focusOffBinding.valid && vk_matches(keycode, ctl->focusOffBinding.vk) &&
+		    mods_current(ctl->focusOffBinding.ctrl, ctl->focusOffBinding.alt, ctl->focusOffBinding.shift, ctl->focusOffBinding.win)) {
+			ctl->setFocusRuntime(false);
+		}
 
 		if (ctl->triggerType == "auto") {
 			const CGEventFlags flags = CGEventGetFlags(event);
@@ -660,6 +676,14 @@ void ZoominatorController::processXInput2Events()
 					 focusToggleBinding.win)) {
 				toggleFocusRuntime();
 			}
+			if (down && focusOnBinding.valid && vk_matches((int)sym, focusOnBinding.vk) &&
+			    mods_current(focusOnBinding.ctrl, focusOnBinding.alt, focusOnBinding.shift, focusOnBinding.win)) {
+				setFocusRuntime(true);
+			}
+			if (down && focusOffBinding.valid && vk_matches((int)sym, focusOffBinding.vk) &&
+			    mods_current(focusOffBinding.ctrl, focusOffBinding.alt, focusOffBinding.shift, focusOffBinding.win)) {
+				setFocusRuntime(false);
+			}
 
 			if (triggerType == "auto" && down && autoOnTyping && !is_modifier_vk((int)sym)) {
 				const ModifierState ms = current_modifiers();
@@ -788,7 +812,7 @@ bool ZoominatorController::triggerMatchesMouse(unsigned int msg, unsigned short 
 bool ZoominatorController::needsKeyboardHook() const
 {
 	return triggerType == "keyboard" || followToggleHkValid || manualZoomInBinding.valid ||
-	       manualZoomOutBinding.valid || focusToggleBinding.valid ||
+	       manualZoomOutBinding.valid || focusToggleBinding.valid || focusOnBinding.valid || focusOffBinding.valid ||
 	       (triggerType == "auto" && autoOnTyping);
 }
 

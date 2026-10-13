@@ -719,6 +719,36 @@ void ZoominatorDialog::buildUi()
 			lay->addWidget(mkField(T("Dialog.FocusToggleHotkey"), row));
 			lay->addSpacing(6);
 		}
+		{
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editFocusOn = new QKeySequenceEdit(row);
+			editFocusOn->setToolTip(T("Dialog.FocusOnHotkeyTooltip"));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = editFocusOn;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(editFocusOn, 1);
+			h->addWidget(clear);
+			lay->addWidget(mkField(T("Dialog.FocusOnHotkey"), row));
+			lay->addSpacing(6);
+		}
+		{
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editFocusOff = new QKeySequenceEdit(row);
+			editFocusOff->setToolTip(T("Dialog.FocusOffHotkeyTooltip"));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = editFocusOff;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(editFocusOff, 1);
+			h->addWidget(clear);
+			lay->addWidget(mkField(T("Dialog.FocusOffHotkey"), row));
+			lay->addSpacing(6);
+		}
 
 		cmbFocusStyle = new QComboBox(page);
 		cmbFocusStyle->addItem(T("Dialog.FocusStyle.Dim"), "dim");
@@ -1012,6 +1042,8 @@ void ZoominatorDialog::loadFromController()
 		editManualZoomIn->setKeySequence(QKeySequence(c.manualZoomInSequence));
 		editManualZoomOut->setKeySequence(QKeySequence(c.manualZoomOutSequence));
 		editFocusToggle->setKeySequence(QKeySequence(c.focusToggleSequence));
+		editFocusOn->setKeySequence(QKeySequence(c.focusOnSequence));
+		editFocusOff->setKeySequence(QKeySequence(c.focusOffSequence));
 	}
 
 	{
@@ -1136,6 +1168,8 @@ void ZoominatorDialog::applyToController()
 	c.manualZoomInSequence = editManualZoomIn->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomOutSequence = editManualZoomOut->keySequence().toString(QKeySequence::NativeText);
 	c.focusToggleSequence = editFocusToggle->keySequence().toString(QKeySequence::NativeText);
+	c.focusOnSequence = editFocusOn->keySequence().toString(QKeySequence::NativeText);
+	c.focusOffSequence = editFocusOff->keySequence().toString(QKeySequence::NativeText);
 
 	c.triggerType = cmbTrigger->currentData().toString();
 	c.mouseButton = cmbMouseBtn->currentData().toString();

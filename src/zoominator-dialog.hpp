@@ -57,6 +57,8 @@ private:
 	QKeySequenceEdit *editManualZoomIn = nullptr;
 	QKeySequenceEdit *editManualZoomOut = nullptr;
 	QKeySequenceEdit *editFocusToggle = nullptr;
+	QKeySequenceEdit *editFocusOn = nullptr;
+	QKeySequenceEdit *editFocusOff = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
 	QKeySequenceEdit *editHotkey = nullptr;

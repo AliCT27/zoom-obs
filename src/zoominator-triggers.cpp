@@ -152,9 +152,14 @@ void ZoominatorController::manualZoomOut()
  * Apply (or restarting OBS) goes back to the checkbox in the Focus section. */
 void ZoominatorController::toggleFocusRuntime()
 {
+	setFocusRuntime(!focusEnabled);
+}
+
+void ZoominatorController::setFocusRuntime(bool on)
+{
 	if (shuttingDown)
 		return;
-	focusEnabled = !focusEnabled;
+	focusEnabled = on;
 	if (!focusEnabled)
 		hideFocusInAllScenes();
 	if (debug)
