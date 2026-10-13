@@ -77,6 +77,13 @@ public:
 	void showDialog();
 	void saveSettings();
 	void loadSettings();
+
+	/* "My preset": a snapshot of every setting except the machine-specific ones
+	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
+	 * is currently stored in the settings file, so call saveSettings() first. */
+	bool hasUserPreset() const;
+	bool saveUserPreset();
+	bool applyUserPreset();
 	void notifySettingsChanged();
 	void rebuildRuntimeHooks();
 
@@ -143,8 +150,10 @@ public:
 	int frameGlowPct = 70;
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
+	bool showFocusWhenNotZoomed = false;
 	int focusDimPct = 55;
 	int focusRadius = 300;
+	int focusIdleRadius = 300;
 	int focusSoftness = 80;
 	FocusStyle focusStyle = FocusStyle::Dim;
 	/* Blur radius in canvas pixels for the Blur styles. */
@@ -152,6 +161,9 @@ public:
 	/* Automatic mode only: zoom in (and stay zoomed) / zoom out on demand. */
 	QString manualZoomInSequence;
 	QString manualZoomOutSequence;
+	QString focusToggleSequence;
+	QString focusOnSequence;
+	QString focusOffSequence;
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
@@ -184,6 +196,7 @@ private:
 	ZoominatorController &operator=(const ZoominatorController &) = delete;
 
 	QString configPath() const;
+	QString presetPath() const;
 
 	void ensureTicking(bool on);
 	void startZoomIn();
@@ -201,6 +214,8 @@ private:
 	/* Automatic mode: hotkeys that zoom in and hold, and zoom out and release. */
 	void manualZoomIn();
 	void manualZoomOut();
+	void toggleFocusRuntime();
+	void setFocusRuntime(bool on);
 	void beginAutoZoom();
 	void beginWheelZoomGesture();
 	void adjustActiveZoomFromWheel(int direction, int steps = 1);
@@ -246,9 +261,13 @@ private:
 	void updateFocusAppearance();
 	obs_sceneitem_t *ensureFocusItem(obs_scene_t *scene, bool &created);
 	void placeFocusBelowOverlays(obs_scene_t *scene, obs_sceneitem_t *item);
-	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255);
+	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false);
+	double focusIdleScale() const;
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
+	void updateIdleFocus(bool on);
+	bool wantsIdleFocus() const { return focusEnabled && showFocusWhenNotZoomed && wantsDim(); }
+	void refreshIdleFocusTicking();
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
 	void refreshFrame();
@@ -433,6 +452,9 @@ private:
 	static HotkeyBinding makeHotkeyBinding(const QString &sequence);
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
+	HotkeyBinding focusToggleBinding;
+	HotkeyBinding focusOnBinding;
+	HotkeyBinding focusOffBinding;
 	qint64 autoLastManualKeyMs = 0;
 	/* Set by the Zoom Out hotkey: clicks and typing no longer start a zoom until
 	 * the Zoom In hotkey is pressed (or the settings are applied again). */

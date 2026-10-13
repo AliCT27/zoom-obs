@@ -287,6 +287,9 @@ void ZoominatorController::rebuildTriggersFromSettings()
 	autoSuspended = false;
 	manualZoomInBinding = makeHotkeyBinding(manualZoomInSequence);
 	manualZoomOutBinding = makeHotkeyBinding(manualZoomOutSequence);
+	focusToggleBinding = makeHotkeyBinding(focusToggleSequence);
+	focusOnBinding = makeHotkeyBinding(focusOnSequence);
+	focusOffBinding = makeHotkeyBinding(focusOffSequence);
 	hkValid = false;
 	hotkeyVk = 0;
 	followToggleHkValid = false;
@@ -369,7 +372,13 @@ void ZoominatorController::rebuildTriggersFromSettings()
 	if (triggerType != "mouse" && triggerType != "auto")
 		triggerType = "keyboard";
 
-	if (triggerType == "keyboard") {
+	/* Keyboard mode is driven by the separate Zoom In / Zoom Out keys only; the old
+	 * single combined hotkey is no longer offered. */
+	constexpr bool kCombinedHotkey = false;
+	if (triggerType == "keyboard" && !kCombinedHotkey) {
+		hotkeyVk = 0;
+		hkValid = false;
+	} else if (triggerType == "keyboard") {
 		QKeySequence seq(hotkeySequence);
 		if (seq.isEmpty()) {
 			hotkeyVk = 0;

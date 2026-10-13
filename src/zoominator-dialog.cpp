@@ -197,7 +197,8 @@ void ZoominatorDialog::buildUi()
 		cmbMode = new QComboBox(page);
 		cmbMode->addItem(T("Dialog.Mode.Hold"), "hold");
 		cmbMode->addItem(T("Dialog.Mode.Toggle"), "toggle");
-		lay->addWidget(mkField(T("Dialog.Behavior"), cmbMode));
+		rowBehaviorWidget = mkField(T("Dialog.Behavior"), cmbMode);
+		lay->addWidget(rowBehaviorWidget);
 		lay->addSpacing(16);
 
 		auto *followHkRow = new QWidget(page);
@@ -336,8 +337,16 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
 			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
 
+		}
+		lay->addWidget(rowAutoWidget);
+
+		rowManualKeysWidget = new QWidget(page);
+		{
+			auto *v = new QVBoxLayout(rowManualKeysWidget);
+			v->setContentsMargins(0, 0, 0, 0);
+			v->setSpacing(8);
 			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
-				auto *row = new QWidget(rowAutoWidget);
+				auto *row = new QWidget(rowManualKeysWidget);
 				auto *h = new QHBoxLayout(row);
 				h->setContentsMargins(0, 0, 0, 0);
 				h->setSpacing(6);
@@ -353,7 +362,8 @@ void ZoominatorDialog::buildUi()
 			makeKeyRow(editManualZoomIn, "Dialog.ManualZoomIn", "Dialog.ManualZoomInTooltip");
 			makeKeyRow(editManualZoomOut, "Dialog.ManualZoomOut", "Dialog.ManualZoomOutTooltip");
 		}
-		lay->addWidget(rowAutoWidget);
+		lay->addSpacing(16);
+		lay->addWidget(rowManualKeysWidget);
 
 		lay->addStretch(1);
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));
@@ -374,30 +384,6 @@ void ZoominatorDialog::buildUi()
 		spZoom->setSingleStep(0.05);
 		spZoom->setDecimals(2);
 		spZoom->setToolTip(T("Dialog.ZoomFactorTooltip"));
-
-		spWheelZoomInStep = new QDoubleSpinBox(page);
-		spWheelZoomInStep->setRange(0.01, 2.0);
-		spWheelZoomInStep->setSingleStep(0.05);
-		spWheelZoomInStep->setDecimals(2);
-		spWheelZoomInStep->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomOutStep = new QDoubleSpinBox(page);
-		spWheelZoomOutStep->setRange(0.01, 2.0);
-		spWheelZoomOutStep->setSingleStep(0.05);
-		spWheelZoomOutStep->setDecimals(2);
-		spWheelZoomOutStep->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomMinimum = new QDoubleSpinBox(page);
-		spWheelZoomMinimum->setRange(1.0, 19.0);
-		spWheelZoomMinimum->setSingleStep(0.1);
-		spWheelZoomMinimum->setDecimals(1);
-		spWheelZoomMinimum->setSuffix(QStringLiteral("x"));
-
-		spWheelZoomMaximum = new QDoubleSpinBox(page);
-		spWheelZoomMaximum->setRange(1.1, 20.0);
-		spWheelZoomMaximum->setSingleStep(0.5);
-		spWheelZoomMaximum->setDecimals(1);
-		spWheelZoomMaximum->setSuffix(QStringLiteral("x"));
 
 		spIn = new QSpinBox(page);
 		spIn->setRange(0, 5000);
@@ -430,13 +416,6 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(easingRow);
 		lay->addSpacing(12);
 
-		auto *wheelZoomRow = new QHBoxLayout;
-		wheelZoomRow->setSpacing(12);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomInStep"), spWheelZoomInStep), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomOutStep"), spWheelZoomOutStep), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomMinimum"), spWheelZoomMinimum), 1);
-		wheelZoomRow->addWidget(mkField(T("Dialog.WheelZoomMaximum"), spWheelZoomMaximum), 1);
-		lay->addLayout(wheelZoomRow);
 
 		addSection(lay, T("Dialog.Section.MouseFollow"));
 
@@ -451,49 +430,23 @@ void ZoominatorDialog::buildUi()
 		spFollowSpeed->setSingleStep(0.5);
 		spFollowSpeed->setDecimals(1);
 
-		chkCenterCursorUntilEdge = new QCheckBox(T("Dialog.CenterCursorUntilEdge"), page);
-		chkCenterCursorUntilEdge->setToolTip(T("Dialog.CenterCursorUntilEdgeTooltip"));
-
 		chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
 		chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
-
-		spEdgeOverflowMargin = new QSpinBox(page);
-		spEdgeOverflowMargin->setRange(0, 50);
-		spEdgeOverflowMargin->setSingleStep(5);
-		spEdgeOverflowMargin->setSuffix(T("Unit.Percent"));
-		spEdgeOverflowMargin->setSpecialValueText(T("Dialog.EdgeOverflow.Disabled"));
-		spEdgeOverflowMargin->setToolTip(T("Dialog.EdgeOverflowMarginTooltip"));
-
-		spMouseIdleTimeout = new QSpinBox(page);
-		spMouseIdleTimeout->setRange(0, 60000);
-		spMouseIdleTimeout->setSingleStep(100);
-		spMouseIdleTimeout->setSuffix(T("Unit.Milliseconds"));
-		spMouseIdleTimeout->setSpecialValueText(T("Dialog.Disabled"));
-		spMouseIdleTimeout->setToolTip(T("Dialog.MouseIdleTimeoutTooltip"));
 
 		auto *followRow = new QHBoxLayout;
 		followRow->setSpacing(12);
 
 		followRow->addWidget(mkField(T("Dialog.ZoomAnchor"), cmbZoomAnchor), 1);
 		followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
-		followRow->addWidget(mkField(T("Dialog.MouseIdleTimeout"), spMouseIdleTimeout), 1);
 		lay->addLayout(followRow);
 
-		auto *overflowRow = new QHBoxLayout;
-		overflowRow->setSpacing(12);
-		overflowRow->addWidget(mkField(T("Dialog.EdgeOverflowMargin"), spEdgeOverflowMargin), 1);
-		overflowRow->addStretch(2);
-		lay->addLayout(overflowRow);
-
-		lay->addWidget(chkCenterCursorUntilEdge);
 		lay->addWidget(chkCenterFocus);
 
-		/* Smoothing and the idle freeze only mean something while the anchor
+		/* Smoothing only means something while the anchor
 		 * actually tracks the cursor. */
 		auto syncFollowOnlyFields = [this]() {
 			const bool follows = (cmbZoomAnchor->currentData().toString() == "cursor_follow");
 			spFollowSpeed->setEnabled(follows);
-			spMouseIdleTimeout->setEnabled(follows);
 		};
 		connect(cmbZoomAnchor, &QComboBox::currentIndexChanged, this,
 			[syncFollowOnlyFields](int) { syncFollowOnlyFields(); });
@@ -692,7 +645,55 @@ void ZoominatorDialog::buildUi()
 		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
 		chkFocus->setToolTip(T("Dialog.FocusEnableTooltip"));
 		lay->addWidget(chkFocus);
+		chkFocusWhenNotZoomed = new QCheckBox(T("Dialog.FocusWhenNotZoomed"), page);
+		chkFocusWhenNotZoomed->setToolTip(T("Dialog.FocusWhenNotZoomedTooltip"));
 		lay->addSpacing(6);
+
+		{
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editFocusToggle = new QKeySequenceEdit(row);
+			editFocusToggle->setToolTip(T("Dialog.FocusToggleHotkeyTooltip"));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = editFocusToggle;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(editFocusToggle, 1);
+			h->addWidget(clear);
+			lay->addWidget(mkField(T("Dialog.FocusToggleHotkey"), row));
+			lay->addSpacing(6);
+		}
+		{
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editFocusOn = new QKeySequenceEdit(row);
+			editFocusOn->setToolTip(T("Dialog.FocusOnHotkeyTooltip"));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = editFocusOn;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(editFocusOn, 1);
+			h->addWidget(clear);
+			lay->addWidget(mkField(T("Dialog.FocusOnHotkey"), row));
+			lay->addSpacing(6);
+		}
+		{
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editFocusOff = new QKeySequenceEdit(row);
+			editFocusOff->setToolTip(T("Dialog.FocusOffHotkeyTooltip"));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = editFocusOff;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(editFocusOff, 1);
+			h->addWidget(clear);
+			lay->addWidget(mkField(T("Dialog.FocusOffHotkey"), row));
+			lay->addSpacing(6);
+		}
 
 		cmbFocusStyle = new QComboBox(page);
 		cmbFocusStyle->addItem(T("Dialog.FocusStyle.Dim"), "dim");
@@ -736,19 +737,36 @@ void ZoominatorDialog::buildUi()
 		focusRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
 		focusRow->addWidget(mkField(T("Dialog.FocusSoftness"), spFocusSoftness), 1);
 		lay->addLayout(focusRow);
+		lay->addSpacing(6);
+
+		spFocusIdleRadius = new QSpinBox(page);
+		spFocusIdleRadius->setRange(40, 2000);
+		spFocusIdleRadius->setSingleStep(10);
+		spFocusIdleRadius->setSuffix(T("Unit.Pixels"));
+		spFocusIdleRadius->setToolTip(T("Dialog.FocusIdleRadiusTooltip"));
+		lay->addWidget(chkFocusWhenNotZoomed);
+		lay->addSpacing(4);
+		auto *focusIdleRow = new QHBoxLayout;
+		focusIdleRow->setSpacing(12);
+		focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
+		focusIdleRow->addStretch(2);
+		lay->addLayout(focusIdleRow);
 		lay->addSpacing(10);
 
 		auto syncFocusFields = [this]() {
 			const bool on = chkFocus->isChecked();
 			const QString style = cmbFocusStyle->currentData().toString();
+			chkFocusWhenNotZoomed->setEnabled(on);
 			cmbFocusStyle->setEnabled(on);
 			spFocusBlur->setEnabled(on && style != QLatin1String("dim"));
 			spFocusDim->setEnabled(on && style != QLatin1String("blur"));
 			spFocusRadius->setEnabled(on);
+			spFocusIdleRadius->setEnabled(on && chkFocusWhenNotZoomed->isChecked());
 			spFocusSoftness->setEnabled(on);
 		};
 		syncFocusFieldsFn = syncFocusFields;
 		connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
+		connect(chkFocusWhenNotZoomed, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
 		connect(cmbFocusStyle, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
 			[syncFocusFields](int) { syncFocusFields(); });
 		syncFocusFields();
@@ -794,8 +812,11 @@ void ZoominatorDialog::buildUi()
 	btnTest = new QPushButton(T("Dialog.Test"), this);
 	btnReelsPreset = new QPushButton(T("Dialog.ReelsPreset"), this);
 	btnReelsPreset->setToolTip(T("Dialog.ReelsPresetTooltip"));
+	btnSavePreset = new QPushButton(T("Dialog.SavePreset"), this);
+	btnSavePreset->setToolTip(T("Dialog.SavePresetTooltip"));
 	btnRow->addWidget(btnRefresh);
 	btnRow->addWidget(btnReelsPreset);
+	btnRow->addWidget(btnSavePreset);
 	btnRow->addStretch(1);
 	btnRow->addWidget(btnTest);
 	btnRow->addWidget(btnApply);
@@ -805,6 +826,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnApply, &QPushButton::clicked, this, &ZoominatorDialog::applyToController);
 	connect(btnTest, &QPushButton::clicked, this, &ZoominatorDialog::testZoom);
 	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
+	connect(btnSavePreset, &QPushButton::clicked, this, &ZoominatorDialog::saveMyPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
@@ -981,6 +1003,9 @@ void ZoominatorDialog::loadFromController()
 		editFollowToggleHotkey->setKeySequence(QKeySequence(c.followToggleHotkeySequence));
 		editManualZoomIn->setKeySequence(QKeySequence(c.manualZoomInSequence));
 		editManualZoomOut->setKeySequence(QKeySequence(c.manualZoomOutSequence));
+		editFocusToggle->setKeySequence(QKeySequence(c.focusToggleSequence));
+		editFocusOn->setKeySequence(QKeySequence(c.focusOnSequence));
+		editFocusOff->setKeySequence(QKeySequence(c.focusOffSequence));
 	}
 
 	{
@@ -1008,8 +1033,10 @@ void ZoominatorDialog::loadFromController()
 		editHotkey->setKeySequence(QKeySequence(c.hotkeySequence));
 
 		chkFocus->setChecked(c.focusEnabled);
+		chkFocusWhenNotZoomed->setChecked(c.showFocusWhenNotZoomed);
 		spFocusDim->setValue(c.focusDimPct);
 		spFocusRadius->setValue(c.focusRadius);
+		spFocusIdleRadius->setValue(c.focusIdleRadius);
 		spFocusSoftness->setValue(c.focusSoftness);
 		spFocusBlur->setValue(c.focusBlurPx);
 		const int styleIdx = cmbFocusStyle->findData(ZoominatorController::focusStyleToString(c.focusStyle));
@@ -1027,10 +1054,6 @@ void ZoominatorDialog::loadFromController()
 
 	{
 		spZoom->setValue(c.zoomFactor);
-		spWheelZoomInStep->setValue(c.wheelZoomInStep);
-		spWheelZoomOutStep->setValue(c.wheelZoomOutStep);
-		spWheelZoomMinimum->setValue(c.wheelZoomMinimum);
-		spWheelZoomMaximum->setValue(c.wheelZoomMaximum);
 		spIn->setValue(c.animInMs);
 		spOut->setValue(c.animOutMs);
 		const int easingIdx = cmbEasing->findData(ZoominatorController::zoomEasingToString(c.easing));
@@ -1039,10 +1062,7 @@ void ZoominatorDialog::loadFromController()
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
 		spFollowSpeed->setValue(c.followSpeed);
-		chkCenterCursorUntilEdge->setChecked(c.centerCursorUntilEdge);
-		spEdgeOverflowMargin->setValue(c.edgeOverflowMarginPct);
 		chkCenterFocus->setChecked(c.centerFocus);
-		spMouseIdleTimeout->setValue(c.mouseIdleTimeoutMs);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
@@ -1104,6 +1124,9 @@ void ZoominatorDialog::applyToController()
 	c.followToggleHotkeySequence = editFollowToggleHotkey->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomInSequence = editManualZoomIn->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomOutSequence = editManualZoomOut->keySequence().toString(QKeySequence::NativeText);
+	c.focusToggleSequence = editFocusToggle->keySequence().toString(QKeySequence::NativeText);
+	c.focusOnSequence = editFocusOn->keySequence().toString(QKeySequence::NativeText);
+	c.focusOffSequence = editFocusOff->keySequence().toString(QKeySequence::NativeText);
 
 	c.triggerType = cmbTrigger->currentData().toString();
 	c.mouseButton = cmbMouseBtn->currentData().toString();
@@ -1121,21 +1144,19 @@ void ZoominatorDialog::applyToController()
 	c.modRightShift = chkRightShift->isChecked();
 	c.modRightWin = chkRightWin->isChecked();
 
-	c.hotkeySequence = editHotkey->keySequence().toString(QKeySequence::NativeText);
+	c.hotkeySequence.clear();
 
 	c.zoomFactor = spZoom->value();
-	c.wheelZoomInStep = spWheelZoomInStep->value();
-	c.wheelZoomOutStep = spWheelZoomOutStep->value();
-	c.wheelZoomMinimum = spWheelZoomMinimum->value();
-	c.wheelZoomMaximum = std::max(spWheelZoomMaximum->value(), c.wheelZoomMinimum + 0.1);
 	c.animInMs = spIn->value();
 	c.animOutMs = spOut->value();
 	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
 	c.focusEnabled = chkFocus->isChecked();
+	c.showFocusWhenNotZoomed = chkFocusWhenNotZoomed->isChecked();
 	c.focusDimPct = spFocusDim->value();
 	c.focusBlurPx = spFocusBlur->value();
 	c.focusStyle = ZoominatorController::focusStyleFromString(cmbFocusStyle->currentData().toString());
 	c.focusRadius = spFocusRadius->value();
+	c.focusIdleRadius = spFocusIdleRadius->value();
 	c.focusSoftness = spFocusSoftness->value();
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
@@ -1144,10 +1165,11 @@ void ZoominatorDialog::applyToController()
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
-	c.centerCursorUntilEdge = chkCenterCursorUntilEdge->isChecked();
-	c.edgeOverflowMarginPct = spEdgeOverflowMargin->value();
+	/* Fixed: no longer offered in the dialog. */
+	c.centerCursorUntilEdge = true;
+	c.edgeOverflowMarginPct = 0;
 	c.centerFocus = chkCenterFocus->isChecked();
-	c.mouseIdleTimeoutMs = spMouseIdleTimeout->value();
+	c.mouseIdleTimeoutMs = 0;
 	c.portraitCover = chkPortraitCover->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
@@ -1194,18 +1216,37 @@ void ZoominatorDialog::updateTriggerRows()
 	const QString type = cmbTrigger->currentData().toString();
 	const bool isMouse = (type == "mouse");
 	const bool isAuto = (type == "auto");
-	rowHotkeyWidget->setVisible(!isMouse && !isAuto);
+	/* The single combined Hotkey is gone: Keyboard and Auto use the separate
+	 * Zoom In / Zoom Out keys. Hold/Toggle only matters for the mouse button. */
+	rowHotkeyWidget->setVisible(false);
+	rowBehaviorWidget->setVisible(isMouse);
 	rowMouseWidget->setVisible(isMouse);
 	rowModifiersWidget->setVisible(isMouse);
 	rowAutoWidget->setVisible(isAuto);
 }
 
-/* A starting point for vertical short-form video: zoom on its own when you
+/* Stores the settings as they are now as "my preset". The Reels preset button
+ * brings them back. The target screen and ticked sources are not part of it. */
+void ZoominatorDialog::saveMyPreset()
+{
+	applyToController();
+	auto &c = ZoominatorController::instance();
+	lblStatus->setText(T(c.saveUserPreset() ? "Dialog.PresetSaved" : "Dialog.PresetSaveFailed"));
+}
+
+/* Restores "my preset" when one was saved. Otherwise a starting point for vertical short-form video: zoom on its own when you
  * click or type, glide back out afterwards, snappy "push" animation, and the
  * capture filling the 9:16 canvas while the view follows the cursor. Only
  * fills in the widgets; sources and the target screen are left alone. */
 void ZoominatorDialog::applyReelsPreset()
 {
+	auto &ctl = ZoominatorController::instance();
+	if (ctl.hasUserPreset() && ctl.applyUserPreset()) {
+		loadFromController();
+		lblStatus->setText(T("Dialog.PresetRestored"));
+		return;
+	}
+
 	const int autoIdx = cmbTrigger->findData("auto");
 	if (autoIdx >= 0)
 		cmbTrigger->setCurrentIndex(autoIdx);
@@ -1221,8 +1262,6 @@ void ZoominatorDialog::applyReelsPreset()
 	cmbEasing->setCurrentIndex(std::max(0, cmbEasing->findData("punch")));
 	cmbZoomAnchor->setCurrentIndex(std::max(0, cmbZoomAnchor->findData("cursor_follow")));
 	spFollowSpeed->setValue(6.0);
-	spEdgeOverflowMargin->setValue(0);
-	spMouseIdleTimeout->setValue(0);
 	chkPortraitCover->setChecked(true);
 	chkShowCursorMarker->setChecked(true);
 

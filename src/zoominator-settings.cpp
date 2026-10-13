@@ -130,8 +130,10 @@ void ZoominatorController::loadSettings()
 	autoHoldMs = 2500;
 	caretFollow = true;
 	focusEnabled = false;
+	showFocusWhenNotZoomed = false;
 	focusDimPct = 55;
 	focusRadius = 300;
+	focusIdleRadius = 300;
 	focusSoftness = 80;
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
@@ -155,6 +157,9 @@ void ZoominatorController::loadSettings()
 	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
+	focusToggleSequence.clear();
+	focusOnSequence.clear();
+	focusOffSequence.clear();
 	followMouseRuntimeEnabled = true;
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
@@ -337,12 +342,17 @@ void ZoominatorController::loadSettings()
 		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
 	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
 
+	if (obs_data_has_user_value(data, "show_focus_when_not_zoomed"))
+		showFocusWhenNotZoomed = obs_data_get_bool(data, "show_focus_when_not_zoomed");
 	if (obs_data_has_user_value(data, "focus_enabled"))
 		focusEnabled = obs_data_get_bool(data, "focus_enabled");
 	if (obs_data_has_user_value(data, "focus_dim_pct"))
 		focusDimPct = (int)obs_data_get_int(data, "focus_dim_pct");
 	if (obs_data_has_user_value(data, "focus_radius"))
 		focusRadius = (int)obs_data_get_int(data, "focus_radius");
+	focusIdleRadius = focusRadius;
+	if (obs_data_has_user_value(data, "focus_idle_radius"))
+		focusIdleRadius = (int)obs_data_get_int(data, "focus_idle_radius");
 	if (obs_data_has_user_value(data, "focus_softness"))
 		focusSoftness = (int)obs_data_get_int(data, "focus_softness");
 	if (obs_data_has_user_value(data, "focus_style"))
@@ -351,6 +361,7 @@ void ZoominatorController::loadSettings()
 		focusBlurPx = std::clamp((int)obs_data_get_int(data, "focus_blur_px"), 2, 60);
 	focusDimPct = std::clamp(focusDimPct, 0, 95);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
+	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	if (obs_data_has_user_value(data, "cam_ring_enabled"))
 		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
@@ -389,6 +400,9 @@ void ZoominatorController::loadSettings()
 		autoZoomOutEnabled = obs_data_get_bool(data, "auto_zoom_out_enabled");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
 	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
+	focusToggleSequence = getStr("focus_toggle_hotkey");
+	focusOnSequence = getStr("focus_on_hotkey");
+	focusOffSequence = getStr("focus_off_hotkey");
 
 	/* `zoom_anchor` supersedes the `follow_mouse` boolean. Configs written by
 	 * older builds only have the boolean, so migrate it: following stays
@@ -410,12 +424,13 @@ void ZoominatorController::loadSettings()
 		edgeOverflowMarginPct = (int)obs_data_get_int(data, "edge_overflow_margin_pct");
 	else if (obs_data_has_user_value(data, "allow_canvas_overflow"))
 		edgeOverflowMarginPct = obs_data_get_bool(data, "allow_canvas_overflow") ? 50 : 0;
-	edgeOverflowMarginPct = std::clamp(edgeOverflowMarginPct, 0, 50);
+	edgeOverflowMarginPct = 0; /* not offered any more */
 	if (obs_data_has_user_value(data, "center_focus"))
 		centerFocus = obs_data_get_bool(data, "center_focus");
 	if (obs_data_has_user_value(data, "mouse_idle_timeout_ms"))
 		mouseIdleTimeoutMs = (int)obs_data_get_int(data, "mouse_idle_timeout_ms");
-	mouseIdleTimeoutMs = std::clamp(mouseIdleTimeoutMs, 0, 60000);
+	mouseIdleTimeoutMs = 0; /* not offered any more */
+	centerCursorUntilEdge = true;
 
 	if (obs_data_has_user_value(data, "portrait_cover"))
 		portraitCover = obs_data_get_bool(data, "portrait_cover");
@@ -461,6 +476,85 @@ void ZoominatorController::loadSettings()
 
 	rebuildTriggersFromSettings();
 	emit settingsChanged();
+}
+
+QString ZoominatorController::presetPath() const
+{
+	char *path = obs_module_config_path("zoominator-preset.json");
+	if (!path)
+		return {};
+	QString p = QString::fromUtf8(path);
+	bfree(path);
+	return p;
+}
+
+bool ZoominatorController::hasUserPreset() const
+{
+	const QString p = presetPath();
+	return !p.isEmpty() && QFileInfo::exists(p);
+}
+
+/* Settings that belong to this computer or this moment rather than to a look. */
+static void erase_machine_specific_keys(obs_data_t *data)
+{
+	static const char *const keys[] = {"screen_key", "source_name", "included_sources", "recovery_active",
+					   "recovery_transforms"};
+	for (const char *key : keys)
+		obs_data_erase(data, key);
+}
+
+bool ZoominatorController::saveUserPreset()
+{
+	const QString cfg = configPath();
+	const QString dst = presetPath();
+	if (cfg.isEmpty() || dst.isEmpty())
+		return false;
+
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		return false;
+	erase_machine_specific_keys(data);
+
+	ensure_parent_dir_exists(dst);
+	const QByteArray dstUtf8 = dst.toUtf8();
+	const bool ok = obs_data_save_json_safe(data, dstUtf8.constData(), "tmp", "bak");
+	obs_data_release(data);
+	if (ok)
+		logi(debug, "[Zoominator] Saved preset to: %s", dstUtf8.constData());
+	return ok;
+}
+
+/* Lays the saved preset over the current settings file and reloads it, so the
+ * target screen and ticked sources stay as they are. */
+bool ZoominatorController::applyUserPreset()
+{
+	const QString cfg = configPath();
+	const QString src = presetPath();
+	if (cfg.isEmpty() || src.isEmpty() || !QFileInfo::exists(src))
+		return false;
+
+	const QByteArray srcUtf8 = src.toUtf8();
+	obs_data_t *preset = obs_data_create_from_json_file_safe(srcUtf8.constData(), "bak");
+	if (!preset)
+		return false;
+	erase_machine_specific_keys(preset);
+
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		data = obs_data_create();
+	obs_data_apply(data, preset);
+	ensure_parent_dir_exists(cfg);
+	const bool ok = obs_data_save_json_safe(data, cfgUtf8.constData(), "tmp", "bak");
+	obs_data_release(data);
+	obs_data_release(preset);
+	if (!ok)
+		return false;
+
+	loadSettings();
+	rebuildRuntimeHooks();
+	return true;
 }
 
 void ZoominatorController::notifySettingsChanged()
@@ -511,8 +605,10 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "caret_follow", caretFollow);
 	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
 	obs_data_set_bool(data, "focus_enabled", focusEnabled);
+	obs_data_set_bool(data, "show_focus_when_not_zoomed", showFocusWhenNotZoomed);
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
 	obs_data_set_int(data, "focus_radius", focusRadius);
+	obs_data_set_int(data, "focus_idle_radius", focusIdleRadius);
 	obs_data_set_int(data, "focus_softness", focusSoftness);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
@@ -536,6 +632,9 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
+	obs_data_set_string(data, "focus_toggle_hotkey", focusToggleSequence.toUtf8().constData());
+	obs_data_set_string(data, "focus_on_hotkey", focusOnSequence.toUtf8().constData());
+	obs_data_set_string(data, "focus_off_hotkey", focusOffSequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */
 	obs_data_set_bool(data, "follow_mouse", zoomAnchor == ZoomAnchorMode::CursorFollow);
 	followMouseRuntimeEnabled = true;

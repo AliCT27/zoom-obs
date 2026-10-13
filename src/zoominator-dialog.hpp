@@ -36,6 +36,7 @@ private slots:
 	void setColorButton(QPushButton *button, uint32_t rgba);
 	void populateSourcesTab();
 	void applyReelsPreset();
+	void saveMyPreset();
 
 private:
 	void buildUi();
@@ -55,6 +56,9 @@ private:
 	QCheckBox *chkAutoZoomOut = nullptr;
 	QKeySequenceEdit *editManualZoomIn = nullptr;
 	QKeySequenceEdit *editManualZoomOut = nullptr;
+	QKeySequenceEdit *editFocusToggle = nullptr;
+	QKeySequenceEdit *editFocusOn = nullptr;
+	QKeySequenceEdit *editFocusOff = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
 	QKeySequenceEdit *editHotkey = nullptr;
@@ -65,12 +69,14 @@ private:
 	QCheckBox *chkShift = nullptr;
 	QCheckBox *chkWin = nullptr;
 	QWidget *rowAutoWidget = nullptr;
+	QWidget *rowManualKeysWidget = nullptr;
 	QCheckBox *chkAutoClick = nullptr;
 	QCheckBox *chkAutoTyping = nullptr;
 	QCheckBox *chkCaretFollow = nullptr;
 	QSpinBox *spAutoHold = nullptr;
 	QComboBox *cmbEasing = nullptr;
 	QPushButton *btnReelsPreset = nullptr;
+	QPushButton *btnSavePreset = nullptr;
 	QCheckBox *chkLeftCtrl = nullptr;
 	QCheckBox *chkRightCtrl = nullptr;
 	QCheckBox *chkLeftAlt = nullptr;
@@ -81,18 +87,11 @@ private:
 	QCheckBox *chkRightWin = nullptr;
 
 	QDoubleSpinBox *spZoom = nullptr;
-	QDoubleSpinBox *spWheelZoomInStep = nullptr;
-	QDoubleSpinBox *spWheelZoomOutStep = nullptr;
-	QDoubleSpinBox *spWheelZoomMinimum = nullptr;
-	QDoubleSpinBox *spWheelZoomMaximum = nullptr;
 	QSpinBox *spIn = nullptr;
 	QSpinBox *spOut = nullptr;
 	QComboBox *cmbZoomAnchor = nullptr;
 	QDoubleSpinBox *spFollowSpeed = nullptr;
-	QCheckBox *chkCenterCursorUntilEdge = nullptr;
 	QCheckBox *chkCenterFocus = nullptr;
-	QSpinBox *spEdgeOverflowMargin = nullptr;
-	QSpinBox *spMouseIdleTimeout = nullptr;
 	QCheckBox *chkPortraitCover = nullptr;
 	QCheckBox *chkShowCursorMarker = nullptr;
 	QCheckBox *chkShowMarkerWhenNotZoomed = nullptr;
@@ -117,6 +116,8 @@ private:
 	QSpinBox *spFrameGlow = nullptr;
 	QSpinBox *spFrameGlowPct = nullptr;
 	QCheckBox *chkFocus = nullptr;
+	QCheckBox *chkFocusWhenNotZoomed = nullptr;
+	QSpinBox *spFocusIdleRadius = nullptr;
 	QComboBox *cmbFocusStyle = nullptr;
 	std::function<void()> syncFocusFieldsFn;
 	QSpinBox *spFocusBlur = nullptr;
@@ -133,6 +134,7 @@ private:
 	QPushButton *btnTest = nullptr;
 
 	QWidget *rowHotkeyWidget = nullptr;
+	QWidget *rowBehaviorWidget = nullptr;
 	QWidget *rowMouseWidget = nullptr;
 	QWidget *rowModifiersWidget = nullptr;
 
