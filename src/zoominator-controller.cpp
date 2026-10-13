@@ -180,6 +180,7 @@ void ZoominatorController::shutdown()
 	zoominator_caret::stop();
 	ensureTicking(false);
 	detachBlurFilters();
+	detachIdleBlurs();
 	zoominator_frame::clearRect();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
@@ -268,6 +269,7 @@ void ZoominatorController::startZoomOut()
 void ZoominatorController::resetState()
 {
 	detachBlurFilters();
+	detachIdleBlurs();
 	zoomPressed = false;
 	zoomLatched = false;
 	zoomActive.store(false, std::memory_order_release);
@@ -700,7 +702,7 @@ void ZoominatorController::onTick()
 
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
 	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
-	if (idleFocus || (!zoomTickWanted && focusShown))
+	if (idleFocus || (!zoomTickWanted && (focusShown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !markerClickHasPos) {
 		if (!idleFocus)
@@ -762,6 +764,7 @@ void ZoominatorController::onTick()
 		 * reading sceneItems while this mutates it. captureOriginalSceneItems
 		 * may also saveSettings(), which does file IO - another reason it has
 		 * to stay off the render path. */
+		detachIdleBlurs();
 		detachBlurFilters();
 		captureOriginalSceneItems(items);
 		if (sceneItems.empty())

@@ -700,19 +700,90 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 }
 
 /* Focus while the view is not zoomed: the spotlight follows the cursor at the
- * unzoomed position. Main thread only. Dim styles only (the blur needs the zoom
- * machinery's source filters). */
+ * unzoomed position (dim image and/or blur filter). Main thread only. */
+void ZoominatorController::detachIdleBlurs()
+{
+	for (auto &b : idleBlurs) {
+		if (b.filter && b.target)
+			zoominator_blur::detach(b.target, b.filter);
+		if (b.target)
+			obs_source_release(b.target);
+	}
+	idleBlurs.clear();
+}
+
+/* Blur around the cursor while not zoomed. The view is unzoomed here, so the
+ * item's current transform is its own "original" one. */
+void ZoominatorController::updateIdleBlur(bool on, bool cursorOk, float sx, float sy)
+{
+	if (!on || !wantsBlur()) {
+		detachIdleBlurs();
+		return;
+	}
+
+	std::vector<obs_sceneitem_t *> items;
+	enumerateTargetItemsInCurrentScene(items);
+
+	bool same = items.size() == idleBlurs.size();
+	for (size_t i = 0; same && i < items.size(); ++i)
+		same = idleBlurs[i].item == items[i];
+	if (!same) {
+		detachIdleBlurs();
+		int attached = 0;
+		for (obs_sceneitem_t *item : items) {
+			obs_source_t *src = item ? obs_sceneitem_get_source(item) : nullptr;
+			IdleBlur b;
+			b.item = item;
+			if (src) {
+				if (obs_source_t *filter = zoominator_blur::attach(src)) {
+					b.target = obs_source_get_ref(src);
+					b.filter = filter;
+					++attached;
+				}
+			}
+			idleBlurs.push_back(b);
+		}
+		if (!items.empty() && attached == 0) {
+			blurUnavailable = true;
+			blog(LOG_WARNING, "[Zoominator] Focus blur unavailable (shader not loaded); falling back to dim.");
+			detachIdleBlurs();
+			return;
+		}
+	}
+
+	for (auto &b : idleBlurs) {
+		if (!b.filter || !b.item)
+			continue;
+		if (!cursorOk) {
+			zoominator_blur::setParams(b.filter, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+			continue;
+		}
+		const OrigState o = computeOrigState(b.item);
+		const float osx = std::max(o.effectiveScale.x, 0.0001f);
+		const float osy = std::max(o.effectiveScale.y, 0.0001f);
+		const float cxSrc = (sx - o.effectivePos.x) / osx + (float)o.crop.left;
+		const float cySrc = (sy - o.effectivePos.y) / osy + (float)o.crop.top;
+		const float shown = std::max(0.0001f, (osx + osy) * 0.5f);
+		const float blurSrc = std::min(12.0f, (float)focusBlurPx / shown);
+		const double idleS = focusIdleScale();
+		zoominator_blur::setParams(b.filter, cxSrc, cySrc, (float)focusIdleRadius / shown,
+					   (float)(focusSoftness * idleS) / shown, blurSrc, 1.0f);
+	}
+}
+
 void ZoominatorController::updateIdleFocus(bool on)
 {
 	obs_source_t *sceneSource = obs_frontend_get_current_scene();
 	obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr;
 	if (scene) {
 		bool shown = false;
+		bool cursorOk = false;
+		float sx = 0.0f, sy = 0.0f;
 		if (on) {
 			int cx = 0, cy = 0;
-			float sx = 0.0f, sy = 0.0f;
 			bool inside = false;
-			if (getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside) {
+			cursorOk = getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside;
+			if (cursorOk && wantsDim()) {
 				updateFocus(scene, (double)sx, (double)sy, 255, true);
 				shown = focusShown;
 			}
@@ -721,6 +792,7 @@ void ZoominatorController::updateIdleFocus(bool on)
 			hideFocusInScene(scene);
 			focusShown = false;
 		}
+		updateIdleBlur(on, cursorOk, sx, sy);
 	}
 	if (sceneSource)
 		obs_source_release(sceneSource);
