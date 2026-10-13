@@ -336,8 +336,16 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
 			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
 
+		}
+		lay->addWidget(rowAutoWidget);
+
+		rowManualKeysWidget = new QWidget(page);
+		{
+			auto *v = new QVBoxLayout(rowManualKeysWidget);
+			v->setContentsMargins(0, 0, 0, 0);
+			v->setSpacing(8);
 			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
-				auto *row = new QWidget(rowAutoWidget);
+				auto *row = new QWidget(rowManualKeysWidget);
 				auto *h = new QHBoxLayout(row);
 				h->setContentsMargins(0, 0, 0, 0);
 				h->setSpacing(6);
@@ -353,7 +361,8 @@ void ZoominatorDialog::buildUi()
 			makeKeyRow(editManualZoomIn, "Dialog.ManualZoomIn", "Dialog.ManualZoomInTooltip");
 			makeKeyRow(editManualZoomOut, "Dialog.ManualZoomOut", "Dialog.ManualZoomOutTooltip");
 		}
-		lay->addWidget(rowAutoWidget);
+		lay->addSpacing(16);
+		lay->addWidget(rowManualKeysWidget);
 
 		lay->addStretch(1);
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));

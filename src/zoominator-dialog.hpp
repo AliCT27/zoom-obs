@@ -66,6 +66,7 @@ private:
 	QCheckBox *chkShift = nullptr;
 	QCheckBox *chkWin = nullptr;
 	QWidget *rowAutoWidget = nullptr;
+	QWidget *rowManualKeysWidget = nullptr;
 	QCheckBox *chkAutoClick = nullptr;
 	QCheckBox *chkAutoTyping = nullptr;
 	QCheckBox *chkCaretFollow = nullptr;

@@ -105,8 +105,21 @@ void ZoominatorController::onAutoActivity(bool typing)
 /* Zoom In hotkey: zoom in now, and let clicks and typing zoom again. */
 void ZoominatorController::manualZoomIn()
 {
-	if (triggerType != "auto" || shuttingDown)
+	if (shuttingDown)
 		return;
+	if (triggerType != "auto") {
+		/* Keyboard / mouse trigger: a plain "zoom in and stay zoomed" key. */
+		if (zoomLatched)
+			return;
+		zoomLatched = true;
+		followHasPos = false;
+		lastCursorSampleValid = false;
+		lastCursorMovementMs = 0;
+		mouseTrackingIdle = false;
+		targetHasPos = false;
+		startZoomIn();
+		return;
+	}
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
 	autoLastActivityMs = autoLastManualKeyMs;
 	autoSuspended = false;
@@ -116,8 +129,17 @@ void ZoominatorController::manualZoomIn()
 /* Zoom Out hotkey: zoom out now and keep automatic zooming off until Zoom In. */
 void ZoominatorController::manualZoomOut()
 {
-	if (triggerType != "auto" || shuttingDown)
+	if (shuttingDown)
 		return;
+	if (triggerType != "auto") {
+		zoomPressed = false;
+		if (!zoomLatched && animDir.load(std::memory_order_relaxed) <= 0 &&
+		    !zoomActive.load(std::memory_order_acquire))
+			return;
+		zoomLatched = false;
+		startZoomOut();
+		return;
+	}
 	autoLastManualKeyMs = QDateTime::currentMSecsSinceEpoch();
 	autoSuspended = true;
 	if (!zoomLatched)
