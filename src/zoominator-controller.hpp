@@ -267,7 +267,7 @@ private:
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
 	void updateIdleFocus(bool on);
-	bool wantsIdleFocus() const { return focusEnabled && showFocusWhenNotZoomed && wantsDim(); }
+	bool wantsIdleFocus() const { return focusEnabled && showFocusWhenNotZoomed && (wantsDim() || wantsBlur()); }
 	void refreshIdleFocusTicking();
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
@@ -396,6 +396,16 @@ private:
 		return focusEnabled && (focusStyle != FocusStyle::Blur || blurUnavailable);
 	}
 	void attachBlurFilters();
+	/* Blur while not zoomed: filters on the target sources, owned separately from
+	 * sceneItems (which only exists while zooming). Main thread only. */
+	struct IdleBlur {
+		obs_sceneitem_t *item = nullptr;
+		obs_source_t *target = nullptr; /* strong ref */
+		obs_source_t *filter = nullptr; /* strong ref */
+	};
+	std::vector<IdleBlur> idleBlurs;
+	void updateIdleBlur(bool on, bool cursorOk, float sx, float sy);
+	void detachIdleBlurs();
 	void detachBlurFilters();
 	bool blurUnavailable = false;
 
