@@ -178,6 +178,7 @@ public:
 	bool markerOnlyOnClick = true;
 	uint32_t markerColor = 0xFFFF0000;
 	int markerSize = 26;
+	int markerIdleSize = 26;
 	int markerThickness = 4;
 	bool debug = false;
 
@@ -245,7 +246,7 @@ private:
 	void ensureMarkerFilter();
 	void applyMarkerOpacity(int opacity255);
 	void updateMarkerAppearance();
-	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255);
+	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false);
 	bool captureMarkerClickPosition();
 	bool isMarkerFlashActive(qint64 nowMs) const;
 	int currentMarkerOpacity(qint64 nowMs);
