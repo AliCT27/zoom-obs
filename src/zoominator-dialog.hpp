@@ -136,6 +136,7 @@ private:
 	QPushButton *btnTest = nullptr;
 
 	QWidget *rowHotkeyWidget = nullptr;
+	QWidget *rowBehaviorWidget = nullptr;
 	QWidget *rowMouseWidget = nullptr;
 	QWidget *rowModifiersWidget = nullptr;
 

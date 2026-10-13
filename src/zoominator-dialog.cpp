@@ -197,7 +197,8 @@ void ZoominatorDialog::buildUi()
 		cmbMode = new QComboBox(page);
 		cmbMode->addItem(T("Dialog.Mode.Hold"), "hold");
 		cmbMode->addItem(T("Dialog.Mode.Toggle"), "toggle");
-		lay->addWidget(mkField(T("Dialog.Behavior"), cmbMode));
+		rowBehaviorWidget = mkField(T("Dialog.Behavior"), cmbMode);
+		lay->addWidget(rowBehaviorWidget);
 		lay->addSpacing(16);
 
 		auto *followHkRow = new QWidget(page);
@@ -1134,7 +1135,7 @@ void ZoominatorDialog::applyToController()
 	c.modRightShift = chkRightShift->isChecked();
 	c.modRightWin = chkRightWin->isChecked();
 
-	c.hotkeySequence = editHotkey->keySequence().toString(QKeySequence::NativeText);
+	c.hotkeySequence.clear();
 
 	c.zoomFactor = spZoom->value();
 	c.wheelZoomInStep = spWheelZoomInStep->value();
@@ -1207,7 +1208,10 @@ void ZoominatorDialog::updateTriggerRows()
 	const QString type = cmbTrigger->currentData().toString();
 	const bool isMouse = (type == "mouse");
 	const bool isAuto = (type == "auto");
-	rowHotkeyWidget->setVisible(!isMouse && !isAuto);
+	/* The single combined Hotkey is gone: Keyboard and Auto use the separate
+	 * Zoom In / Zoom Out keys. Hold/Toggle only matters for the mouse button. */
+	rowHotkeyWidget->setVisible(false);
+	rowBehaviorWidget->setVisible(isMouse);
 	rowMouseWidget->setVisible(isMouse);
 	rowModifiersWidget->setVisible(isMouse);
 	rowAutoWidget->setVisible(isAuto);
