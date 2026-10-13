@@ -133,6 +133,7 @@ void ZoominatorController::loadSettings()
 	showFocusWhenNotZoomed = false;
 	focusDimPct = 55;
 	focusRadius = 300;
+	focusIdleRadius = 300;
 	focusSoftness = 80;
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
@@ -349,6 +350,9 @@ void ZoominatorController::loadSettings()
 		focusDimPct = (int)obs_data_get_int(data, "focus_dim_pct");
 	if (obs_data_has_user_value(data, "focus_radius"))
 		focusRadius = (int)obs_data_get_int(data, "focus_radius");
+	focusIdleRadius = focusRadius;
+	if (obs_data_has_user_value(data, "focus_idle_radius"))
+		focusIdleRadius = (int)obs_data_get_int(data, "focus_idle_radius");
 	if (obs_data_has_user_value(data, "focus_softness"))
 		focusSoftness = (int)obs_data_get_int(data, "focus_softness");
 	if (obs_data_has_user_value(data, "focus_style"))
@@ -357,6 +361,7 @@ void ZoominatorController::loadSettings()
 		focusBlurPx = std::clamp((int)obs_data_get_int(data, "focus_blur_px"), 2, 60);
 	focusDimPct = std::clamp(focusDimPct, 0, 95);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
+	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
 	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	if (obs_data_has_user_value(data, "cam_ring_enabled"))
 		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
@@ -603,6 +608,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "show_focus_when_not_zoomed", showFocusWhenNotZoomed);
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
 	obs_data_set_int(data, "focus_radius", focusRadius);
+	obs_data_set_int(data, "focus_idle_radius", focusIdleRadius);
 	obs_data_set_int(data, "focus_softness", focusSoftness);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);

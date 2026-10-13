@@ -153,6 +153,7 @@ public:
 	bool showFocusWhenNotZoomed = false;
 	int focusDimPct = 55;
 	int focusRadius = 300;
+	int focusIdleRadius = 300;
 	int focusSoftness = 80;
 	FocusStyle focusStyle = FocusStyle::Dim;
 	/* Blur radius in canvas pixels for the Blur styles. */
@@ -260,7 +261,8 @@ private:
 	void updateFocusAppearance();
 	obs_sceneitem_t *ensureFocusItem(obs_scene_t *scene, bool &created);
 	void placeFocusBelowOverlays(obs_scene_t *scene, obs_sceneitem_t *item);
-	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255);
+	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false);
+	double focusIdleScale() const;
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
 	void updateIdleFocus(bool on);

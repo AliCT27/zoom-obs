@@ -402,7 +402,16 @@ QString ZoominatorController::focusImagePath() const
  * the spotlight's full outer radius plus a little slack. */
 double ZoominatorController::focusImagePad() const
 {
-	return (double)std::clamp(focusRadius, 40, 2000) + (double)std::clamp(focusSoftness, 0, 600) * 0.5 + 4.0;
+	/* Large enough for both the zoomed radius and the not-zoomed radius (the
+	 * image is only ever scaled, see focusIdleScale). */
+	const double r = (double)std::max(std::clamp(focusRadius, 40, 2000), std::clamp(focusIdleRadius, 40, 2000));
+	return r + (double)std::clamp(focusSoftness, 0, 600) * 0.5 + 4.0;
+}
+
+/* The spotlight not zoomed is the zoomed image scaled by this factor. */
+double ZoominatorController::focusIdleScale() const
+{
+	return (double)std::clamp(focusIdleRadius, 40, 2000) / (double)std::clamp(focusRadius, 40, 2000);
 }
 
 void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
@@ -418,8 +427,11 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 	 * (cursor outside the video, e.g. after the view was frozen) while the dim
 	 * still covers the whole canvas. */
 	const double pad = focusImagePad();
-	const int w = std::max(8, (int)std::ceil((2.0 * canvasW + 2.0 * pad) / kFocusImageScale) + 2);
-	const int h = std::max(8, (int)std::ceil((2.0 * canvasH + 2.0 * pad) / kFocusImageScale) + 2);
+	/* A smaller not-zoomed radius shrinks the whole image, so make it larger to
+	 * still cover the canvas after that. */
+	const double minScale = std::min(1.0, focusIdleScale());
+	const int w = std::max(8, (int)std::ceil((2.0 * canvasW + 2.0 * pad) / minScale / kFocusImageScale) + 2);
+	const int h = std::max(8, (int)std::ceil((2.0 * canvasH + 2.0 * pad) / minScale / kFocusImageScale) + 2);
 	const double radius = (double)std::clamp(focusRadius, 40, 2000) / kFocusImageScale;
 	const double soft = (double)std::clamp(focusSoftness, 0, 600) / kFocusImageScale;
 	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
@@ -526,6 +538,7 @@ void ZoominatorController::updateFocusAppearance()
 	mix((uint64_t)cw);
 	mix((uint64_t)ch);
 	mix((uint64_t)std::clamp(focusRadius, 40, 2000));
+	mix((uint64_t)std::clamp(focusIdleRadius, 40, 2000));
 	mix((uint64_t)std::clamp(focusSoftness, 0, 600));
 	mix((uint64_t)std::clamp(focusDimPct, 0, 95));
 
@@ -616,7 +629,7 @@ void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_scene
 		obs_sceneitem_set_order_position(item, topIndex);
 }
 
-void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255)
+void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle)
 {
 	if (!focusEnabled || !scene)
 		return;
@@ -650,8 +663,25 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 	pos.y = (float)clampd(y, -pad, (double)ch + pad);
 	obs_sceneitem_set_pos(item, &pos);
 
+	/* Not zoomed: the not-zoomed radius. While zooming the radius eases to the
+	 * zoomed one (only when the spotlight is also shown when not zoomed). */
+	{
+		const double idleS = focusIdleScale();
+		double k = 1.0;
+		if (idle)
+			k = idleS;
+		else if (showFocusWhenNotZoomed)
+			k = idleS + (1.0 - idleS) * (double)std::clamp(opacity255, 0, 255) / 255.0;
+		vec2 sc{};
+		sc.x = sc.y = (float)(kFocusImageScale * k);
+		obs_sceneitem_set_scale(item, &sc);
+	}
+
 	if (!obs_sceneitem_visible(item)) {
 		normalize_focus_scene_item(item);
+		vec2 sc2{};
+		sc2.x = sc2.y = (float)(kFocusImageScale * (idle ? focusIdleScale() : 1.0));
+		obs_sceneitem_set_scale(item, &sc2);
 		placeFocusBelowOverlays(scene, item);
 		obs_sceneitem_set_visible(item, true);
 	}
@@ -672,7 +702,7 @@ void ZoominatorController::updateIdleFocus(bool on)
 			float sx = 0.0f, sy = 0.0f;
 			bool inside = false;
 			if (getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside) {
-				updateFocus(scene, (double)sx, (double)sy, 255);
+				updateFocus(scene, (double)sx, (double)sy, 255, true);
 				shown = focusShown;
 			}
 		}
