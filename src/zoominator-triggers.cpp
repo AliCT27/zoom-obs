@@ -148,6 +148,19 @@ void ZoominatorController::manualZoomOut()
 	startZoomOut();
 }
 
+/* Focus hotkey: switch the spotlight on or off while recording. Not saved;
+ * Apply (or restarting OBS) goes back to the checkbox in the Focus section. */
+void ZoominatorController::toggleFocusRuntime()
+{
+	if (shuttingDown)
+		return;
+	focusEnabled = !focusEnabled;
+	if (!focusEnabled)
+		hideFocusInAllScenes();
+	if (debug)
+		blog(LOG_INFO, "[Zoominator] Focus %s", focusEnabled ? "ON" : "OFF");
+}
+
 void ZoominatorController::checkAutoIdle()
 {
 	if (triggerType != "auto" || !zoomLatched || !autoZoomOutEnabled)

@@ -218,6 +218,11 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 				 g_ctl->manualZoomOutBinding.shift, g_ctl->manualZoomOutBinding.win)) {
 			g_ctl->manualZoomOut();
 		}
+		if (down && g_ctl->focusToggleBinding.valid && vk_matches(vk, g_ctl->focusToggleBinding.vk) &&
+		    mods_current(g_ctl->focusToggleBinding.ctrl, g_ctl->focusToggleBinding.alt,
+				 g_ctl->focusToggleBinding.shift, g_ctl->focusToggleBinding.win)) {
+			g_ctl->toggleFocusRuntime();
+		}
 
 		if (g_ctl->triggerType == "auto") {
 			/* Plain typing keeps the automatic zoom alive. Shortcuts (Ctrl/Alt/Win held)
@@ -433,6 +438,11 @@ CGEventRef ZoominatorController::eventTapCallback(CGEventTapProxy proxy, CGEvent
 				 ctl->manualZoomOutBinding.shift, ctl->manualZoomOutBinding.win)) {
 			ctl->manualZoomOut();
 		}
+		if (down && ctl->focusToggleBinding.valid && vk_matches(keycode, ctl->focusToggleBinding.vk) &&
+		    mods_current(ctl->focusToggleBinding.ctrl, ctl->focusToggleBinding.alt,
+				 ctl->focusToggleBinding.shift, ctl->focusToggleBinding.win)) {
+			ctl->toggleFocusRuntime();
+		}
 
 		if (ctl->triggerType == "auto") {
 			const CGEventFlags flags = CGEventGetFlags(event);
@@ -645,6 +655,11 @@ void ZoominatorController::processXInput2Events()
 					 manualZoomOutBinding.win)) {
 				manualZoomOut();
 			}
+			if (down && focusToggleBinding.valid && vk_matches((int)sym, focusToggleBinding.vk) &&
+			    mods_current(focusToggleBinding.ctrl, focusToggleBinding.alt, focusToggleBinding.shift,
+					 focusToggleBinding.win)) {
+				toggleFocusRuntime();
+			}
 
 			if (triggerType == "auto" && down && autoOnTyping && !is_modifier_vk((int)sym)) {
 				const ModifierState ms = current_modifiers();
@@ -773,7 +788,7 @@ bool ZoominatorController::triggerMatchesMouse(unsigned int msg, unsigned short 
 bool ZoominatorController::needsKeyboardHook() const
 {
 	return triggerType == "keyboard" || followToggleHkValid || manualZoomInBinding.valid ||
-	       manualZoomOutBinding.valid ||
+	       manualZoomOutBinding.valid || focusToggleBinding.valid ||
 	       (triggerType == "auto" && autoOnTyping);
 }
 

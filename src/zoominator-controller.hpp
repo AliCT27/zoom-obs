@@ -159,6 +159,7 @@ public:
 	/* Automatic mode only: zoom in (and stay zoomed) / zoom out on demand. */
 	QString manualZoomInSequence;
 	QString manualZoomOutSequence;
+	QString focusToggleSequence;
 	bool followMouseRuntimeEnabled = true;
 	double followSpeed = 8.0;
 	bool centerCursorUntilEdge = true;
@@ -209,6 +210,7 @@ private:
 	/* Automatic mode: hotkeys that zoom in and hold, and zoom out and release. */
 	void manualZoomIn();
 	void manualZoomOut();
+	void toggleFocusRuntime();
 	void beginAutoZoom();
 	void beginWheelZoomGesture();
 	void adjustActiveZoomFromWheel(int direction, int steps = 1);
@@ -441,6 +443,7 @@ private:
 	static HotkeyBinding makeHotkeyBinding(const QString &sequence);
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
+	HotkeyBinding focusToggleBinding;
 	qint64 autoLastManualKeyMs = 0;
 	/* Set by the Zoom Out hotkey: clicks and typing no longer start a zoom until
 	 * the Zoom In hotkey is pressed (or the settings are applied again). */

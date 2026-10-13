@@ -287,6 +287,7 @@ void ZoominatorController::rebuildTriggersFromSettings()
 	autoSuspended = false;
 	manualZoomInBinding = makeHotkeyBinding(manualZoomInSequence);
 	manualZoomOutBinding = makeHotkeyBinding(manualZoomOutSequence);
+	focusToggleBinding = makeHotkeyBinding(focusToggleSequence);
 	hkValid = false;
 	hotkeyVk = 0;
 	followToggleHkValid = false;

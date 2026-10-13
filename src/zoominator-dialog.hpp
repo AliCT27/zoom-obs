@@ -56,6 +56,7 @@ private:
 	QCheckBox *chkAutoZoomOut = nullptr;
 	QKeySequenceEdit *editManualZoomIn = nullptr;
 	QKeySequenceEdit *editManualZoomOut = nullptr;
+	QKeySequenceEdit *editFocusToggle = nullptr;
 
 	QComboBox *cmbTrigger = nullptr;
 	QKeySequenceEdit *editHotkey = nullptr;
