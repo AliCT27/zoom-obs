@@ -645,6 +645,9 @@ void ZoominatorDialog::buildUi()
 		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
 		chkFocus->setToolTip(T("Dialog.FocusEnableTooltip"));
 		lay->addWidget(chkFocus);
+		chkFocusWhenNotZoomed = new QCheckBox(T("Dialog.FocusWhenNotZoomed"), page);
+		chkFocusWhenNotZoomed->setToolTip(T("Dialog.FocusWhenNotZoomedTooltip"));
+		lay->addWidget(chkFocusWhenNotZoomed);
 		lay->addSpacing(6);
 
 		{
@@ -740,6 +743,7 @@ void ZoominatorDialog::buildUi()
 		auto syncFocusFields = [this]() {
 			const bool on = chkFocus->isChecked();
 			const QString style = cmbFocusStyle->currentData().toString();
+			chkFocusWhenNotZoomed->setEnabled(on);
 			cmbFocusStyle->setEnabled(on);
 			spFocusBlur->setEnabled(on && style != QLatin1String("dim"));
 			spFocusDim->setEnabled(on && style != QLatin1String("blur"));
@@ -1014,6 +1018,7 @@ void ZoominatorDialog::loadFromController()
 		editHotkey->setKeySequence(QKeySequence(c.hotkeySequence));
 
 		chkFocus->setChecked(c.focusEnabled);
+		chkFocusWhenNotZoomed->setChecked(c.showFocusWhenNotZoomed);
 		spFocusDim->setValue(c.focusDimPct);
 		spFocusRadius->setValue(c.focusRadius);
 		spFocusSoftness->setValue(c.focusSoftness);
@@ -1130,6 +1135,7 @@ void ZoominatorDialog::applyToController()
 	c.animOutMs = spOut->value();
 	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
 	c.focusEnabled = chkFocus->isChecked();
+	c.showFocusWhenNotZoomed = chkFocusWhenNotZoomed->isChecked();
 	c.focusDimPct = spFocusDim->value();
 	c.focusBlurPx = spFocusBlur->value();
 	c.focusStyle = ZoominatorController::focusStyleFromString(cmbFocusStyle->currentData().toString());

@@ -162,6 +162,7 @@ void ZoominatorController::setFocusRuntime(bool on)
 	focusEnabled = on;
 	if (!focusEnabled)
 		hideFocusInAllScenes();
+	refreshIdleFocusTicking();
 	if (debug)
 		blog(LOG_INFO, "[Zoominator] Focus %s", focusEnabled ? "ON" : "OFF");
 }

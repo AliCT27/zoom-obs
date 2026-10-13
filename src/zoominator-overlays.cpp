@@ -658,6 +658,39 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 	focusShown = true;
 }
 
+/* Focus while the view is not zoomed: the spotlight follows the cursor at the
+ * unzoomed position. Main thread only. Dim styles only (the blur needs the zoom
+ * machinery's source filters). */
+void ZoominatorController::updateIdleFocus(bool on)
+{
+	obs_source_t *sceneSource = obs_frontend_get_current_scene();
+	obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr;
+	if (scene) {
+		bool shown = false;
+		if (on) {
+			int cx = 0, cy = 0;
+			float sx = 0.0f, sy = 0.0f;
+			bool inside = false;
+			if (getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside) {
+				updateFocus(scene, (double)sx, (double)sy, 255);
+				shown = focusShown;
+			}
+		}
+		if (!shown && focusShown) {
+			hideFocusInScene(scene);
+			focusShown = false;
+		}
+	}
+	if (sceneSource)
+		obs_source_release(sceneSource);
+}
+
+void ZoominatorController::refreshIdleFocusTicking()
+{
+	if (wantsIdleFocus())
+		ensureTicking(true);
+}
+
 void ZoominatorController::hideFocusInScene(obs_scene_t *scene)
 {
 	if (!scene || !focusSource)

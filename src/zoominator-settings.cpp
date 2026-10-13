@@ -130,6 +130,7 @@ void ZoominatorController::loadSettings()
 	autoHoldMs = 2500;
 	caretFollow = true;
 	focusEnabled = false;
+	showFocusWhenNotZoomed = false;
 	focusDimPct = 55;
 	focusRadius = 300;
 	focusSoftness = 80;
@@ -340,6 +341,8 @@ void ZoominatorController::loadSettings()
 		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
 	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
 
+	if (obs_data_has_user_value(data, "show_focus_when_not_zoomed"))
+		showFocusWhenNotZoomed = obs_data_get_bool(data, "show_focus_when_not_zoomed");
 	if (obs_data_has_user_value(data, "focus_enabled"))
 		focusEnabled = obs_data_get_bool(data, "focus_enabled");
 	if (obs_data_has_user_value(data, "focus_dim_pct"))
@@ -597,6 +600,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "caret_follow", caretFollow);
 	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
 	obs_data_set_bool(data, "focus_enabled", focusEnabled);
+	obs_data_set_bool(data, "show_focus_when_not_zoomed", showFocusWhenNotZoomed);
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
 	obs_data_set_int(data, "focus_radius", focusRadius);
 	obs_data_set_int(data, "focus_softness", focusSoftness);

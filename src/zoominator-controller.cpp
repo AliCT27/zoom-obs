@@ -223,6 +223,7 @@ void ZoominatorController::rebuildRuntimeHooks()
 	rebuildTriggersFromSettings();
 	uninstallHooks();
 	installHooks();
+	refreshIdleFocusTicking();
 }
 
 void ZoominatorController::ensureTicking(bool on)
@@ -698,8 +699,12 @@ void ZoominatorController::onTick()
 	checkAutoIdle();
 
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
+	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
+	if (idleFocus || (!zoomTickWanted && focusShown))
+		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !markerClickHasPos) {
-		ensureTicking(false);
+		if (!idleFocus)
+			ensureTicking(false);
 		return;
 	}
 	if (!zoomTickWanted && !showMarkerWhenNotZoomed) {
@@ -708,7 +713,8 @@ void ZoominatorController::onTick()
 		markerClickFlashStartMs = 0;
 		markerClickFlashHoldUntilMs = 0;
 		markerClickFlashFadeOutEndMs = 0;
-		ensureTicking(false);
+		if (!idleFocus)
+			ensureTicking(false);
 		return;
 	}
 
@@ -734,7 +740,8 @@ void ZoominatorController::onTick()
 			markerClickFlashStartMs = 0;
 			markerClickFlashHoldUntilMs = 0;
 			markerClickFlashFadeOutEndMs = 0;
-			ensureTicking(false);
+			if (!idleFocus)
+				ensureTicking(false);
 		}
 		return;
 	}
@@ -917,6 +924,7 @@ void ZoominatorController::finishZoomOnMainThread()
 	resetState();
 	hideFocusInAllScenes();
 	refreshFrame();
+	refreshIdleFocusTicking();
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
 		pendingFocusVisible = false;

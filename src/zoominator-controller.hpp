@@ -150,6 +150,7 @@ public:
 	int frameGlowPct = 70;
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
+	bool showFocusWhenNotZoomed = false;
 	int focusDimPct = 55;
 	int focusRadius = 300;
 	int focusSoftness = 80;
@@ -262,6 +263,9 @@ private:
 	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255);
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
+	void updateIdleFocus(bool on);
+	bool wantsIdleFocus() const { return focusEnabled && showFocusWhenNotZoomed && wantsDim(); }
+	void refreshIdleFocusTicking();
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
 	void refreshFrame();
