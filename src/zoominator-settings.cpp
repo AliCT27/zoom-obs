@@ -463,6 +463,85 @@ void ZoominatorController::loadSettings()
 	emit settingsChanged();
 }
 
+QString ZoominatorController::presetPath() const
+{
+	char *path = obs_module_config_path("zoominator-preset.json");
+	if (!path)
+		return {};
+	QString p = QString::fromUtf8(path);
+	bfree(path);
+	return p;
+}
+
+bool ZoominatorController::hasUserPreset() const
+{
+	const QString p = presetPath();
+	return !p.isEmpty() && QFileInfo::exists(p);
+}
+
+/* Settings that belong to this computer or this moment rather than to a look. */
+static void erase_machine_specific_keys(obs_data_t *data)
+{
+	static const char *const keys[] = {"screen_key", "source_name", "included_sources", "recovery_active",
+					   "recovery_transforms"};
+	for (const char *key : keys)
+		obs_data_erase(data, key);
+}
+
+bool ZoominatorController::saveUserPreset()
+{
+	const QString cfg = configPath();
+	const QString dst = presetPath();
+	if (cfg.isEmpty() || dst.isEmpty())
+		return false;
+
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		return false;
+	erase_machine_specific_keys(data);
+
+	ensure_parent_dir_exists(dst);
+	const QByteArray dstUtf8 = dst.toUtf8();
+	const bool ok = obs_data_save_json_safe(data, dstUtf8.constData(), "tmp", "bak");
+	obs_data_release(data);
+	if (ok)
+		logi(debug, "[Zoominator] Saved preset to: %s", dstUtf8.constData());
+	return ok;
+}
+
+/* Lays the saved preset over the current settings file and reloads it, so the
+ * target screen and ticked sources stay as they are. */
+bool ZoominatorController::applyUserPreset()
+{
+	const QString cfg = configPath();
+	const QString src = presetPath();
+	if (cfg.isEmpty() || src.isEmpty() || !QFileInfo::exists(src))
+		return false;
+
+	const QByteArray srcUtf8 = src.toUtf8();
+	obs_data_t *preset = obs_data_create_from_json_file_safe(srcUtf8.constData(), "bak");
+	if (!preset)
+		return false;
+	erase_machine_specific_keys(preset);
+
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		data = obs_data_create();
+	obs_data_apply(data, preset);
+	ensure_parent_dir_exists(cfg);
+	const bool ok = obs_data_save_json_safe(data, cfgUtf8.constData(), "tmp", "bak");
+	obs_data_release(data);
+	obs_data_release(preset);
+	if (!ok)
+		return false;
+
+	loadSettings();
+	rebuildRuntimeHooks();
+	return true;
+}
+
 void ZoominatorController::notifySettingsChanged()
 {
 	emit settingsChanged();

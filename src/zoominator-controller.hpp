@@ -77,6 +77,13 @@ public:
 	void showDialog();
 	void saveSettings();
 	void loadSettings();
+
+	/* "My preset": a snapshot of every setting except the machine-specific ones
+	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
+	 * is currently stored in the settings file, so call saveSettings() first. */
+	bool hasUserPreset() const;
+	bool saveUserPreset();
+	bool applyUserPreset();
 	void notifySettingsChanged();
 	void rebuildRuntimeHooks();
 
@@ -184,6 +191,7 @@ private:
 	ZoominatorController &operator=(const ZoominatorController &) = delete;
 
 	QString configPath() const;
+	QString presetPath() const;
 
 	void ensureTicking(bool on);
 	void startZoomIn();

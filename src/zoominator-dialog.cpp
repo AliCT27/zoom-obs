@@ -794,8 +794,11 @@ void ZoominatorDialog::buildUi()
 	btnTest = new QPushButton(T("Dialog.Test"), this);
 	btnReelsPreset = new QPushButton(T("Dialog.ReelsPreset"), this);
 	btnReelsPreset->setToolTip(T("Dialog.ReelsPresetTooltip"));
+	btnSavePreset = new QPushButton(T("Dialog.SavePreset"), this);
+	btnSavePreset->setToolTip(T("Dialog.SavePresetTooltip"));
 	btnRow->addWidget(btnRefresh);
 	btnRow->addWidget(btnReelsPreset);
+	btnRow->addWidget(btnSavePreset);
 	btnRow->addStretch(1);
 	btnRow->addWidget(btnTest);
 	btnRow->addWidget(btnApply);
@@ -805,6 +808,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnApply, &QPushButton::clicked, this, &ZoominatorDialog::applyToController);
 	connect(btnTest, &QPushButton::clicked, this, &ZoominatorDialog::testZoom);
 	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
+	connect(btnSavePreset, &QPushButton::clicked, this, &ZoominatorDialog::saveMyPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
@@ -1200,12 +1204,28 @@ void ZoominatorDialog::updateTriggerRows()
 	rowAutoWidget->setVisible(isAuto);
 }
 
-/* A starting point for vertical short-form video: zoom on its own when you
+/* Stores the settings as they are now as "my preset". The Reels preset button
+ * brings them back. The target screen and ticked sources are not part of it. */
+void ZoominatorDialog::saveMyPreset()
+{
+	applyToController();
+	auto &c = ZoominatorController::instance();
+	lblStatus->setText(T(c.saveUserPreset() ? "Dialog.PresetSaved" : "Dialog.PresetSaveFailed"));
+}
+
+/* Restores "my preset" when one was saved. Otherwise a starting point for vertical short-form video: zoom on its own when you
  * click or type, glide back out afterwards, snappy "push" animation, and the
  * capture filling the 9:16 canvas while the view follows the cursor. Only
  * fills in the widgets; sources and the target screen are left alone. */
 void ZoominatorDialog::applyReelsPreset()
 {
+	auto &ctl = ZoominatorController::instance();
+	if (ctl.hasUserPreset() && ctl.applyUserPreset()) {
+		loadFromController();
+		lblStatus->setText(T("Dialog.PresetRestored"));
+		return;
+	}
+
 	const int autoIdx = cmbTrigger->findData("auto");
 	if (autoIdx >= 0)
 		cmbTrigger->setCurrentIndex(autoIdx);

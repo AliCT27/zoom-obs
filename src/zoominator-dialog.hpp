@@ -36,6 +36,7 @@ private slots:
 	void setColorButton(QPushButton *button, uint32_t rgba);
 	void populateSourcesTab();
 	void applyReelsPreset();
+	void saveMyPreset();
 
 private:
 	void buildUi();
@@ -71,6 +72,7 @@ private:
 	QSpinBox *spAutoHold = nullptr;
 	QComboBox *cmbEasing = nullptr;
 	QPushButton *btnReelsPreset = nullptr;
+	QPushButton *btnSavePreset = nullptr;
 	QCheckBox *chkLeftCtrl = nullptr;
 	QCheckBox *chkRightCtrl = nullptr;
 	QCheckBox *chkLeftAlt = nullptr;
