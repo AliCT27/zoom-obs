@@ -818,8 +818,14 @@ void ZoominatorDialog::buildUi()
 				h->addWidget(def);
 				h->addWidget(play);
 				h->addWidget(spSoundVolume[i]);
-				lay->addWidget(mkField(T(labels[i]), row));
-				lay->addSpacing(4);
+				chkSoundOn[i] = new QCheckBox(T(labels[i]), page);
+				chkSoundOn[i]->setToolTip(T("Dialog.SoundOnTooltip"));
+				lay->addWidget(chkSoundOn[i]);
+				lay->addWidget(row);
+				lay->addSpacing(8);
+				row->setEnabled(false);
+				QWidget *rowW = row;
+				connect(chkSoundOn[i], &QCheckBox::toggled, rowW, &QWidget::setEnabled);
 
 				connect(browse, &QPushButton::clicked, this, [this, i]() { browseSound(i); });
 				connect(def, &QPushButton::clicked, this, [this, i]() { resetSound(i); });
@@ -1169,6 +1175,7 @@ void ZoominatorDialog::loadFromController()
 		chkDebug->setChecked(c.debug);
 		chkSoundEnabled->setChecked(c.soundEnabled);
 		for (int i = 0; i < 3; ++i) {
+			chkSoundOn[i]->setChecked(c.soundOn[i]);
 			spSoundVolume[i]->setValue(c.soundVolume[i]);
 			editSoundName[i]->setText(c.soundFile[i].isEmpty() ? T("Dialog.SoundBuiltIn") : c.soundName[i]);
 		}
@@ -1271,8 +1278,10 @@ void ZoominatorDialog::applyToController()
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
 	c.soundEnabled = chkSoundEnabled->isChecked();
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 3; ++i) {
 		c.soundVolume[i] = spSoundVolume[i]->value();
+		c.soundOn[i] = chkSoundOn[i]->isChecked();
+	}
 	c.soundTypingMode = cmbSoundTypingMode->currentData().toString();
 
 	c.includedSources.clear();

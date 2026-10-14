@@ -174,6 +174,7 @@ public:
 	/* Sound effects. Files the user picked are copied into the plugin's config
 	 * folder (sounds/); empty means the bundled default. */
 	bool soundEnabled = false;
+	bool soundOn[3] = {true, true, true}; /* each sound can be switched off on its own */
 	QString soundFile[3]; /* 0 = zoom in, 1 = zoom out, 2 = typing */
 	QString soundName[3]; /* original file name, for display */
 	int soundVolume[3] = {80, 80, 60};

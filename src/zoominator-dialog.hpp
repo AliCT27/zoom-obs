@@ -131,6 +131,7 @@ private:
 	QSpinBox *spFocusSoftness = nullptr;
 	QCheckBox *chkDebug = nullptr;
 	QCheckBox *chkSoundEnabled = nullptr;
+	QCheckBox *chkSoundOn[3] = {nullptr, nullptr, nullptr};
 	QLineEdit *editSoundName[3] = {nullptr, nullptr, nullptr};
 	QSpinBox *spSoundVolume[3] = {nullptr, nullptr, nullptr};
 	QComboBox *cmbSoundTypingMode = nullptr;
