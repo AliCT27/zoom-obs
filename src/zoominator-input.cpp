@@ -283,6 +283,18 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 	return CallNextHookEx((HHOOK)g_ctl->keyboardHook, nCode, wParam, lParam);
 }
 
+bool ZoominatorController::wheelModifierHeld() const
+{
+	const bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+	const bool alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+	const bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+	if (wheelZoomModifier == "ctrl")
+		return ctrl && !alt && !shift;
+	if (wheelZoomModifier == "shift")
+		return shift && !ctrl && !alt;
+	return alt && !ctrl && !shift;
+}
+
 LRESULT CALLBACK ZoominatorController::mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	if (nCode == HC_ACTION && g_ctl) {
@@ -296,30 +308,28 @@ LRESULT CALLBACK ZoominatorController::mouse_hook_proc(int nCode, WPARAM wParam,
 				 wParam == WM_XBUTTONUP);
 		const unsigned short mouseData = (unsigned short)HIWORD(m->mouseData);
 
-		/* Match the X11 Mouse5 gesture on Windows. WH_MOUSE_LL reports wheel
-		 * input globally and lets the hook consume only the events belonging to
-		 * this gesture, so the application below the pointer does not scroll or
-		 * receive an X2 navigation command while zoom is being adjusted. */
-		if (g_ctl->usesWheelZoomGesture()) {
-			if (wParam == WM_XBUTTONDOWN && mouseData == XBUTTON2 && g_ctl->modsMatch()) {
-				g_ctl->beginWheelZoomGesture();
-				return 1;
+		/* Modifier + mouse wheel zooms in and out. The hook swallows the wheel
+		 * notches while the chosen modifier is held, so the window under the
+		 * pointer does not scroll as well. */
+		if (wParam == WM_MOUSEWHEEL && g_ctl->wheelZoomEnabled && g_ctl->wheelModifierHeld()) {
+			const int delta = GET_WHEEL_DELTA_WPARAM(m->mouseData);
+			g_ctl->wheelDeltaRemainder += delta;
+			const int steps = g_ctl->wheelDeltaRemainder / WHEEL_DELTA;
+			g_ctl->wheelDeltaRemainder %= WHEEL_DELTA;
+			if (steps != 0)
+				g_ctl->wheelZoom(steps > 0 ? 1 : -1, std::abs(steps));
+			if (g_ctl->wheelZoomModifier == "alt") {
+				/* A bare Alt press/release would otherwise focus the menu bar of the
+				 * foreground app. An unassigned key press in between cancels that. */
+				INPUT in[2] = {};
+				in[0].type = INPUT_KEYBOARD;
+				in[0].ki.wVk = 0xE8;
+				in[1].type = INPUT_KEYBOARD;
+				in[1].ki.wVk = 0xE8;
+				in[1].ki.dwFlags = KEYEVENTF_KEYUP;
+				SendInput(2, in, sizeof(INPUT));
 			}
-
-			if (g_ctl->zoomAdjustButtonHeld && wParam == WM_MOUSEWHEEL) {
-				const int delta = GET_WHEEL_DELTA_WPARAM(m->mouseData);
-				g_ctl->wheelDeltaRemainder += delta;
-				const int steps = g_ctl->wheelDeltaRemainder / WHEEL_DELTA;
-				g_ctl->wheelDeltaRemainder %= WHEEL_DELTA;
-				if (steps != 0)
-					g_ctl->adjustActiveZoomFromWheel(steps > 0 ? 1 : -1, std::abs(steps));
-				return 1;
-			}
-
-			if (g_ctl->zoomAdjustButtonHeld && wParam == WM_XBUTTONUP && mouseData == XBUTTON2) {
-				g_ctl->finishWheelZoomGesture();
-				return 1;
-			}
+			return 1;
 		}
 
 		if (down)
@@ -818,7 +828,7 @@ bool ZoominatorController::needsKeyboardHook() const
 
 bool ZoominatorController::needsMouseHook() const
 {
-	return triggerType == "mouse" || showCursorMarker || (triggerType == "auto" && autoOnClick);
+	return triggerType == "mouse" || showCursorMarker || wheelZoomEnabled || (triggerType == "auto" && autoOnClick);
 }
 
 void ZoominatorController::installHooks()

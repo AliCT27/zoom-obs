@@ -8,6 +8,52 @@ bool ZoominatorController::usesWheelZoomGesture() const
 	return false;
 }
 
+/* Modifier + wheel: wheel up zooms in (first notch starts the zoom at the
+ * current level, further notches go deeper), wheel down steps back out and
+ * zooms out completely once it reaches 1x. Works with every trigger type. */
+void ZoominatorController::wheelZoom(int direction, int steps)
+{
+	if (shuttingDown || direction == 0 || steps <= 0)
+		return;
+
+	const bool zoomedNow = zoomActive.load(std::memory_order_acquire) && animDir.load(std::memory_order_relaxed) >= 0;
+	const double step = std::max(0.01, wheelZoomInStep);
+	const double maxZoom = std::max(1.1, wheelZoomMaximum);
+
+	if (direction > 0) {
+		if (!zoomedNow) {
+			if (wheelBaseZoom <= 1.0)
+				wheelBaseZoom = std::max(1.1, zoomFactor);
+			zoomFactor = clampd(wheelBaseZoom, 1.1, maxZoom);
+			renderedZoomFactor = zoomFactor;
+			captureMarkerClickPosition();
+			zoomLatched = false;
+			manualZoomIn();
+			steps -= 1;
+		}
+		if (steps > 0) {
+			if (wheelBaseZoom <= 1.0)
+				wheelBaseZoom = std::max(1.1, zoomFactor);
+			zoomFactor = clampd(zoomFactor + step * steps, 1.1, maxZoom);
+		}
+		return;
+	}
+
+	if (!zoomedNow)
+		return;
+	const double next = zoomFactor - step * steps;
+	if (wheelBaseZoom <= 1.0)
+		wheelBaseZoom = std::max(1.1, zoomFactor);
+	if (next <= 1.0 + step * 0.5) {
+		/* Back at 1x: leave the normal zoom level ready for the next zoom-in. */
+		zoomFactor = clampd(wheelBaseZoom, 1.1, maxZoom);
+		wheelBaseZoom = 0.0;
+		manualZoomOut();
+		return;
+	}
+	zoomFactor = next;
+}
+
 void ZoominatorController::beginWheelZoomGesture()
 {
 	zoomAdjustButtonHeld = true;
