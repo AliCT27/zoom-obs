@@ -568,6 +568,8 @@ void ZoominatorController::applyZoomToScene(double t)
 			pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 			pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
 			pendingFocusVisible = focusEnabled && mapped && snapInside;
+		pendingFocusFresh = true;
+			pendingFocusFresh = true;
 			pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
 			pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
 			pendingFocusOpacity = (int)std::lround(ttA * 255.0);
@@ -624,8 +626,18 @@ void ZoominatorController::applyZoomToScene(double t)
 			const float shown = std::max(0.0001f, (osx + osy) * 0.5f * (float)z);
 			const float blurSrc = std::min(12.0f, (float)focusBlurPx / shown);
 			const bool on = focusEnabled && mapped && snapInside;
-			zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)focusRadius / shown,
-						   (float)focusSoftness / shown, blurSrc, on ? (float)ttA : 0.0f);
+			if (showFocusWhenNotZoomed) {
+				/* Stays fully on and only the radius eases between the two sizes. */
+				const double idleS = focusIdleScale();
+				const double rad = (double)focusIdleRadius + ((double)focusRadius - (double)focusIdleRadius) * ttA;
+				const double softK = idleS + (1.0 - idleS) * ttA;
+				zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)rad / shown,
+							   (float)(focusSoftness * softK) / shown, blurSrc,
+							   on ? 1.0f : 0.0f);
+			} else {
+				zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)focusRadius / shown,
+							   (float)focusSoftness / shown, blurSrc, on ? (float)ttA : 0.0f);
+			}
 		}
 	}
 
@@ -792,6 +804,7 @@ void ZoominatorController::onTick()
 		bool focusVisible = false;
 		double focusX = 0.0, focusY = 0.0;
 		int focusOpacity = 0;
+		bool focusFresh = false;
 		{
 			std::lock_guard<std::mutex> lock(inputMutex);
 			markerVisible = pendingMarkerVisible;
@@ -801,10 +814,17 @@ void ZoominatorController::onTick()
 			focusX = pendingFocusX;
 			focusY = pendingFocusY;
 			focusOpacity = pendingFocusOpacity;
+			focusFresh = pendingFocusFresh;
 		}
 
-		if (wantsDim() && focusVisible && focusOpacity > 0) {
-			updateFocus(sc, focusX, focusY, focusOpacity);
+		/* With "show focus when not zoomed" the spotlight stays fully visible while
+		 * zooming and only its radius eases; otherwise it fades with the zoom. */
+		const bool keepIdle = showFocusWhenNotZoomed && wantsDim();
+		if (wantsDim() && focusVisible && (focusOpacity > 0 || keepIdle)) {
+			updateFocus(sc, focusX, focusY, keepIdle ? 255 : focusOpacity, false, focusOpacity);
+		} else if (keepIdle && !focusFresh) {
+			/* The zoom just started and has not produced a sample yet: leave the
+			 * spotlight where it is instead of blinking it off. */
 		} else if (focusShown) {
 			hideFocusInScene(sc);
 			focusShown = false;
@@ -931,12 +951,16 @@ void ZoominatorController::finishZoomOnMainThread()
 	tickingWanted.store(false, std::memory_order_release);
 	ensureTicking(false);
 	resetState();
-	hideFocusInAllScenes();
+	if (!wantsIdleFocus())
+		hideFocusInAllScenes();
 	refreshFrame();
 	refreshIdleFocusTicking();
+	if (wantsIdleFocus())
+		updateIdleFocus(true); /* no gap between the zoom's spotlight and the idle one */
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
 		pendingFocusVisible = false;
+		pendingFocusFresh = false;
 		pendingFocusOpacity = 0;
 	}
 

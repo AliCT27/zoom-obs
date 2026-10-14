@@ -640,7 +640,8 @@ void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_scene
 		obs_sceneitem_set_order_position(item, topIndex);
 }
 
-void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle)
+void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle,
+				       int progress255)
 {
 	if (!focusEnabled || !scene)
 		return;
@@ -682,7 +683,7 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 		if (idle)
 			k = idleS;
 		else if (showFocusWhenNotZoomed)
-			k = idleS + (1.0 - idleS) * (double)std::clamp(opacity255, 0, 255) / 255.0;
+			k = idleS + (1.0 - idleS) * (double)std::clamp(progress255 >= 0 ? progress255 : opacity255, 0, 255) / 255.0;
 		vec2 sc{};
 		sc.x = sc.y = (float)(kFocusImageScale * k);
 		obs_sceneitem_set_scale(item, &sc);
@@ -849,6 +850,23 @@ void ZoominatorController::attachBlurFilters()
 		state.blurTarget = obs_source_get_ref(src);
 		state.blurFilter = filter;
 		++attached;
+		if (showFocusWhenNotZoomed) {
+			/* Start from the not-zoomed look so the blur does not drop out until the
+			 * first zoom frame arrives. */
+			int cx = 0, cy = 0;
+			float sx = 0.0f, sy = 0.0f;
+			bool inside = false;
+			if (getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside) {
+				const float osx = std::max(state.orig.effectiveScale.x, 0.0001f);
+				const float osy = std::max(state.orig.effectiveScale.y, 0.0001f);
+				const float cxSrc = (sx - state.orig.effectivePos.x) / osx + (float)state.orig.crop.left;
+				const float cySrc = (sy - state.orig.effectivePos.y) / osy + (float)state.orig.crop.top;
+				const float shown = std::max(0.0001f, (osx + osy) * 0.5f);
+				zoominator_blur::setParams(filter, cxSrc, cySrc, (float)focusIdleRadius / shown,
+							   (float)(focusSoftness * focusIdleScale()) / shown,
+							   std::min(12.0f, (float)focusBlurPx / shown), 1.0f);
+			}
+		}
 	}
 	if (attached == 0) {
 		blurUnavailable = true;

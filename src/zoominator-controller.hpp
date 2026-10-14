@@ -278,7 +278,8 @@ private:
 	void updateFocusAppearance();
 	obs_sceneitem_t *ensureFocusItem(obs_scene_t *scene, bool &created);
 	void placeFocusBelowOverlays(obs_scene_t *scene, obs_sceneitem_t *item);
-	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false);
+	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false,
+			 int progress255 = -1);
 	double focusIdleScale() const;
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
@@ -320,6 +321,7 @@ private:
 	InputSnapshot input;
 	bool pendingMarkerVisible = false;
 	bool pendingFocusVisible = false;
+	bool pendingFocusFresh = false; /* the graphics thread has published a focus sample */
 	double pendingFocusX = 0.0;
 	double pendingFocusY = 0.0;
 	int pendingFocusOpacity = 0;
