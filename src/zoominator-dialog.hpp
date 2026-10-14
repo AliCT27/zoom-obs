@@ -9,6 +9,7 @@ class QComboBox;
 class QDoubleSpinBox;
 class QFrame;
 class QKeySequenceEdit;
+class QLineEdit;
 class QLabel;
 class QListWidget;
 class QPushButton;
@@ -28,6 +29,9 @@ protected:
 private slots:
 	void refreshLists();
 	void applyToController();
+	void browseSound(int slot);
+	void resetSound(int slot);
+	void playSoundPreview(int slot);
 	void testZoom();
 	void clearHotkey();
 	void clearFollowToggleHotkey();
@@ -126,6 +130,10 @@ private:
 	QSpinBox *spFocusRadius = nullptr;
 	QSpinBox *spFocusSoftness = nullptr;
 	QCheckBox *chkDebug = nullptr;
+	QCheckBox *chkSoundEnabled = nullptr;
+	QLineEdit *editSoundName[3] = {nullptr, nullptr, nullptr};
+	QSpinBox *spSoundVolume[3] = {nullptr, nullptr, nullptr};
+	QComboBox *cmbSoundTypingMode = nullptr;
 
 	QListWidget *lstSources = nullptr;
 

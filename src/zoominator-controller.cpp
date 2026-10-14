@@ -181,6 +181,7 @@ void ZoominatorController::shutdown()
 	ensureTicking(false);
 	detachBlurFilters();
 	detachIdleBlurs();
+	releaseSoundSources();
 	zoominator_frame::clearRect();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
@@ -221,6 +222,7 @@ void ZoominatorController::rebuildRuntimeHooks()
 	camRingUnavailable = false;
 	refreshFrame();
 	refreshCamRing();
+	ensureSoundSources();
 	rebuildTriggersFromSettings();
 	uninstallHooks();
 	installHooks();
@@ -240,6 +242,8 @@ void ZoominatorController::ensureTicking(bool on)
 
 void ZoominatorController::startZoomIn()
 {
+	if (animDir.load(std::memory_order_relaxed) <= 0)
+		playSound(0);
 	markRecoveryActive();
 	lastTickMs = 0;
 	pendingFinish.store(false, std::memory_order_release);
@@ -253,6 +257,8 @@ void ZoominatorController::startZoomIn()
 
 void ZoominatorController::startZoomOut()
 {
+	if (animDir.load(std::memory_order_relaxed) >= 0 && zoomActive.load(std::memory_order_acquire))
+		playSound(1);
 	lastTickMs = 0;
 	animDir.store(-1, std::memory_order_relaxed);
 	tickingWanted.store(true, std::memory_order_release);

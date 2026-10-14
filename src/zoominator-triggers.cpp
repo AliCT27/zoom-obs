@@ -95,6 +95,7 @@ void ZoominatorController::onAutoActivity(bool typing)
 	autoLastActivityMs = nowMs;
 	if (typing) {
 		autoLastTypingMs = autoLastActivityMs;
+		onTypingSound();
 		zoominator_caret::noteTyping();
 	} else {
 		autoLastClickMs = autoLastActivityMs;

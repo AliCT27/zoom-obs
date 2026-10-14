@@ -158,6 +158,15 @@ void ZoominatorController::loadSettings()
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
 	focusToggleSequence.clear();
+	soundEnabled = false;
+	for (int i = 0; i < 3; ++i) {
+		soundFile[i].clear();
+		soundName[i].clear();
+	}
+	soundVolume[0] = 80;
+	soundVolume[1] = 80;
+	soundVolume[2] = 60;
+	soundTypingMode = QStringLiteral("tick");
 	focusOnSequence.clear();
 	focusOffSequence.clear();
 	followMouseRuntimeEnabled = true;
@@ -402,6 +411,23 @@ void ZoominatorController::loadSettings()
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
 	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
 	focusToggleSequence = getStr("focus_toggle_hotkey");
+	{
+		static const char *fileKeys[3] = {"sound_zoom_in_file", "sound_zoom_out_file", "sound_typing_file"};
+		static const char *nameKeys[3] = {"sound_zoom_in_name", "sound_zoom_out_name", "sound_typing_name"};
+		static const char *volKeys[3] = {"sound_zoom_in_volume", "sound_zoom_out_volume",
+						 "sound_typing_volume"};
+		if (obs_data_has_user_value(data, "sound_enabled"))
+			soundEnabled = obs_data_get_bool(data, "sound_enabled");
+		for (int i = 0; i < 3; ++i) {
+			soundFile[i] = getStr(fileKeys[i]);
+			soundName[i] = getStr(nameKeys[i]);
+			if (obs_data_has_user_value(data, volKeys[i]))
+				soundVolume[i] = std::clamp((int)obs_data_get_int(data, volKeys[i]), 0, 100);
+		}
+		soundTypingMode = getStr("sound_typing_mode");
+		if (soundTypingMode != "loop")
+			soundTypingMode = "tick";
+	}
 	focusOnSequence = getStr("focus_on_hotkey");
 	focusOffSequence = getStr("focus_off_hotkey");
 
@@ -638,6 +664,17 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
 	obs_data_set_string(data, "focus_toggle_hotkey", focusToggleSequence.toUtf8().constData());
+	obs_data_set_bool(data, "sound_enabled", soundEnabled);
+	obs_data_set_string(data, "sound_zoom_in_file", soundFile[0].toUtf8().constData());
+	obs_data_set_string(data, "sound_zoom_out_file", soundFile[1].toUtf8().constData());
+	obs_data_set_string(data, "sound_typing_file", soundFile[2].toUtf8().constData());
+	obs_data_set_string(data, "sound_zoom_in_name", soundName[0].toUtf8().constData());
+	obs_data_set_string(data, "sound_zoom_out_name", soundName[1].toUtf8().constData());
+	obs_data_set_string(data, "sound_typing_name", soundName[2].toUtf8().constData());
+	obs_data_set_int(data, "sound_zoom_in_volume", soundVolume[0]);
+	obs_data_set_int(data, "sound_zoom_out_volume", soundVolume[1]);
+	obs_data_set_int(data, "sound_typing_volume", soundVolume[2]);
+	obs_data_set_string(data, "sound_typing_mode", soundTypingMode.toUtf8().constData());
 	obs_data_set_string(data, "focus_on_hotkey", focusOnSequence.toUtf8().constData());
 	obs_data_set_string(data, "focus_off_hotkey", focusOffSequence.toUtf8().constData());
 	/* Kept so a downgrade to an older build still finds a setting it understands. */

@@ -72,6 +72,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/zoominator-sceneitems.cpp
   src/zoominator-screen.cpp
   src/zoominator-settings.cpp
+  src/zoominator-sound.cpp
   src/zoominator-triggers.cpp
   src/zoominator-controller.hpp
   src/zoominator-dialog.cpp
