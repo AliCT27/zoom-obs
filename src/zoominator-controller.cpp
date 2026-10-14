@@ -8,9 +8,10 @@ bool ZoominatorController::usesWheelZoomGesture() const
 	return false;
 }
 
-/* Modifier + wheel: wheel up zooms in (first notch starts the zoom at the
- * current level, further notches go deeper), wheel down steps back out and
- * zooms out completely once it reaches 1x. Works with every trigger type. */
+/* Modifier + wheel: every notch is one small step. From 1x the first notch
+ * only zooms in by one step (it does not jump to the full zoom level), more
+ * notches go deeper, wheel down steps back and zooms out fully at 1x. The
+ * configured zoom level is put back once the zoom has ended. */
 void ZoominatorController::wheelZoom(int direction, int steps)
 {
 	if (shuttingDown || direction == 0 || steps <= 0)
@@ -20,34 +21,26 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 	const double step = std::max(0.01, wheelZoomInStep);
 	const double maxZoom = std::max(1.1, wheelZoomMaximum);
 
+	if (wheelBaseZoom <= 1.0)
+		wheelBaseZoom = std::max(1.1, zoomFactor);
+
 	if (direction > 0) {
 		if (!zoomedNow) {
-			if (wheelBaseZoom <= 1.0)
-				wheelBaseZoom = std::max(1.1, zoomFactor);
-			zoomFactor = clampd(wheelBaseZoom, 1.1, maxZoom);
+			zoomFactor = clampd(1.0 + step * steps, 1.05, maxZoom);
 			renderedZoomFactor = zoomFactor;
 			captureMarkerClickPosition();
 			zoomLatched = false;
 			manualZoomIn();
-			steps -= 1;
+			return;
 		}
-		if (steps > 0) {
-			if (wheelBaseZoom <= 1.0)
-				wheelBaseZoom = std::max(1.1, zoomFactor);
-			zoomFactor = clampd(zoomFactor + step * steps, 1.1, maxZoom);
-		}
+		zoomFactor = clampd(zoomFactor + step * steps, 1.05, maxZoom);
 		return;
 	}
 
 	if (!zoomedNow)
 		return;
 	const double next = zoomFactor - step * steps;
-	if (wheelBaseZoom <= 1.0)
-		wheelBaseZoom = std::max(1.1, zoomFactor);
 	if (next <= 1.0 + step * 0.5) {
-		/* Back at 1x: leave the normal zoom level ready for the next zoom-in. */
-		zoomFactor = clampd(wheelBaseZoom, 1.1, maxZoom);
-		wheelBaseZoom = 0.0;
 		manualZoomOut();
 		return;
 	}
@@ -330,6 +323,10 @@ void ZoominatorController::resetState()
 	pendingFinish.store(false, std::memory_order_release);
 	animT = 0.0;
 	renderedZoomFactor = 1.0;
+	if (wheelBaseZoom > 1.0) {
+		zoomFactor = wheelBaseZoom;
+		wheelBaseZoom = 0.0;
+	}
 	animDir.store(0, std::memory_order_relaxed);
 	followHasPos = false;
 	lastCursorSampleValid = false;
