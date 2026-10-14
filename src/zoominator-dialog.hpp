@@ -101,6 +101,10 @@ private:
 	QCheckBox *chkShowMarkerWhenNotZoomed = nullptr;
 	QSpinBox *spMarkerSize = nullptr;
 	QSpinBox *spMarkerIdleSize = nullptr;
+	QCheckBox *chkWheelZoom = nullptr;
+	QComboBox *cmbWheelMod = nullptr;
+	QDoubleSpinBox *spWheelStep = nullptr;
+	QDoubleSpinBox *spWheelMax = nullptr;
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
 	QCheckBox *chkFrame = nullptr;

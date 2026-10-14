@@ -422,6 +422,32 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(easingRow);
 		lay->addSpacing(12);
 
+		chkWheelZoom = new QCheckBox(T("Dialog.WheelZoom"), page);
+		chkWheelZoom->setToolTip(T("Dialog.WheelZoomTooltip"));
+		lay->addWidget(chkWheelZoom);
+
+		cmbWheelMod = new QComboBox(page);
+		cmbWheelMod->addItem(T("Dialog.WheelMod.Alt"), "alt");
+		cmbWheelMod->addItem(T("Dialog.WheelMod.Ctrl"), "ctrl");
+		cmbWheelMod->addItem(T("Dialog.WheelMod.Shift"), "shift");
+		spWheelStep = new QDoubleSpinBox(page);
+		spWheelStep->setRange(0.05, 2.0);
+		spWheelStep->setSingleStep(0.05);
+		spWheelStep->setDecimals(2);
+		spWheelMax = new QDoubleSpinBox(page);
+		spWheelMax->setRange(1.5, 20.0);
+		spWheelMax->setSingleStep(0.5);
+		spWheelMax->setDecimals(1);
+		auto *wheelRow = new QHBoxLayout;
+		wheelRow->setSpacing(12);
+		wheelRow->addWidget(mkField(T("Dialog.WheelModifier"), cmbWheelMod), 1);
+		wheelRow->addWidget(mkField(T("Dialog.WheelStep"), spWheelStep), 1);
+		wheelRow->addWidget(mkField(T("Dialog.WheelMax"), spWheelMax), 1);
+		lay->addLayout(wheelRow);
+		for (QWidget *w : {(QWidget *)cmbWheelMod, (QWidget *)spWheelStep, (QWidget *)spWheelMax})
+			connect(chkWheelZoom, &QCheckBox::toggled, w, &QWidget::setEnabled);
+		lay->addSpacing(12);
+
 
 		addSection(lay, T("Dialog.Section.MouseFollow"));
 
@@ -1129,6 +1155,13 @@ void ZoominatorDialog::loadFromController()
 		spOut->setValue(c.animOutMs);
 		const int easingIdx = cmbEasing->findData(ZoominatorController::zoomEasingToString(c.easing));
 		cmbEasing->setCurrentIndex(easingIdx >= 0 ? easingIdx : 0);
+		chkWheelZoom->setChecked(c.wheelZoomEnabled);
+		cmbWheelMod->setCurrentIndex(std::max(0, cmbWheelMod->findData(c.wheelZoomModifier)));
+		spWheelStep->setValue(c.wheelZoomInStep);
+		spWheelMax->setValue(c.wheelZoomMaximum);
+		cmbWheelMod->setEnabled(c.wheelZoomEnabled);
+		spWheelStep->setEnabled(c.wheelZoomEnabled);
+		spWheelMax->setEnabled(c.wheelZoomEnabled);
 		const int anchorIdx =
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
@@ -1232,6 +1265,11 @@ void ZoominatorDialog::applyToController()
 	c.animInMs = spIn->value();
 	c.animOutMs = spOut->value();
 	c.easing = ZoominatorController::zoomEasingFromString(cmbEasing->currentData().toString());
+	c.wheelZoomEnabled = chkWheelZoom->isChecked();
+	c.wheelZoomModifier = cmbWheelMod->currentData().toString();
+	c.wheelZoomInStep = spWheelStep->value();
+	c.wheelZoomOutStep = spWheelStep->value();
+	c.wheelZoomMaximum = spWheelMax->value();
 	c.focusEnabled = chkFocus->isChecked();
 	c.showFocusWhenNotZoomed = chkFocusWhenNotZoomed->isChecked();
 	c.focusDimPct = spFocusDim->value();
