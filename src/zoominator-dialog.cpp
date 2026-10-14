@@ -838,6 +838,8 @@ void ZoominatorDialog::buildUi()
 		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Loop"), "loop");
 		cmbSoundTypingMode->setToolTip(T("Dialog.SoundTypingModeTooltip"));
 		lay->addWidget(mkField(T("Dialog.SoundTypingMode"), cmbSoundTypingMode));
+		cmbSoundTypingMode->setEnabled(chkSoundOn[2]->isChecked());
+		connect(chkSoundOn[2], &QCheckBox::toggled, cmbSoundTypingMode, &QWidget::setEnabled);
 		lay->addSpacing(10);
 
 		addSection(lay, T("Dialog.Section.Developer"));
