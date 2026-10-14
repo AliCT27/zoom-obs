@@ -148,7 +148,7 @@ void ZoominatorController::previewSound(int slot)
 
 void ZoominatorController::playSound(int slot)
 {
-	if (!soundEnabled || shuttingDown || slot < 0 || slot > 1)
+	if (!soundEnabled || shuttingDown || slot < 0 || slot > 1 || !soundOn[slot])
 		return;
 	ensureSoundSources();
 	if (!soundSrc[slot])
@@ -172,7 +172,7 @@ void ZoominatorController::typingLoopWatch()
 
 void ZoominatorController::onTypingSound()
 {
-	if (!soundEnabled || shuttingDown)
+	if (!soundEnabled || shuttingDown || !soundOn[2])
 		return;
 	ensureSoundSources();
 	if (!soundSrc[2])

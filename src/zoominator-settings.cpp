@@ -160,6 +160,7 @@ void ZoominatorController::loadSettings()
 	focusToggleSequence.clear();
 	soundEnabled = false;
 	for (int i = 0; i < 3; ++i) {
+		soundOn[i] = true;
 		soundFile[i].clear();
 		soundName[i].clear();
 	}
@@ -414,6 +415,7 @@ void ZoominatorController::loadSettings()
 	{
 		static const char *fileKeys[3] = {"sound_zoom_in_file", "sound_zoom_out_file", "sound_typing_file"};
 		static const char *nameKeys[3] = {"sound_zoom_in_name", "sound_zoom_out_name", "sound_typing_name"};
+		static const char *onKeys[3] = {"sound_zoom_in_on", "sound_zoom_out_on", "sound_typing_on"};
 		static const char *volKeys[3] = {"sound_zoom_in_volume", "sound_zoom_out_volume",
 						 "sound_typing_volume"};
 		if (obs_data_has_user_value(data, "sound_enabled"))
@@ -421,6 +423,7 @@ void ZoominatorController::loadSettings()
 		for (int i = 0; i < 3; ++i) {
 			soundFile[i] = getStr(fileKeys[i]);
 			soundName[i] = getStr(nameKeys[i]);
+			soundOn[i] = obs_data_has_user_value(data, onKeys[i]) ? obs_data_get_bool(data, onKeys[i]) : true;
 			if (obs_data_has_user_value(data, volKeys[i]))
 				soundVolume[i] = std::clamp((int)obs_data_get_int(data, volKeys[i]), 0, 100);
 		}
@@ -671,6 +674,9 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "sound_zoom_in_name", soundName[0].toUtf8().constData());
 	obs_data_set_string(data, "sound_zoom_out_name", soundName[1].toUtf8().constData());
 	obs_data_set_string(data, "sound_typing_name", soundName[2].toUtf8().constData());
+	obs_data_set_bool(data, "sound_zoom_in_on", soundOn[0]);
+	obs_data_set_bool(data, "sound_zoom_out_on", soundOn[1]);
+	obs_data_set_bool(data, "sound_typing_on", soundOn[2]);
 	obs_data_set_int(data, "sound_zoom_in_volume", soundVolume[0]);
 	obs_data_set_int(data, "sound_zoom_out_volume", soundVolume[1]);
 	obs_data_set_int(data, "sound_typing_volume", soundVolume[2]);
