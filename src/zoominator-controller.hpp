@@ -78,6 +78,14 @@ public:
 	void saveSettings();
 	void loadSettings();
 
+	/* Sound effects (main thread). */
+	QString soundDir() const;
+	void ensureSoundSources();
+	void releaseSoundSources();
+	void previewSound(int slot);
+	void playSound(int slot);
+	void onTypingSound();
+
 	/* "My preset": a snapshot of every setting except the machine-specific ones
 	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
 	 * is currently stored in the settings file, so call saveSettings() first. */
@@ -162,6 +170,14 @@ public:
 	QString manualZoomInSequence;
 	QString manualZoomOutSequence;
 	QString focusToggleSequence;
+
+	/* Sound effects. Files the user picked are copied into the plugin's config
+	 * folder (sounds/); empty means the bundled default. */
+	bool soundEnabled = false;
+	QString soundFile[3]; /* 0 = zoom in, 1 = zoom out, 2 = typing */
+	QString soundName[3]; /* original file name, for display */
+	int soundVolume[3] = {80, 80, 60};
+	QString soundTypingMode = QStringLiteral("tick"); /* "tick" or "loop" */
 	QString focusOnSequence;
 	QString focusOffSequence;
 	bool followMouseRuntimeEnabled = true;
@@ -464,6 +480,13 @@ private:
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
 	HotkeyBinding focusToggleBinding;
+	obs_source_t *soundSrc[3] = {nullptr, nullptr, nullptr};
+	QString soundSrcPath[3];
+	QString soundSrcLoop[3];
+	qint64 soundTypingLastMs = 0;
+	bool soundTypingLooping = false;
+	void typingLoopWatch();
+	QString effectiveSoundFile(int slot) const;
 	HotkeyBinding focusOnBinding;
 	HotkeyBinding focusOffBinding;
 	qint64 autoLastManualKeyMs = 0;

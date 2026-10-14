@@ -25,6 +25,12 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QKeySequenceEdit>
+#include <QLineEdit>
+#include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QStandardPaths>
 #include <QLabel>
 #include <QListWidget>
 #include <QMap>
@@ -782,6 +788,52 @@ void ZoominatorDialog::buildUi()
 			[syncFocusFields](int) { syncFocusFields(); });
 		syncFocusFields();
 
+		addSection(lay, T("Dialog.Section.Sound"));
+
+		chkSoundEnabled = new QCheckBox(T("Dialog.SoundEnable"), page);
+		chkSoundEnabled->setToolTip(T("Dialog.SoundEnableTooltip"));
+		lay->addWidget(chkSoundEnabled);
+		lay->addSpacing(6);
+
+		{
+			static const char *labels[3] = {"Dialog.SoundZoomIn", "Dialog.SoundZoomOut", "Dialog.SoundTyping"};
+			for (int i = 0; i < 3; ++i) {
+				auto *row = new QWidget(page);
+				auto *h = new QHBoxLayout(row);
+				h->setContentsMargins(0, 0, 0, 0);
+				h->setSpacing(6);
+				editSoundName[i] = new QLineEdit(row);
+				editSoundName[i]->setReadOnly(true);
+				auto *browse = new QPushButton(T("Dialog.SoundBrowse"), row);
+				auto *def = new QPushButton(T("Dialog.SoundDefault"), row);
+				def->setToolTip(T("Dialog.SoundDefaultTooltip"));
+				auto *play = new QPushButton(T("Dialog.SoundPlay"), row);
+				spSoundVolume[i] = new QSpinBox(row);
+				spSoundVolume[i]->setRange(0, 100);
+				spSoundVolume[i]->setSingleStep(5);
+				spSoundVolume[i]->setSuffix(T("Unit.Percent"));
+				spSoundVolume[i]->setToolTip(T("Dialog.SoundVolumeTooltip"));
+				h->addWidget(editSoundName[i], 1);
+				h->addWidget(browse);
+				h->addWidget(def);
+				h->addWidget(play);
+				h->addWidget(spSoundVolume[i]);
+				lay->addWidget(mkField(T(labels[i]), row));
+				lay->addSpacing(4);
+
+				connect(browse, &QPushButton::clicked, this, [this, i]() { browseSound(i); });
+				connect(def, &QPushButton::clicked, this, [this, i]() { resetSound(i); });
+				connect(play, &QPushButton::clicked, this, [this, i]() { playSoundPreview(i); });
+			}
+		}
+
+		cmbSoundTypingMode = new QComboBox(page);
+		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Tick"), "tick");
+		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Loop"), "loop");
+		cmbSoundTypingMode->setToolTip(T("Dialog.SoundTypingModeTooltip"));
+		lay->addWidget(mkField(T("Dialog.SoundTypingMode"), cmbSoundTypingMode));
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.Developer"));
 
 		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
@@ -1115,6 +1167,15 @@ void ZoominatorDialog::loadFromController()
 		spCamGlowPct->setEnabled(c.camRingEnabled);
 		spCamZoom->setEnabled(c.camRingEnabled);
 		chkDebug->setChecked(c.debug);
+		chkSoundEnabled->setChecked(c.soundEnabled);
+		for (int i = 0; i < 3; ++i) {
+			spSoundVolume[i]->setValue(c.soundVolume[i]);
+			editSoundName[i]->setText(c.soundFile[i].isEmpty() ? T("Dialog.SoundBuiltIn") : c.soundName[i]);
+		}
+		{
+			const int mi = cmbSoundTypingMode->findData(c.soundTypingMode);
+			cmbSoundTypingMode->setCurrentIndex(mi >= 0 ? mi : 0);
+		}
 	}
 
 	if (lstSources)
@@ -1209,6 +1270,10 @@ void ZoominatorDialog::applyToController()
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
+	c.soundEnabled = chkSoundEnabled->isChecked();
+	for (int i = 0; i < 3; ++i)
+		c.soundVolume[i] = spSoundVolume[i]->value();
+	c.soundTypingMode = cmbSoundTypingMode->currentData().toString();
 
 	c.includedSources.clear();
 	if (lstSources) {
@@ -1280,6 +1345,79 @@ void ZoominatorDialog::applyReelsPreset()
 
 	applyToController();
 	lblStatus->setText(T("Dialog.ReelsPresetApplied"));
+}
+
+static const char *kSoundBase[3] = {"zoom_in", "zoom_out", "typing"};
+
+static void removeSoundFiles(const QString &dir, int slot)
+{
+	QDir d(dir);
+	const QStringList old = d.entryList(QStringList() << (QString::fromLatin1(kSoundBase[slot]) + ".*"), QDir::Files);
+	for (const QString &f : old)
+		QFile::remove(d.filePath(f));
+}
+
+/* Picks a sound file, copies it into the plugin's config folder (replacing the
+ * previous one) and uses the copy, so deleting the original is harmless. */
+void ZoominatorDialog::browseSound(int slot)
+{
+	auto &c = ZoominatorController::instance();
+	/* Let go of the current file first; Windows will not replace a file in use. */
+	c.releaseSoundSources();
+
+	const QString start = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+	const QString picked = QFileDialog::getOpenFileName(
+		this, T("Dialog.SoundBrowseTitle"), start,
+		T("Dialog.SoundFilter") + QStringLiteral(" (*.wav *.mp3 *.ogg *.flac *.m4a *.aac);;*.*"));
+	if (picked.isEmpty()) {
+		c.ensureSoundSources();
+		return;
+	}
+
+	const QString dir = c.soundDir();
+	if (dir.isEmpty()) {
+		lblStatus->setText(T("Dialog.SoundCopyFailed"));
+		c.ensureSoundSources();
+		return;
+	}
+	removeSoundFiles(dir, slot);
+	const QString dest = QDir(dir).filePath(QString::fromLatin1(kSoundBase[slot]) + QStringLiteral(".") +
+						QFileInfo(picked).suffix().toLower());
+	if (!QFile::copy(picked, dest)) {
+		c.soundFile[slot].clear();
+		c.soundName[slot].clear();
+		editSoundName[slot]->setText(T("Dialog.SoundBuiltIn"));
+		lblStatus->setText(T("Dialog.SoundCopyFailed"));
+	} else {
+		c.soundFile[slot] = dest;
+		c.soundName[slot] = QFileInfo(picked).fileName();
+		editSoundName[slot]->setText(c.soundName[slot]);
+		lblStatus->setText(T("Dialog.SoundCopied"));
+	}
+	c.saveSettings();
+	c.ensureSoundSources();
+}
+
+void ZoominatorDialog::resetSound(int slot)
+{
+	auto &c = ZoominatorController::instance();
+	c.releaseSoundSources();
+	const QString dir = c.soundDir();
+	if (!dir.isEmpty())
+		removeSoundFiles(dir, slot);
+	c.soundFile[slot].clear();
+	c.soundName[slot].clear();
+	editSoundName[slot]->setText(T("Dialog.SoundBuiltIn"));
+	c.saveSettings();
+	c.ensureSoundSources();
+}
+
+void ZoominatorDialog::playSoundPreview(int slot)
+{
+	auto &c = ZoominatorController::instance();
+	c.soundVolume[slot] = spSoundVolume[slot]->value();
+	c.soundTypingMode = cmbSoundTypingMode->currentData().toString();
+	c.previewSound(slot);
 }
 
 void ZoominatorDialog::testZoom()
