@@ -497,6 +497,31 @@ void ZoominatorController::loadSettings()
 	if (obs_data_has_user_value(data, "debug"))
 		debug = obs_data_get_bool(data, "debug");
 
+	savedLayouts.clear();
+	if (obs_data_array_t *layArr = obs_data_get_array(data, "unzoomed_layouts")) {
+		const size_t n = obs_data_array_count(layArr);
+		for (size_t i = 0; i < n; ++i) {
+			obs_data_t *e = obs_data_array_item(layArr, i);
+			if (!e)
+				continue;
+			SavedItemLayout l;
+			const QString key = QString::fromUtf8(obs_data_get_string(e, "canvas"));
+			l.name = QString::fromUtf8(obs_data_get_string(e, "name"));
+			l.px = obs_data_get_double(e, "px");
+			l.py = obs_data_get_double(e, "py");
+			l.sx = obs_data_get_double(e, "sx");
+			l.sy = obs_data_get_double(e, "sy");
+			l.cropL = (int)obs_data_get_int(e, "crop_l");
+			l.cropT = (int)obs_data_get_int(e, "crop_t");
+			l.cropR = (int)obs_data_get_int(e, "crop_r");
+			l.cropB = (int)obs_data_get_int(e, "crop_b");
+			if (!key.isEmpty() && !l.name.isEmpty() && l.sx > 0.0 && l.sy > 0.0)
+				savedLayouts[key].push_back(l);
+			obs_data_release(e);
+		}
+		obs_data_array_release(layArr);
+	}
+
 	includedSources.clear();
 	obs_data_array_t *incArr = obs_data_get_array(data, "included_sources");
 	if (incArr) {
@@ -543,7 +568,7 @@ bool ZoominatorController::hasUserPreset() const
 /* Settings that belong to this computer or this moment rather than to a look. */
 static void erase_machine_specific_keys(obs_data_t *data)
 {
-	static const char *const keys[] = {"screen_key", "source_name", "included_sources", "recovery_active",
+	static const char *const keys[] = {"screen_key", "source_name", "included_sources", "unzoomed_layouts", "recovery_active",
 					   "recovery_transforms"};
 	for (const char *key : keys)
 		obs_data_erase(data, key);
@@ -728,6 +753,29 @@ void ZoominatorController::saveSettings()
 	}
 	obs_data_set_array(data, "included_sources", incArr);
 	obs_data_array_release(incArr);
+
+	{
+		obs_data_array_t *layArr = obs_data_array_create();
+		for (auto it = savedLayouts.constBegin(); it != savedLayouts.constEnd(); ++it) {
+			for (const SavedItemLayout &l : it.value()) {
+				obs_data_t *e = obs_data_create();
+				obs_data_set_string(e, "canvas", it.key().toUtf8().constData());
+				obs_data_set_string(e, "name", l.name.toUtf8().constData());
+				obs_data_set_double(e, "px", l.px);
+				obs_data_set_double(e, "py", l.py);
+				obs_data_set_double(e, "sx", l.sx);
+				obs_data_set_double(e, "sy", l.sy);
+				obs_data_set_int(e, "crop_l", l.cropL);
+				obs_data_set_int(e, "crop_t", l.cropT);
+				obs_data_set_int(e, "crop_r", l.cropR);
+				obs_data_set_int(e, "crop_b", l.cropB);
+				obs_data_array_push_back(layArr, e);
+				obs_data_release(e);
+			}
+		}
+		obs_data_set_array(data, "unzoomed_layouts", layArr);
+		obs_data_array_release(layArr);
+	}
 
 	QByteArray pUtf8 = p.toUtf8();
 	obs_data_save_json_safe(data, pUtf8.constData(), "tmp", "bak");

@@ -503,7 +503,24 @@ void ZoominatorDialog::buildUi()
 			lblStatus->setText(info.isEmpty() ? T("Dialog.FitScreenDone")
 							  : QString(T("Dialog.FitScreenDone")) + QStringLiteral(" ") + info);
 		});
-		lay->addWidget(btnFitScreen, 0, Qt::AlignLeft);
+		btnSaveLayout = new QPushButton(T("Dialog.SaveLayout"), page);
+		btnSaveLayout->setToolTip(T("Dialog.SaveLayoutTooltip"));
+		connect(btnSaveLayout, &QPushButton::clicked, this, [this]() {
+			auto &ctl = ZoominatorController::instance();
+			obs_video_info ovi{};
+			const bool haveVi = obs_get_video_info(&ovi);
+			const int cw = haveVi ? (int)ovi.base_width : 0;
+			const int ch = haveVi ? (int)ovi.base_height : 0;
+			const int n = ctl.saveCurrentLayout();
+			lblStatus->setText(n > 0 ? QString(T("Dialog.SaveLayoutDone")).arg(cw).arg(ch)
+						 : QString(T("Dialog.SaveLayoutNone")));
+		});
+		auto *layoutRow = new QHBoxLayout;
+		layoutRow->setSpacing(8);
+		layoutRow->addWidget(btnFitScreen);
+		layoutRow->addWidget(btnSaveLayout);
+		layoutRow->addStretch(1);
+		lay->addLayout(layoutRow);
 
 		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
 		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
