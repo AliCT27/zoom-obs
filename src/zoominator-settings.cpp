@@ -549,9 +549,9 @@ void ZoominatorController::loadSettings()
 	emit settingsChanged();
 }
 
-QString ZoominatorController::presetPath() const
+QString ZoominatorController::presetPath(bool horizontal) const
 {
-	char *path = obs_module_config_path("zoominator-preset.json");
+	char *path = obs_module_config_path(horizontal ? "zoominator-preset-horizontal.json" : "zoominator-preset.json");
 	if (!path)
 		return {};
 	QString p = QString::fromUtf8(path);
@@ -559,9 +559,9 @@ QString ZoominatorController::presetPath() const
 	return p;
 }
 
-bool ZoominatorController::hasUserPreset() const
+bool ZoominatorController::hasUserPreset(bool horizontal) const
 {
-	const QString p = presetPath();
+	const QString p = presetPath(horizontal);
 	return !p.isEmpty() && QFileInfo::exists(p);
 }
 
@@ -574,10 +574,10 @@ static void erase_machine_specific_keys(obs_data_t *data)
 		obs_data_erase(data, key);
 }
 
-bool ZoominatorController::saveUserPreset()
+bool ZoominatorController::saveUserPreset(bool horizontal)
 {
 	const QString cfg = configPath();
-	const QString dst = presetPath();
+	const QString dst = presetPath(horizontal);
 	if (cfg.isEmpty() || dst.isEmpty())
 		return false;
 
@@ -598,10 +598,10 @@ bool ZoominatorController::saveUserPreset()
 
 /* Lays the saved preset over the current settings file and reloads it, so the
  * target screen and ticked sources stay as they are. */
-bool ZoominatorController::applyUserPreset()
+bool ZoominatorController::applyUserPreset(bool horizontal)
 {
 	const QString cfg = configPath();
-	const QString src = presetPath();
+	const QString src = presetPath(horizontal);
 	if (cfg.isEmpty() || src.isEmpty() || !QFileInfo::exists(src))
 		return false;
 

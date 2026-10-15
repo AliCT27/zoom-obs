@@ -494,43 +494,6 @@ void ZoominatorDialog::buildUi()
 		chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
 		lay->addWidget(chkPortraitCover);
 
-		btnFitScreen = new QPushButton(T("Dialog.FitScreen"), page);
-		btnFitScreen->setToolTip(T("Dialog.FitScreenTooltip"));
-		connect(btnFitScreen, &QPushButton::clicked, this, [this]() {
-			ZoominatorController::instance().requestFitScreen();
-			chkIdleFollowX->setChecked(false);
-			const QString info = ZoominatorController::instance().lastFitSummary;
-			lblStatus->setText(info.isEmpty() ? T("Dialog.FitScreenDone")
-							  : QString(T("Dialog.FitScreenDone")) + QStringLiteral(" ") + info);
-		});
-		auto makeSaveButton = [this](const char *labelKey, const char *tipKey, int wantW, int wantH) {
-			auto *btn = new QPushButton(T(labelKey), this);
-			btn->setToolTip(T(tipKey));
-			connect(btn, &QPushButton::clicked, this, [this, wantW, wantH]() {
-				const int n = ZoominatorController::instance().saveCurrentLayout(wantW, wantH);
-				if (n > 0)
-					lblStatus->setText(QString(T("Dialog.SaveLayoutDone")).arg(wantW).arg(wantH));
-				else if (n < 0)
-					lblStatus->setText(QString(T("Dialog.SaveLayoutWrongCanvas")).arg(wantW).arg(wantH));
-				else
-					lblStatus->setText(QString(T("Dialog.SaveLayoutNone")));
-			});
-			return btn;
-		};
-		btnSaveLayout = makeSaveButton("Dialog.SaveLayoutVertical", "Dialog.SaveLayoutTooltip", 1080, 1920);
-		btnSaveLayoutH = makeSaveButton("Dialog.SaveLayoutHorizontal", "Dialog.SaveLayoutTooltip", 1920, 1080);
-		auto *layoutRow = new QHBoxLayout;
-		layoutRow->setSpacing(8);
-		layoutRow->addWidget(btnFitScreen);
-		layoutRow->addStretch(1);
-		lay->addLayout(layoutRow);
-		auto *saveRow = new QHBoxLayout;
-		saveRow->setSpacing(8);
-		saveRow->addWidget(btnSaveLayout);
-		saveRow->addWidget(btnSaveLayoutH);
-		saveRow->addStretch(1);
-		lay->addLayout(saveRow);
-
 		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
 		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
 		lay->addWidget(chkIdleFollowX);
@@ -938,6 +901,57 @@ void ZoominatorDialog::buildUi()
 		lay->setContentsMargins(20, 20, 20, 20);
 		lay->setSpacing(10);
 
+		auto *intro = new QLabel(T("Dialog.Presets.Intro"), page);
+		intro->setWordWrap(true);
+		lay->addWidget(intro);
+
+		for (int i = 0; i < 2; ++i) {
+			const bool horizontal = (i == 1);
+			addSection(lay, T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"), i == 0);
+			auto *help = new QLabel(T(horizontal ? "Dialog.Presets.HorizontalHelp" : "Dialog.Presets.VerticalHelp"), page);
+			help->setWordWrap(true);
+			lay->addWidget(help);
+
+			btnPresetRestore[i] = new QPushButton(T("Dialog.Presets.Restore"), page);
+			btnPresetRestore[i]->setToolTip(T("Dialog.Presets.RestoreTooltip"));
+			btnPresetSave[i] = new QPushButton(T("Dialog.Presets.Save"), page);
+			btnPresetSave[i]->setToolTip(T("Dialog.Presets.SaveTooltip"));
+			btnPresetFit[i] = new QPushButton(T("Dialog.Presets.Fit"), page);
+			btnPresetFit[i]->setToolTip(T("Dialog.Presets.FitTooltip"));
+			auto *row = new QHBoxLayout;
+			row->setSpacing(8);
+			row->addWidget(btnPresetRestore[i]);
+			row->addWidget(btnPresetSave[i]);
+			row->addWidget(btnPresetFit[i]);
+			row->addStretch(1);
+			lay->addLayout(row);
+
+			connect(btnPresetRestore[i], &QPushButton::clicked, this, [this, horizontal]() { applyPreset(horizontal); });
+			connect(btnPresetSave[i], &QPushButton::clicked, this, [this, horizontal]() { savePreset(horizontal); });
+			connect(btnPresetFit[i], &QPushButton::clicked, this, [this, horizontal]() {
+				auto &ctl = ZoominatorController::instance();
+				const int w = horizontal ? 1920 : 1080;
+				const int h = horizontal ? 1080 : 1920;
+				if (!ctl.canvasIs(w, h)) {
+					lblStatus->setText(QString(T("Dialog.Presets.WrongCanvas")).arg(w).arg(h));
+					return;
+				}
+				ctl.requestFitScreen();
+				chkIdleFollowX->setChecked(false);
+				lblStatus->setText(T("Dialog.FitScreenDone"));
+			});
+		}
+		lay->addStretch(1);
+
+		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Presets"));
+	}
+
+	{
+		auto *page = new QWidget;
+		auto *lay = new QVBoxLayout(page);
+		lay->setContentsMargins(20, 20, 20, 20);
+		lay->setSpacing(10);
+
 		auto *info = new QLabel(T("Dialog.SourcesHelp"), page);
 		info->setWordWrap(true);
 		lay->addWidget(info);
@@ -962,13 +976,7 @@ void ZoominatorDialog::buildUi()
 	btnRefresh = new QPushButton(T("Dialog.RefreshLists"), this);
 	btnApply = new QPushButton(T("Dialog.Apply"), this);
 	btnTest = new QPushButton(T("Dialog.Test"), this);
-	btnReelsPreset = new QPushButton(T("Dialog.ReelsPreset"), this);
-	btnReelsPreset->setToolTip(T("Dialog.ReelsPresetTooltip"));
-	btnSavePreset = new QPushButton(T("Dialog.SavePreset"), this);
-	btnSavePreset->setToolTip(T("Dialog.SavePresetTooltip"));
 	btnRow->addWidget(btnRefresh);
-	btnRow->addWidget(btnReelsPreset);
-	btnRow->addWidget(btnSavePreset);
 	btnRow->addStretch(1);
 	btnRow->addWidget(btnTest);
 	btnRow->addWidget(btnApply);
@@ -977,8 +985,6 @@ void ZoominatorDialog::buildUi()
 	connect(btnRefresh, &QPushButton::clicked, this, &ZoominatorDialog::refreshLists);
 	connect(btnApply, &QPushButton::clicked, this, &ZoominatorDialog::applyToController);
 	connect(btnTest, &QPushButton::clicked, this, &ZoominatorDialog::testZoom);
-	connect(btnReelsPreset, &QPushButton::clicked, this, &ZoominatorDialog::applyReelsPreset);
-	connect(btnSavePreset, &QPushButton::clicked, this, &ZoominatorDialog::saveMyPreset);
 	connect(btnClearHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearHotkey);
 	connect(btnClearFollowToggleHotkey, &QPushButton::clicked, this, &ZoominatorDialog::clearFollowToggleHotkey);
 	connect(btnMarkerColor, &QPushButton::clicked, this, &ZoominatorDialog::chooseMarkerColor);
@@ -1425,27 +1431,46 @@ void ZoominatorDialog::updateTriggerRows()
 	rowAutoWidget->setVisible(isAuto);
 }
 
-/* Stores the settings as they are now as "my preset". The Reels preset button
- * brings them back. The target screen and ticked sources are not part of it. */
-void ZoominatorDialog::saveMyPreset()
+/* Presets: "vertical" is for a 1080x1920 canvas, "horizontal" for 1920x1080. Save keeps every
+ * setting plus (when the OBS canvas has that size) where the screen sits in it. Restore brings
+ * the settings back and, when the canvas matches, the screen layout (or the automatic fit). */
+void ZoominatorDialog::savePreset(bool horizontal)
 {
 	applyToController();
 	auto &c = ZoominatorController::instance();
-	lblStatus->setText(T(c.saveUserPreset() ? "Dialog.PresetSaved" : "Dialog.PresetSaveFailed"));
+	const int w = horizontal ? 1920 : 1080;
+	const int h = horizontal ? 1080 : 1920;
+	const char *name = horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical";
+	if (!c.saveUserPreset(horizontal)) {
+		lblStatus->setText(T("Dialog.PresetSaveFailed"));
+		return;
+	}
+	QString msg = QString(T("Dialog.Presets.Saved")).arg(T(name));
+	if (c.canvasIs(w, h)) {
+		if (c.saveCurrentLayout(w, h) > 0)
+			msg += QStringLiteral(" ") + QString(T("Dialog.Presets.SavedLayout"));
+	} else {
+		msg += QStringLiteral(" ") + QString(T("Dialog.Presets.LayoutSkipped")).arg(w).arg(h);
+	}
+	lblStatus->setText(msg);
 }
 
-/* Restores "my preset" when one was saved. Otherwise a starting point for vertical short-form video: zoom on its own when you
- * click or type, glide back out afterwards, snappy "push" animation, and the
- * capture filling the 9:16 canvas while the view follows the cursor. Only
- * fills in the widgets; sources and the target screen are left alone. */
-void ZoominatorDialog::applyReelsPreset()
+void ZoominatorDialog::applyPreset(bool horizontal)
 {
 	auto &ctl = ZoominatorController::instance();
-	/* The whole screen goes into the canvas (see the Canvas section). */
-	ctl.requestFitScreen();
-	if (ctl.hasUserPreset() && ctl.applyUserPreset()) {
+	const int w = horizontal ? 1920 : 1080;
+	const int h = horizontal ? 1080 : 1920;
+	const bool canvasOk = ctl.canvasIs(w, h);
+	QString note;
+	if (canvasOk) {
+		ctl.requestFitScreen(); /* saved layout for this canvas, or the automatic fit */
+	} else {
+		note = QStringLiteral(" ") + QString(T("Dialog.Presets.LayoutSkipped")).arg(w).arg(h);
+	}
+
+	if (ctl.hasUserPreset(horizontal) && ctl.applyUserPreset(horizontal)) {
 		loadFromController();
-		lblStatus->setText(T("Dialog.PresetRestored"));
+		lblStatus->setText(QString(T("Dialog.Presets.Restored")) + note);
 		return;
 	}
 
@@ -1458,18 +1483,24 @@ void ZoominatorDialog::applyReelsPreset()
 	chkAutoZoomOut->setChecked(true);
 	spAutoHold->setValue(2500);
 
-	chkIdleFollowX->setChecked(false); // the whole screen fits, nothing to pan
-	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further
+	chkIdleFollowX->setChecked(false);
 	spIn->setValue(260);
 	spOut->setValue(420);
 	cmbEasing->setCurrentIndex(std::max(0, cmbEasing->findData("punch")));
 	cmbZoomAnchor->setCurrentIndex(std::max(0, cmbZoomAnchor->findData("cursor_follow")));
 	spFollowSpeed->setValue(6.0);
-	chkPortraitCover->setChecked(true);
 	chkShowCursorMarker->setChecked(true);
+	if (horizontal) {
+		spZoom->setValue(2.0);
+		chkPortraitCover->setChecked(false);
+		chkCenterFocus->setChecked(false); /* stay inside the screen at its edges */
+	} else {
+		spZoom->setValue(1.0); /* cover mode already fills the canvas; >1 pushes in further */
+		chkPortraitCover->setChecked(true);
+	}
 
 	applyToController();
-	lblStatus->setText(T("Dialog.ReelsPresetApplied"));
+	lblStatus->setText(QString(T(horizontal ? "Dialog.Presets.AppliedHorizontal" : "Dialog.Presets.AppliedVertical")) + note);
 }
 
 static const char *kSoundBase[3] = {"zoom_in", "zoom_out", "typing"};
