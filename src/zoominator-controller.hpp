@@ -90,6 +90,9 @@ public:
 	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
 	 * is currently stored in the settings file, so call saveSettings() first. */
 	bool hasUserPreset() const;
+	/* Scales the captured screen to the canvas width (whole screen visible, centred
+	 * vertically) once the view is at rest. Done on the main thread. */
+	void requestFitScreen();
 	bool saveUserPreset();
 	bool applyUserPreset();
 	void notifySettingsChanged();
@@ -246,6 +249,7 @@ private:
 	void wheelZoom(int direction, int steps = 1);
 	bool zoomedView() const;
 	void startIdlePan();
+	void fitScreenNow();
 	void finishWheelZoomGesture();
 	void toggleFollowMouseRuntime();
 	bool triggerMatchesKeyboard(int vk) const;
@@ -353,6 +357,7 @@ private:
 	double wheelBaseZoom = 0.0;
 	double panFollowX = 0.0;
 	bool panHasPos = false;
+	bool pendingFit = false;
 	qint64 lastIdlePanTryMs = 0;
 	/* Release-stored by the main thread once capture completes, acquire-loaded
 	 * by the graphics thread; that ordering is what makes sceneItems safe to
