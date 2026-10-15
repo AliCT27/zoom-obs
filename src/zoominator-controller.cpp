@@ -100,7 +100,9 @@ void ZoominatorController::fitScreenNow()
 		const double h = (double)obs_source_get_height(src) - crop.top - crop.bottom;
 		if (w <= 0.0 || h <= 0.0)
 			continue;
-		const double s = (double)cw / w;
+		/* Contain: the whole capture is visible on any canvas (1080x1920 gets the
+		 * full width, 1920x1080 a 1:1 fit, other aspect ratios never overflow). */
+		const double s = std::min((double)cw / w, (double)ch / h);
 		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_NONE);
 		obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
 		obs_sceneitem_set_rot(item, 0.0f);
@@ -108,13 +110,13 @@ void ZoominatorController::fitScreenNow()
 		sc.x = sc.y = (float)s;
 		obs_sceneitem_set_scale(item, &sc);
 		vec2 pos{};
-		pos.x = 0.0f;
+		pos.x = (float)(((double)cw - w * s) * 0.5);
 		pos.y = (float)(((double)ch - h * s) * 0.5);
 		obs_sceneitem_set_pos(item, &pos);
 		++fitted;
 	}
 	if (debug)
-		blog(LOG_INFO, "[Zoominator] Fitted %d item(s) to the canvas width", fitted);
+		blog(LOG_INFO, "[Zoominator] Fitted %d item(s) into the %dx%d canvas", fitted, cw, ch);
 	refreshFrame();
 }
 
