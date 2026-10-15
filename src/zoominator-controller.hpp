@@ -1,6 +1,8 @@
 #pragma once
 
 #include <obs-module.h>
+#include <QMap>
+#include <QVector>
 #include <obs-frontend-api.h>
 
 #include <QObject>
@@ -94,6 +96,17 @@ public:
 	 * vertically) once the view is at rest. Done on the main thread. */
 	void requestFitScreen();
 	QString lastFitSummary;
+
+	/* The user's own "not zoomed" layout per canvas size ("1080x1920"). The Fit
+	 * button restores it; without one it falls back to the automatic fit. */
+	struct SavedItemLayout {
+		QString name;
+		double px = 0.0, py = 0.0, sx = 1.0, sy = 1.0;
+		int cropL = 0, cropT = 0, cropR = 0, cropB = 0;
+	};
+	QMap<QString, QVector<SavedItemLayout>> savedLayouts;
+	int saveCurrentLayout(); /* returns how many items were saved */
+	bool hasSavedLayoutForCanvas() const;
 	bool saveUserPreset();
 	bool applyUserPreset();
 	void notifySettingsChanged();

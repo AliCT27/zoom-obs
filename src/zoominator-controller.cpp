@@ -87,6 +87,65 @@ void ZoominatorController::requestFitScreen()
 	ensureTicking(true);
 }
 
+static QString canvasKey(int cw, int ch)
+{
+	return QStringLiteral("%1x%2").arg(cw).arg(ch);
+}
+
+bool ZoominatorController::hasSavedLayoutForCanvas() const
+{
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	return savedLayouts.contains(canvasKey(cw, ch));
+}
+
+/* Remembers where the target items sit right now (the resting, unzoomed layout)
+ * for the current canvas size. While the engine is running the items are being
+ * moved by the zoom, so the positions it captured at rest are used instead. */
+int ZoominatorController::saveCurrentLayout()
+{
+	std::vector<obs_sceneitem_t *> items;
+	enumerateTargetItemsInCurrentScene(items);
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	if (cw <= 0 || ch <= 0)
+		return 0;
+
+	QVector<SavedItemLayout> list;
+	for (obs_sceneitem_t *item : items) {
+		obs_source_t *src = item ? obs_sceneitem_get_source(item) : nullptr;
+		if (!src)
+			continue;
+		OrigState o;
+		if (zoomActive.load(std::memory_order_acquire)) {
+			for (const auto &st : sceneItems) {
+				if (st.item == item && st.orig.valid)
+					o = st.orig;
+			}
+		}
+		if (!o.valid)
+			o = computeOrigState(item);
+		if (!o.valid)
+			continue;
+		SavedItemLayout l;
+		l.name = QString::fromUtf8(obs_source_get_name(src));
+		l.px = o.effectivePos.x;
+		l.py = o.effectivePos.y;
+		l.sx = o.effectiveScale.x;
+		l.sy = o.effectiveScale.y;
+		l.cropL = o.crop.left;
+		l.cropT = o.crop.top;
+		l.cropR = o.crop.right;
+		l.cropB = o.crop.bottom;
+		list.push_back(l);
+	}
+	if (list.isEmpty())
+		return 0;
+	savedLayouts.insert(canvasKey(cw, ch), list);
+	scheduleSettingsSave();
+	return (int)list.size();
+}
+
 void ZoominatorController::fitScreenNow()
 {
 	std::vector<obs_sceneitem_t *> items;
@@ -96,10 +155,46 @@ void ZoominatorController::fitScreenNow()
 	if (cw <= 0 || ch <= 0)
 		return;
 	int fitted = 0;
+	const QVector<SavedItemLayout> saved = savedLayouts.value(canvasKey(cw, ch));
 	for (obs_sceneitem_t *item : items) {
 		obs_source_t *src = item ? obs_sceneitem_get_source(item) : nullptr;
 		if (!src)
 			continue;
+		if (!saved.isEmpty()) {
+			const QString name = QString::fromUtf8(obs_source_get_name(src));
+			const SavedItemLayout *hit = nullptr;
+			for (const auto &l : saved) {
+				if (l.name == name)
+					hit = &l;
+			}
+			if (hit) {
+				obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_NONE);
+				obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
+				obs_sceneitem_set_rot(item, 0.0f);
+				obs_sceneitem_crop sc2{};
+				sc2.left = hit->cropL;
+				sc2.top = hit->cropT;
+				sc2.right = hit->cropR;
+				sc2.bottom = hit->cropB;
+				obs_sceneitem_set_crop(item, &sc2);
+				vec2 scl{};
+				scl.x = (float)hit->sx;
+				scl.y = (float)hit->sy;
+				obs_sceneitem_set_scale(item, &scl);
+				vec2 p{};
+				p.x = (float)hit->px;
+				p.y = (float)hit->py;
+				obs_sceneitem_set_pos(item, &p);
+				lastFitSummary = QStringLiteral("saved layout for %1x%2: scale %3, pos (%4, %5)")
+							 .arg(cw)
+							 .arg(ch)
+							 .arg(hit->sx, 0, 'f', 4)
+							 .arg((int)hit->px)
+							 .arg((int)hit->py);
+				++fitted;
+				continue;
+			}
+		}
 		obs_sceneitem_crop crop{};
 		obs_sceneitem_get_crop(item, &crop);
 		const double w = (double)obs_source_get_width(src) - crop.left - crop.right;
