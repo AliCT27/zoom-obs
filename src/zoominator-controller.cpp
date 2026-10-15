@@ -70,6 +70,54 @@ void ZoominatorController::startIdlePan()
 	ensureTicking(true);
 }
 
+void ZoominatorController::requestFitScreen()
+{
+	if (shuttingDown)
+		return;
+	pendingFit = true;
+	/* The sideways pan keeps the engine running at rest and would put the old
+	 * layout back, so it is switched off; the engine then winds down by itself. */
+	idleFollowX = false;
+	ensureTicking(true);
+}
+
+void ZoominatorController::fitScreenNow()
+{
+	std::vector<obs_sceneitem_t *> items;
+	enumerateTargetItemsInCurrentScene(items);
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	if (cw <= 0 || ch <= 0)
+		return;
+	int fitted = 0;
+	for (obs_sceneitem_t *item : items) {
+		obs_source_t *src = item ? obs_sceneitem_get_source(item) : nullptr;
+		if (!src)
+			continue;
+		obs_sceneitem_crop crop{};
+		obs_sceneitem_get_crop(item, &crop);
+		const double w = (double)obs_source_get_width(src) - crop.left - crop.right;
+		const double h = (double)obs_source_get_height(src) - crop.top - crop.bottom;
+		if (w <= 0.0 || h <= 0.0)
+			continue;
+		const double s = (double)cw / w;
+		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_NONE);
+		obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
+		obs_sceneitem_set_rot(item, 0.0f);
+		vec2 sc{};
+		sc.x = sc.y = (float)s;
+		obs_sceneitem_set_scale(item, &sc);
+		vec2 pos{};
+		pos.x = 0.0f;
+		pos.y = (float)(((double)ch - h * s) * 0.5);
+		obs_sceneitem_set_pos(item, &pos);
+		++fitted;
+	}
+	if (debug)
+		blog(LOG_INFO, "[Zoominator] Fitted %d item(s) to the canvas width", fitted);
+	refreshFrame();
+}
+
 void ZoominatorController::beginWheelZoomGesture()
 {
 	zoomAdjustButtonHeld = true;
@@ -815,6 +863,11 @@ void ZoominatorController::onTick()
 	}
 
 	checkAutoIdle();
+
+	if (pendingFit && !zoomActive.load(std::memory_order_acquire) && !pendingFinish.load(std::memory_order_acquire)) {
+		pendingFit = false;
+		fitScreenNow();
+	}
 
 	if (idleFollowX && !shuttingDown && !tickingWanted.load(std::memory_order_acquire) &&
 	    !zoomActive.load(std::memory_order_acquire)) {

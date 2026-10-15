@@ -494,6 +494,15 @@ void ZoominatorDialog::buildUi()
 		chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
 		lay->addWidget(chkPortraitCover);
 
+		btnFitScreen = new QPushButton(T("Dialog.FitScreen"), page);
+		btnFitScreen->setToolTip(T("Dialog.FitScreenTooltip"));
+		connect(btnFitScreen, &QPushButton::clicked, this, [this]() {
+			ZoominatorController::instance().requestFitScreen();
+			chkIdleFollowX->setChecked(false);
+			lblStatus->setText(T("Dialog.FitScreenDone"));
+		});
+		lay->addWidget(btnFitScreen, 0, Qt::AlignLeft);
+
 		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
 		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
 		lay->addWidget(chkIdleFollowX);
@@ -1404,6 +1413,8 @@ void ZoominatorDialog::saveMyPreset()
 void ZoominatorDialog::applyReelsPreset()
 {
 	auto &ctl = ZoominatorController::instance();
+	/* The whole screen goes into the canvas (see the Canvas section). */
+	ctl.requestFitScreen();
 	if (ctl.hasUserPreset() && ctl.applyUserPreset()) {
 		loadFromController();
 		lblStatus->setText(T("Dialog.PresetRestored"));
@@ -1419,6 +1430,7 @@ void ZoominatorDialog::applyReelsPreset()
 	chkAutoZoomOut->setChecked(true);
 	spAutoHold->setValue(2500);
 
+	chkIdleFollowX->setChecked(false); // the whole screen fits, nothing to pan
 	spZoom->setValue(1.0); // cover mode already fills the canvas; >1 pushes in further
 	spIn->setValue(260);
 	spOut->setValue(420);
