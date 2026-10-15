@@ -202,10 +202,17 @@ void ZoominatorController::toggleFollowMouseRuntime()
 		targetX = followX;
 		targetY = followY;
 		targetHasPos = true;
+	} else if (followMouseRuntimeEnabled && targetHasPos) {
+		/* Resume from where the view was frozen and glide to the cursor instead
+		 * of jumping there. */
+		followX = targetX;
+		followY = targetY;
+		followHasPos = true;
+		targetHasPos = false;
 	} else {
 		targetHasPos = false;
+		followHasPos = false;
 	}
-	followHasPos = false;
 
 	if (debug) {
 		blog(LOG_INFO, "[Zoominator] Follow mouse %s", followMouseRuntimeEnabled ? "ENABLED" : "DISABLED");
