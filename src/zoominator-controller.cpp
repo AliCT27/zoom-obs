@@ -626,18 +626,29 @@ void ZoominatorController::applyZoomToScene(double t)
 	 * horizontally (clamped so the capture still covers the canvas). The pan fades
 	 * out as the zoom comes in; with the cursor centred the two blend seamlessly. */
 	if (idleFollowX) {
-		if (mapped) {
-			if (!panHasPos) {
-				panFollowX = mx;
-				panHasPos = true;
-			} else {
-				const double speed = clampd(followSpeed, 0.25, 30.0);
-				const double resp = clampd(1.0 - std::exp(-(2.0 + speed * 1.35) * tickDeltaSeconds), 0.01, 0.92);
-				panFollowX += ((double)mx - panFollowX) * resp;
+		double panFocal = 0.0;
+		bool havePan = false;
+		if (zoomAnchor == ZoomAnchorMode::CursorFollow) {
+			/* Same focal point the zoom uses, so the pan fades into the zoom
+			 * seamlessly and "Follow mouse" off (Alt+C) freezes the view. */
+			panFocal = fx;
+			havePan = true;
+		} else {
+			if (mapped && animT <= 0.0) {
+				if (!panHasPos) {
+					panFollowX = mx;
+					panHasPos = true;
+				} else {
+					const double speed = clampd(followSpeed, 0.25, 30.0);
+					const double resp = clampd(1.0 - std::exp(-(2.0 + speed * 1.35) * tickDeltaSeconds), 0.01, 0.92);
+					panFollowX += ((double)mx - panFollowX) * resp;
+				}
 			}
+			panFocal = panFollowX;
+			havePan = panHasPos;
 		}
-		if (panHasPos && baseMaxX - baseMinX > cw + 1.0) {
-			const double panX = clampd(centerX - panFollowX, cw - baseMaxX, -baseMinX);
+		if (havePan && baseMaxX - baseMinX > cw + 1.0) {
+			const double panX = clampd(centerX - panFocal, cw - baseMaxX, -baseMinX);
 			offsetX += panX * (1.0 - ttA);
 		}
 	}
