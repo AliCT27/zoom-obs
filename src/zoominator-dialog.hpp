@@ -105,6 +105,7 @@ private:
 	QCheckBox *chkIdleFollowX = nullptr;
 	QPushButton *btnFitScreen = nullptr;
 	QPushButton *btnSaveLayout = nullptr;
+	QPushButton *btnSaveLayoutH = nullptr;
 	QComboBox *cmbWheelMod = nullptr;
 	QDoubleSpinBox *spWheelStep = nullptr;
 	QDoubleSpinBox *spWheelMax = nullptr;

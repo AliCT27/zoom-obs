@@ -503,24 +503,33 @@ void ZoominatorDialog::buildUi()
 			lblStatus->setText(info.isEmpty() ? T("Dialog.FitScreenDone")
 							  : QString(T("Dialog.FitScreenDone")) + QStringLiteral(" ") + info);
 		});
-		btnSaveLayout = new QPushButton(T("Dialog.SaveLayout"), page);
-		btnSaveLayout->setToolTip(T("Dialog.SaveLayoutTooltip"));
-		connect(btnSaveLayout, &QPushButton::clicked, this, [this]() {
-			auto &ctl = ZoominatorController::instance();
-			obs_video_info ovi{};
-			const bool haveVi = obs_get_video_info(&ovi);
-			const int cw = haveVi ? (int)ovi.base_width : 0;
-			const int ch = haveVi ? (int)ovi.base_height : 0;
-			const int n = ctl.saveCurrentLayout();
-			lblStatus->setText(n > 0 ? QString(T("Dialog.SaveLayoutDone")).arg(cw).arg(ch)
-						 : QString(T("Dialog.SaveLayoutNone")));
-		});
+		auto makeSaveButton = [this](const char *labelKey, const char *tipKey, int wantW, int wantH) {
+			auto *btn = new QPushButton(T(labelKey), this);
+			btn->setToolTip(T(tipKey));
+			connect(btn, &QPushButton::clicked, this, [this, wantW, wantH]() {
+				const int n = ZoominatorController::instance().saveCurrentLayout(wantW, wantH);
+				if (n > 0)
+					lblStatus->setText(QString(T("Dialog.SaveLayoutDone")).arg(wantW).arg(wantH));
+				else if (n < 0)
+					lblStatus->setText(QString(T("Dialog.SaveLayoutWrongCanvas")).arg(wantW).arg(wantH));
+				else
+					lblStatus->setText(QString(T("Dialog.SaveLayoutNone")));
+			});
+			return btn;
+		};
+		btnSaveLayout = makeSaveButton("Dialog.SaveLayoutVertical", "Dialog.SaveLayoutTooltip", 1080, 1920);
+		btnSaveLayoutH = makeSaveButton("Dialog.SaveLayoutHorizontal", "Dialog.SaveLayoutTooltip", 1920, 1080);
 		auto *layoutRow = new QHBoxLayout;
 		layoutRow->setSpacing(8);
 		layoutRow->addWidget(btnFitScreen);
-		layoutRow->addWidget(btnSaveLayout);
 		layoutRow->addStretch(1);
 		lay->addLayout(layoutRow);
+		auto *saveRow = new QHBoxLayout;
+		saveRow->setSpacing(8);
+		saveRow->addWidget(btnSaveLayout);
+		saveRow->addWidget(btnSaveLayoutH);
+		saveRow->addStretch(1);
+		lay->addLayout(saveRow);
 
 		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
 		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
