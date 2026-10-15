@@ -93,6 +93,7 @@ public:
 	/* Scales the captured screen to the canvas width (whole screen visible, centred
 	 * vertically) once the view is at rest. Done on the main thread. */
 	void requestFitScreen();
+	QString lastFitSummary;
 	bool saveUserPreset();
 	bool applyUserPreset();
 	void notifySettingsChanged();

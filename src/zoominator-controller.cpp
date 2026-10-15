@@ -74,10 +74,16 @@ void ZoominatorController::requestFitScreen()
 {
 	if (shuttingDown)
 		return;
-	pendingFit = true;
 	/* The sideways pan keeps the engine running at rest and would put the old
 	 * layout back, so it is switched off; the engine then winds down by itself. */
 	idleFollowX = false;
+	if (!zoomActive.load(std::memory_order_acquire) && !pendingFinish.load(std::memory_order_acquire)) {
+		pendingFit = false;
+		fitScreenNow();
+		return;
+	}
+	pendingFit = true;
+	lastFitSummary.clear();
 	ensureTicking(true);
 }
 
@@ -100,7 +106,8 @@ void ZoominatorController::fitScreenNow()
 		const double h = (double)obs_source_get_height(src) - crop.top - crop.bottom;
 		if (w <= 0.0 || h <= 0.0)
 			continue;
-		const double s = (double)cw / w;
+		/* Vertical canvas: fill the width. Horizontal canvas: show it all (contain). */
+		const double s = (ch > cw) ? (double)cw / w : std::min((double)cw / w, (double)ch / h);
 		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_NONE);
 		obs_sceneitem_set_alignment(item, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
 		obs_sceneitem_set_rot(item, 0.0f);
@@ -108,13 +115,23 @@ void ZoominatorController::fitScreenNow()
 		sc.x = sc.y = (float)s;
 		obs_sceneitem_set_scale(item, &sc);
 		vec2 pos{};
-		pos.x = 0.0f;
+		pos.x = (float)(((double)cw - w * s) * 0.5);
 		pos.y = (float)(((double)ch - h * s) * 0.5);
 		obs_sceneitem_set_pos(item, &pos);
+		lastFitSummary = QStringLiteral("%1x%2 -> scale %3, pos (%4, %5), canvas %6x%7")
+					 .arg((int)w)
+					 .arg((int)h)
+					 .arg(s, 0, 'f', 4)
+					 .arg((int)pos.x)
+					 .arg((int)pos.y)
+					 .arg(cw)
+					 .arg(ch);
 		++fitted;
 	}
+	if (fitted == 0)
+		lastFitSummary.clear();
 	if (debug)
-		blog(LOG_INFO, "[Zoominator] Fitted %d item(s) to the canvas width", fitted);
+		blog(LOG_INFO, "[Zoominator] Fitted %d item(s) to the canvas", fitted);
 	refreshFrame();
 }
 

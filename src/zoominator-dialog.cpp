@@ -499,7 +499,9 @@ void ZoominatorDialog::buildUi()
 		connect(btnFitScreen, &QPushButton::clicked, this, [this]() {
 			ZoominatorController::instance().requestFitScreen();
 			chkIdleFollowX->setChecked(false);
-			lblStatus->setText(T("Dialog.FitScreenDone"));
+			const QString info = ZoominatorController::instance().lastFitSummary;
+			lblStatus->setText(info.isEmpty() ? T("Dialog.FitScreenDone")
+							  : QString(T("Dialog.FitScreenDone")) + QStringLiteral(" ") + info);
 		});
 		lay->addWidget(btnFitScreen, 0, Qt::AlignLeft);
 
