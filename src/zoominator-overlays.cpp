@@ -634,6 +634,16 @@ void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_scene
 		topIndex = std::max(topIndex, (int)obs_sceneitem_get_order_position(state.item));
 	}
 
+	/* The frame item sits directly above the zoomed items. The dim must go above
+	 * it, otherwise the frame background is left bright until the next frame
+	 * refresh moves it back under the dim (a visible half-second glitch). */
+	if (frameSource) {
+		if (obs_sceneitem_t *frameItem = find_scene_item_for_source(scene, frameSource)) {
+			if (frameItem != item && obs_sceneitem_visible(frameItem))
+				topIndex = std::max(topIndex, (int)obs_sceneitem_get_order_position(frameItem));
+		}
+	}
+
 	if (topIndex < 0)
 		obs_sceneitem_set_order(item, OBS_ORDER_MOVE_TOP);
 	else
