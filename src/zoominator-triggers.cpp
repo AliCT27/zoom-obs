@@ -70,7 +70,7 @@ void ZoominatorController::beginAutoZoom()
 	zoomLatched = true;
 	/* Only reseed the focal point for a fresh zoom. If a zoom-out is still
 	 * running, resuming from where the view currently is avoids a visible jump. */
-	if (!zoomActive.load(std::memory_order_acquire)) {
+	if (!zoomedView()) {
 		followHasPos = false;
 		lastCursorSampleValid = false;
 		lastCursorMovementMs = 0;
@@ -110,8 +110,7 @@ void ZoominatorController::manualZoomIn()
 		return;
 	/* After a wheel adjustment the Zoom In key brings the view back to the
 	 * configured Zoom Factor (the zoom level eases there while zoomed). */
-	if (wheelBaseZoom > 1.0 && zoomActive.load(std::memory_order_acquire) &&
-	    animDir.load(std::memory_order_relaxed) >= 0)
+	if (wheelBaseZoom > 1.0 && zoomedView() && animDir.load(std::memory_order_relaxed) >= 0)
 		zoomFactor = wheelBaseZoom;
 	if (triggerType != "auto") {
 		/* Keyboard / mouse trigger: a plain "zoom in and stay zoomed" key. */
@@ -140,7 +139,7 @@ void ZoominatorController::manualZoomOut()
 	if (triggerType != "auto") {
 		zoomPressed = false;
 		if (!zoomLatched && animDir.load(std::memory_order_relaxed) <= 0 &&
-		    !zoomActive.load(std::memory_order_acquire))
+		    !zoomedView())
 			return;
 		zoomLatched = false;
 		startZoomOut();

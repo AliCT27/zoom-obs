@@ -121,6 +121,8 @@ public:
 	double wheelZoomMinimum = 1.0;
 	double wheelZoomMaximum = 5.0;
 	bool wheelZoomEnabled = false;
+	/* Not zoomed: pan the capture sideways so it follows the mouse in x. */
+	bool idleFollowX = false;
 	QString wheelZoomModifier = QStringLiteral("alt");
 	int animInMs = 180;
 	int animOutMs = 320;
@@ -242,6 +244,8 @@ private:
 	bool usesWheelZoomGesture() const;
 	bool wheelModifierHeld() const;
 	void wheelZoom(int direction, int steps = 1);
+	bool zoomedView() const;
+	void startIdlePan();
 	void finishWheelZoomGesture();
 	void toggleFollowMouseRuntime();
 	bool triggerMatchesKeyboard(int vk) const;
@@ -347,6 +351,9 @@ private:
 	bool zoomAdjustedDuringButtonHold = false;
 	int wheelDeltaRemainder = 0;
 	double wheelBaseZoom = 0.0;
+	double panFollowX = 0.0;
+	bool panHasPos = false;
+	qint64 lastIdlePanTryMs = 0;
 	/* Release-stored by the main thread once capture completes, acquire-loaded
 	 * by the graphics thread; that ordering is what makes sceneItems safe to
 	 * read there without holding a lock across the transform writes. */
