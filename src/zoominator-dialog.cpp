@@ -342,6 +342,10 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(chkAutoZoomOut);
 			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
 			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
+#ifdef _WIN32
+			chkCaretFollow->setEnabled(chkAutoTyping->isChecked());
+			connect(chkAutoTyping, &QCheckBox::toggled, chkCaretFollow, &QWidget::setEnabled);
+#endif
 
 		}
 		lay->addWidget(rowAutoWidget);
@@ -529,7 +533,6 @@ void ZoominatorDialog::buildUi()
 		spMarkerIdleSize->setSuffix(T("Unit.Pixels"));
 		spMarkerIdleSize->setToolTip(T("Dialog.HaloIdleSizeTooltip"));
 		spMarkerIdleSize->setEnabled(chkShowMarkerWhenNotZoomed->isChecked());
-		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, spMarkerIdleSize, &QWidget::setEnabled);
 		auto *haloIdleRow = new QHBoxLayout;
 		haloIdleRow->setSpacing(12);
 		haloIdleRow->addWidget(mkField(T("Dialog.HaloIdleSize"), spMarkerIdleSize), 1);
@@ -816,6 +819,7 @@ void ZoominatorDialog::buildUi()
 
 		addSection(lay, T("Dialog.Section.Sound"));
 
+		QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
 		chkSoundEnabled = new QCheckBox(T("Dialog.SoundEnable"), page);
 		chkSoundEnabled->setToolTip(T("Dialog.SoundEnableTooltip"));
 		lay->addWidget(chkSoundEnabled);
@@ -849,9 +853,7 @@ void ZoominatorDialog::buildUi()
 				lay->addWidget(chkSoundOn[i]);
 				lay->addWidget(row);
 				lay->addSpacing(8);
-				row->setEnabled(false);
-				QWidget *rowW = row;
-				connect(chkSoundOn[i], &QCheckBox::toggled, rowW, &QWidget::setEnabled);
+				soundRowWidget[i] = row;
 
 				connect(browse, &QPushButton::clicked, this, [this, i]() { browseSound(i); });
 				connect(def, &QPushButton::clicked, this, [this, i]() { resetSound(i); });
@@ -864,8 +866,20 @@ void ZoominatorDialog::buildUi()
 		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Loop"), "loop");
 		cmbSoundTypingMode->setToolTip(T("Dialog.SoundTypingModeTooltip"));
 		lay->addWidget(mkField(T("Dialog.SoundTypingMode"), cmbSoundTypingMode));
-		cmbSoundTypingMode->setEnabled(chkSoundOn[2]->isChecked());
-		connect(chkSoundOn[2], &QCheckBox::toggled, cmbSoundTypingMode, &QWidget::setEnabled);
+		/* The master switch greys everything below it; each sound's own switch
+		 * greys that sound's controls. */
+		auto syncSoundFields = [this, soundRowWidget]() {
+			const bool master = chkSoundEnabled->isChecked();
+			for (int i = 0; i < 3; ++i) {
+				chkSoundOn[i]->setEnabled(master);
+				soundRowWidget[i]->setEnabled(master && chkSoundOn[i]->isChecked());
+			}
+			cmbSoundTypingMode->setEnabled(master && chkSoundOn[2]->isChecked());
+		};
+		connect(chkSoundEnabled, &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
+		for (int i = 0; i < 3; ++i)
+			connect(chkSoundOn[i], &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
+		syncSoundFields();
 		lay->addSpacing(10);
 
 		addSection(lay, T("Dialog.Section.Developer"));
@@ -931,7 +945,19 @@ void ZoominatorDialog::buildUi()
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
 	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
 	connect(btnCamColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamColor); });
-	connect(chkShowCursorMarker, &QCheckBox::toggled, chkShowMarkerWhenNotZoomed, &QWidget::setEnabled);
+	{
+		auto syncHaloFields = [this]() {
+			const bool on = chkShowCursorMarker->isChecked();
+			spMarkerSize->setEnabled(on);
+			spMarkerThickness->setEnabled(on);
+			btnMarkerColor->setEnabled(on);
+			chkShowMarkerWhenNotZoomed->setEnabled(on);
+			spMarkerIdleSize->setEnabled(on && chkShowMarkerWhenNotZoomed->isChecked());
+		};
+		connect(chkShowCursorMarker, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
+		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
+		syncHaloFields();
+	}
 }
 
 void ZoominatorDialog::populateSourcesTab()
@@ -1170,7 +1196,11 @@ void ZoominatorDialog::loadFromController()
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
+		spMarkerSize->setEnabled(c.showCursorMarker);
+		spMarkerThickness->setEnabled(c.showCursorMarker);
+		btnMarkerColor->setEnabled(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setEnabled(c.showCursorMarker);
+		spMarkerIdleSize->setEnabled(c.showCursorMarker && c.showMarkerWhenNotZoomed);
 		spMarkerSize->setValue(c.markerSize);
 		spMarkerIdleSize->setValue(c.markerIdleSize);
 		spMarkerThickness->setValue(c.markerThickness);
