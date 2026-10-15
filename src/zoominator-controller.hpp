@@ -111,6 +111,9 @@ public:
 	 * were saved, or -1 when the canvas currently has a different size. */
 	int saveCurrentLayout(int wantW, int wantH);
 	bool hasSavedLayoutForCanvas() const;
+	/* Backup: everything except this computer's screen and sources, plus both presets. */
+	bool exportSettings(const QString &path);
+	bool importSettings(const QString &path);
 	bool saveUserPreset(bool horizontal = false);
 	bool applyUserPreset(bool horizontal = false);
 	void notifySettingsChanged();

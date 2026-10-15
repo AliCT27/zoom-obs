@@ -596,6 +596,100 @@ bool ZoominatorController::saveUserPreset(bool horizontal)
 	return ok;
 }
 
+/* Export: one JSON file with the settings (no target screen / sources / recovery data, those
+ * belong to this computer) and both presets. */
+bool ZoominatorController::exportSettings(const QString &path)
+{
+	const QString cfg = configPath();
+	if (cfg.isEmpty() || path.isEmpty())
+		return false;
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		return false;
+	obs_data_array_t *layouts = obs_data_get_array(data, "unzoomed_layouts");
+	erase_machine_specific_keys(data);
+	if (layouts) {
+		obs_data_set_array(data, "unzoomed_layouts", layouts);
+		obs_data_array_release(layouts);
+	}
+
+	obs_data_t *bundle = obs_data_create();
+	obs_data_set_string(bundle, "zoominator_export", "1");
+	obs_data_set_obj(bundle, "settings", data);
+	for (int i = 0; i < 2; ++i) {
+		const QString pp = presetPath(i == 1);
+		if (pp.isEmpty() || !QFileInfo::exists(pp))
+			continue;
+		const QByteArray ppUtf8 = pp.toUtf8();
+		if (obs_data_t *preset = obs_data_create_from_json_file_safe(ppUtf8.constData(), "bak")) {
+			obs_data_set_obj(bundle, i == 1 ? "preset_horizontal" : "preset_vertical", preset);
+			obs_data_release(preset);
+		}
+	}
+	obs_data_release(data);
+
+	const QByteArray outUtf8 = path.toUtf8();
+	const bool ok = obs_data_save_json_safe(bundle, outUtf8.constData(), "tmp", "bak");
+	obs_data_release(bundle);
+	return ok;
+}
+
+/* Import: lays the file over the current settings (target screen and sources stay) and
+ * restores the two presets it carries. Also accepts a plain settings file. */
+bool ZoominatorController::importSettings(const QString &path)
+{
+	const QString cfg = configPath();
+	if (cfg.isEmpty() || path.isEmpty() || !QFileInfo::exists(path))
+		return false;
+	const QByteArray inUtf8 = path.toUtf8();
+	obs_data_t *bundle = obs_data_create_from_json_file_safe(inUtf8.constData(), "bak");
+	if (!bundle)
+		return false;
+
+	obs_data_t *settings = obs_data_get_obj(bundle, "settings");
+	if (!settings) {
+		settings = bundle;
+		obs_data_addref(settings);
+	}
+	obs_data_array_t *layouts = obs_data_get_array(settings, "unzoomed_layouts");
+	erase_machine_specific_keys(settings);
+
+	const QByteArray cfgUtf8 = cfg.toUtf8();
+	obs_data_t *data = obs_data_create_from_json_file_safe(cfgUtf8.constData(), "bak");
+	if (!data)
+		data = obs_data_create();
+	obs_data_apply(data, settings);
+	if (layouts) {
+		obs_data_set_array(data, "unzoomed_layouts", layouts);
+		obs_data_array_release(layouts);
+	}
+	ensure_parent_dir_exists(cfg);
+	bool ok = obs_data_save_json_safe(data, cfgUtf8.constData(), "tmp", "bak");
+	obs_data_release(data);
+	obs_data_release(settings);
+
+	for (int i = 0; ok && i < 2; ++i) {
+		obs_data_t *preset = obs_data_get_obj(bundle, i == 1 ? "preset_horizontal" : "preset_vertical");
+		if (!preset)
+			continue;
+		const QString pp = presetPath(i == 1);
+		if (!pp.isEmpty()) {
+			ensure_parent_dir_exists(pp);
+			const QByteArray ppUtf8 = pp.toUtf8();
+			obs_data_save_json_safe(preset, ppUtf8.constData(), "tmp", "bak");
+		}
+		obs_data_release(preset);
+	}
+	obs_data_release(bundle);
+	if (!ok)
+		return false;
+
+	loadSettings();
+	rebuildRuntimeHooks();
+	return true;
+}
+
 /* Lays the saved preset over the current settings file and reloads it, so the
  * target screen and ticked sources stay as they are. */
 bool ZoominatorController::applyUserPreset(bool horizontal)

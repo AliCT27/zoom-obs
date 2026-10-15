@@ -941,6 +941,47 @@ void ZoominatorDialog::buildUi()
 				lblStatus->setText(T("Dialog.FitScreenDone"));
 			});
 		}
+		addSection(lay, T("Dialog.Backup.Title"));
+		auto *backupHelp = new QLabel(T("Dialog.Backup.Help"), page);
+		backupHelp->setWordWrap(true);
+		lay->addWidget(backupHelp);
+		auto *btnExport = new QPushButton(T("Dialog.Backup.Export"), page);
+		btnExport->setToolTip(T("Dialog.Backup.ExportTooltip"));
+		auto *btnImport = new QPushButton(T("Dialog.Backup.Import"), page);
+		btnImport->setToolTip(T("Dialog.Backup.ImportTooltip"));
+		auto *backupRow = new QHBoxLayout;
+		backupRow->setSpacing(8);
+		backupRow->addWidget(btnExport);
+		backupRow->addWidget(btnImport);
+		backupRow->addStretch(1);
+		lay->addLayout(backupRow);
+		connect(btnExport, &QPushButton::clicked, this, [this]() {
+			applyToController();
+			const QString file = QFileDialog::getSaveFileName(
+				this, T("Dialog.Backup.Export"),
+				QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+					.filePath(QStringLiteral("zoominator-settings.json")),
+				QStringLiteral("JSON (*.json)"));
+			if (file.isEmpty())
+				return;
+			lblStatus->setText(ZoominatorController::instance().exportSettings(file)
+						   ? QString(T("Dialog.Backup.Exported")).arg(file)
+						   : QString(T("Dialog.Backup.Failed")));
+		});
+		connect(btnImport, &QPushButton::clicked, this, [this]() {
+			const QString file = QFileDialog::getOpenFileName(
+				this, T("Dialog.Backup.Import"),
+				QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation),
+				QStringLiteral("JSON (*.json)"));
+			if (file.isEmpty())
+				return;
+			if (ZoominatorController::instance().importSettings(file)) {
+				loadFromController();
+				lblStatus->setText(T("Dialog.Backup.Imported"));
+			} else {
+				lblStatus->setText(T("Dialog.Backup.Failed"));
+			}
+		});
 		lay->addStretch(1);
 
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Presets"));
