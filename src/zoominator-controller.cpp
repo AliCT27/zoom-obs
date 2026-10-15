@@ -102,7 +102,7 @@ bool ZoominatorController::hasSavedLayoutForCanvas() const
 /* Remembers where the target items sit right now (the resting, unzoomed layout)
  * for the current canvas size. While the engine is running the items are being
  * moved by the zoom, so the positions it captured at rest are used instead. */
-int ZoominatorController::saveCurrentLayout()
+int ZoominatorController::saveCurrentLayout(int wantW, int wantH)
 {
 	std::vector<obs_sceneitem_t *> items;
 	enumerateTargetItemsInCurrentScene(items);
@@ -110,6 +110,8 @@ int ZoominatorController::saveCurrentLayout()
 	get_canvas_size(cw, ch);
 	if (cw <= 0 || ch <= 0)
 		return 0;
+	if (cw != wantW || ch != wantH)
+		return -1;
 
 	QVector<SavedItemLayout> list;
 	for (obs_sceneitem_t *item : items) {

@@ -105,7 +105,9 @@ public:
 		int cropL = 0, cropT = 0, cropR = 0, cropB = 0;
 	};
 	QMap<QString, QVector<SavedItemLayout>> savedLayouts;
-	int saveCurrentLayout(); /* returns how many items were saved */
+	/* Saves the resting layout under "1080x1920" / "1920x1080". Returns how many items
+	 * were saved, or -1 when the canvas currently has a different size. */
+	int saveCurrentLayout(int wantW, int wantH);
 	bool hasSavedLayoutForCanvas() const;
 	bool saveUserPreset();
 	bool applyUserPreset();
