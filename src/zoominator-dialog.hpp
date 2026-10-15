@@ -39,8 +39,8 @@ private slots:
 	void chooseFrameColor(QPushButton *button);
 	void setColorButton(QPushButton *button, uint32_t rgba);
 	void populateSourcesTab();
-	void applyReelsPreset();
-	void saveMyPreset();
+	void applyPreset(bool horizontal);
+	void savePreset(bool horizontal);
 
 private:
 	void buildUi();
@@ -79,8 +79,6 @@ private:
 	QCheckBox *chkCaretFollow = nullptr;
 	QSpinBox *spAutoHold = nullptr;
 	QComboBox *cmbEasing = nullptr;
-	QPushButton *btnReelsPreset = nullptr;
-	QPushButton *btnSavePreset = nullptr;
 	QCheckBox *chkLeftCtrl = nullptr;
 	QCheckBox *chkRightCtrl = nullptr;
 	QCheckBox *chkLeftAlt = nullptr;
@@ -103,9 +101,9 @@ private:
 	QSpinBox *spMarkerIdleSize = nullptr;
 	QCheckBox *chkWheelZoom = nullptr;
 	QCheckBox *chkIdleFollowX = nullptr;
-	QPushButton *btnFitScreen = nullptr;
-	QPushButton *btnSaveLayout = nullptr;
-	QPushButton *btnSaveLayoutH = nullptr;
+	QPushButton *btnPresetRestore[2] = {nullptr, nullptr};
+	QPushButton *btnPresetSave[2] = {nullptr, nullptr};
+	QPushButton *btnPresetFit[2] = {nullptr, nullptr};
 	QComboBox *cmbWheelMod = nullptr;
 	QDoubleSpinBox *spWheelStep = nullptr;
 	QDoubleSpinBox *spWheelMax = nullptr;

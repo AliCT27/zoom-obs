@@ -92,6 +92,13 @@ static QString canvasKey(int cw, int ch)
 	return QStringLiteral("%1x%2").arg(cw).arg(ch);
 }
 
+bool ZoominatorController::canvasIs(int w, int h) const
+{
+	int cw = 0, ch = 0;
+	get_canvas_size(cw, ch);
+	return cw == w && ch == h;
+}
+
 bool ZoominatorController::hasSavedLayoutForCanvas() const
 {
 	int cw = 0, ch = 0;

@@ -91,7 +91,9 @@ public:
 	/* "My preset": a snapshot of every setting except the machine-specific ones
 	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
 	 * is currently stored in the settings file, so call saveSettings() first. */
-	bool hasUserPreset() const;
+	/* Two presets: vertical (1080x1920, the original file) and horizontal (1920x1080). */
+	bool hasUserPreset(bool horizontal = false) const;
+	bool canvasIs(int w, int h) const;
 	/* Scales the captured screen to the canvas width (whole screen visible, centred
 	 * vertically) once the view is at rest. Done on the main thread. */
 	void requestFitScreen();
@@ -109,8 +111,8 @@ public:
 	 * were saved, or -1 when the canvas currently has a different size. */
 	int saveCurrentLayout(int wantW, int wantH);
 	bool hasSavedLayoutForCanvas() const;
-	bool saveUserPreset();
-	bool applyUserPreset();
+	bool saveUserPreset(bool horizontal = false);
+	bool applyUserPreset(bool horizontal = false);
 	void notifySettingsChanged();
 	void rebuildRuntimeHooks();
 
@@ -237,7 +239,7 @@ private:
 	ZoominatorController &operator=(const ZoominatorController &) = delete;
 
 	QString configPath() const;
-	QString presetPath() const;
+	QString presetPath(bool horizontal = false) const;
 
 	void ensureTicking(bool on);
 	void startZoomIn();
