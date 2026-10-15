@@ -811,7 +811,7 @@ void ZoominatorController::updateIdleFocus(bool on)
 
 void ZoominatorController::refreshIdleFocusTicking()
 {
-	if (wantsIdleFocus())
+	if (wantsIdleFocus() || idleFollowX)
 		ensureTicking(true);
 }
 

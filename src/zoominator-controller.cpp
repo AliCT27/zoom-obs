@@ -17,7 +17,7 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 	if (shuttingDown || direction == 0 || steps <= 0)
 		return;
 
-	const bool zoomedNow = zoomActive.load(std::memory_order_acquire) && animDir.load(std::memory_order_relaxed) >= 0;
+	const bool zoomedNow = zoomedView() && animDir.load(std::memory_order_relaxed) >= 0;
 	const double step = std::max(0.01, wheelZoomInStep);
 	const double maxZoom = std::max(1.1, wheelZoomMaximum);
 
@@ -45,6 +45,29 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 		return;
 	}
 	zoomFactor = next;
+}
+
+/* True while the view is zoomed in or zooming in. With "follow mouse sideways"
+ * the zoom engine also runs at rest (1x), which does not count. */
+bool ZoominatorController::zoomedView() const
+{
+	if (!zoomActive.load(std::memory_order_acquire))
+		return false;
+	const int dir = animDir.load(std::memory_order_relaxed);
+	return dir > 0 || (dir == 0 && animT > 0.0);
+}
+
+/* Enters the always-on 1x state used by "follow mouse sideways": the normal
+ * setup in onTick() captures the items, then the transform only pans them. */
+void ZoominatorController::startIdlePan()
+{
+	markRecoveryActive();
+	lastTickMs = 0;
+	animT = 0.0;
+	animDir.store(0, std::memory_order_relaxed);
+	panHasPos = false;
+	tickingWanted.store(true, std::memory_order_release);
+	ensureTicking(true);
 }
 
 void ZoominatorController::beginWheelZoomGesture()
@@ -296,7 +319,7 @@ void ZoominatorController::startZoomIn()
 
 void ZoominatorController::startZoomOut()
 {
-	if (animDir.load(std::memory_order_relaxed) >= 0 && zoomActive.load(std::memory_order_acquire))
+	if (animDir.load(std::memory_order_relaxed) >= 0 && zoomedView())
 		playSound(1);
 	lastTickMs = 0;
 	animDir.store(-1, std::memory_order_relaxed);
@@ -329,6 +352,7 @@ void ZoominatorController::resetState()
 	}
 	animDir.store(0, std::memory_order_relaxed);
 	followHasPos = false;
+	panHasPos = false;
 	lastCursorSampleValid = false;
 	lastCursorMovementMs = 0;
 	mouseTrackingIdle = false;
@@ -598,6 +622,26 @@ void ZoominatorController::applyZoomToScene(double t)
 		offsetY = 0.0;
 	}
 
+	/* Follow mouse sideways: pan the capture so the cursor stays in the middle
+	 * horizontally (clamped so the capture still covers the canvas). The pan fades
+	 * out as the zoom comes in; with the cursor centred the two blend seamlessly. */
+	if (idleFollowX) {
+		if (mapped) {
+			if (!panHasPos) {
+				panFollowX = mx;
+				panHasPos = true;
+			} else {
+				const double speed = clampd(followSpeed, 0.25, 30.0);
+				const double resp = clampd(1.0 - std::exp(-(2.0 + speed * 1.35) * tickDeltaSeconds), 0.01, 0.92);
+				panFollowX += ((double)mx - panFollowX) * resp;
+			}
+		}
+		if (panHasPos && baseMaxX - baseMinX > cw + 1.0) {
+			const double panX = clampd(centerX - panFollowX, cw - baseMaxX, -baseMinX);
+			offsetX += panX * (1.0 - ttA);
+		}
+	}
+
 	const qint64 nowApplyMs = nowMs;
 	const bool steadyFollow = zoomAnchor == ZoomAnchorMode::CursorFollow && followMouseRuntimeEnabled &&
 				  !mouseTrackingIdle && animDir.load(std::memory_order_relaxed) == 0 && animT >= 0.999;
@@ -761,12 +805,21 @@ void ZoominatorController::onTick()
 
 	checkAutoIdle();
 
+	if (idleFollowX && !shuttingDown && !tickingWanted.load(std::memory_order_acquire) &&
+	    !zoomActive.load(std::memory_order_acquire)) {
+		const qint64 nowTry = QDateTime::currentMSecsSinceEpoch();
+		if (nowTry - lastIdlePanTryMs >= 500) {
+			lastIdlePanTryMs = nowTry;
+			startIdlePan();
+		}
+	}
+
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
 	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
 	if (idleFocus || (!zoomTickWanted && (focusShown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !markerClickHasPos) {
-		if (!idleFocus)
+		if (!idleFocus && !idleFollowX)
 			ensureTicking(false);
 		return;
 	}
@@ -776,7 +829,7 @@ void ZoominatorController::onTick()
 		markerClickFlashStartMs = 0;
 		markerClickFlashHoldUntilMs = 0;
 		markerClickFlashFadeOutEndMs = 0;
-		if (!idleFocus)
+		if (!idleFocus && !idleFollowX)
 			ensureTicking(false);
 		return;
 	}
@@ -803,7 +856,7 @@ void ZoominatorController::onTick()
 			markerClickFlashStartMs = 0;
 			markerClickFlashHoldUntilMs = 0;
 			markerClickFlashFadeOutEndMs = 0;
-			if (!idleFocus)
+			if (!idleFocus && !idleFollowX)
 				ensureTicking(false);
 		}
 		return;
@@ -816,7 +869,8 @@ void ZoominatorController::onTick()
 			if (debug)
 				blog(LOG_WARNING, "[Zoominator] No movable scene items in current scene.");
 			tickingWanted.store(false, std::memory_order_release);
-			ensureTicking(false);
+			if (!idleFollowX)
+				ensureTicking(false);
 			resetState();
 			return;
 		}
@@ -972,9 +1026,14 @@ void ZoominatorController::videoTick(double seconds)
 		animT = 0.0;
 		animDir.store(0, std::memory_order_relaxed);
 		targetHasPos = false;
+		if (dir < 0 && wheelBaseZoom > 1.0) {
+			/* Wheel zoom ended: put the configured zoom level back. */
+			zoomFactor = wheelBaseZoom;
+			wheelBaseZoom = 0.0;
+		}
 	}
 
-	if (animT == 0.0 && animDir.load(std::memory_order_relaxed) == 0) {
+	if (animT == 0.0 && animDir.load(std::memory_order_relaxed) == 0 && !idleFollowX) {
 		/* Stop touching shared state here, then let the main thread do the
 		 * restore, the settings write and the reset. */
 		zoomActive.store(false, std::memory_order_release);

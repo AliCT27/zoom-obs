@@ -494,6 +494,10 @@ void ZoominatorDialog::buildUi()
 		chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
 		lay->addWidget(chkPortraitCover);
 
+		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
+		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
+		lay->addWidget(chkIdleFollowX);
+
 		addSection(lay, T("Dialog.Section.CursorHalo"));
 
 		chkShowCursorMarker = new QCheckBox(T("Dialog.ShowCursorHalo"), page);
@@ -1194,6 +1198,7 @@ void ZoominatorDialog::loadFromController()
 		spFollowSpeed->setValue(c.followSpeed);
 		chkCenterFocus->setChecked(c.centerFocus);
 		chkPortraitCover->setChecked(c.portraitCover);
+		chkIdleFollowX->setChecked(c.idleFollowX);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
 		spMarkerSize->setEnabled(c.showCursorMarker);
@@ -1321,6 +1326,7 @@ void ZoominatorDialog::applyToController()
 	c.centerFocus = chkCenterFocus->isChecked();
 	c.mouseIdleTimeoutMs = 0;
 	c.portraitCover = chkPortraitCover->isChecked();
+	c.idleFollowX = chkIdleFollowX->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
 	c.markerOnlyOnClick = true;
