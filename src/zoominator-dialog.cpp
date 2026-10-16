@@ -442,13 +442,20 @@ void ZoominatorDialog::buildUi()
 		spWheelMax->setRange(1.5, 20.0);
 		spWheelMax->setSingleStep(0.5);
 		spWheelMax->setDecimals(1);
+		spWheelExit = new QDoubleSpinBox(page);
+		spWheelExit->setRange(1.0, 19.0);
+		spWheelExit->setSingleStep(0.1);
+		spWheelExit->setDecimals(1);
+		spWheelExit->setToolTip(T("Dialog.WheelExitTooltip"));
 		auto *wheelRow = new QHBoxLayout;
 		wheelRow->setSpacing(12);
 		wheelRow->addWidget(mkField(T("Dialog.WheelModifier"), cmbWheelMod), 1);
 		wheelRow->addWidget(mkField(T("Dialog.WheelStep"), spWheelStep), 1);
 		wheelRow->addWidget(mkField(T("Dialog.WheelMax"), spWheelMax), 1);
+		wheelRow->addWidget(mkField(T("Dialog.WheelExit"), spWheelExit), 1);
 		lay->addLayout(wheelRow);
-		for (QWidget *w : {(QWidget *)cmbWheelMod, (QWidget *)spWheelStep, (QWidget *)spWheelMax})
+		for (QWidget *w : {(QWidget *)cmbWheelMod, (QWidget *)spWheelStep, (QWidget *)spWheelMax,
+				   (QWidget *)spWheelExit})
 			connect(chkWheelZoom, &QCheckBox::toggled, w, &QWidget::setEnabled);
 		lay->addSpacing(12);
 
@@ -1273,9 +1280,11 @@ void ZoominatorDialog::loadFromController()
 		cmbWheelMod->setCurrentIndex(std::max(0, cmbWheelMod->findData(c.wheelZoomModifier)));
 		spWheelStep->setValue(c.wheelZoomInStep);
 		spWheelMax->setValue(c.wheelZoomMaximum);
+		spWheelExit->setValue(c.wheelZoomExit);
 		cmbWheelMod->setEnabled(c.wheelZoomEnabled);
 		spWheelStep->setEnabled(c.wheelZoomEnabled);
 		spWheelMax->setEnabled(c.wheelZoomEnabled);
+		spWheelExit->setEnabled(c.wheelZoomEnabled);
 		const int anchorIdx =
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
@@ -1389,6 +1398,7 @@ void ZoominatorDialog::applyToController()
 	c.wheelZoomInStep = spWheelStep->value();
 	c.wheelZoomOutStep = spWheelStep->value();
 	c.wheelZoomMaximum = spWheelMax->value();
+	c.wheelZoomExit = spWheelExit->value();
 	c.focusEnabled = chkFocus->isChecked();
 	c.showFocusWhenNotZoomed = chkFocusWhenNotZoomed->isChecked();
 	c.focusDimPct = spFocusDim->value();

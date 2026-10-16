@@ -40,7 +40,8 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 	if (!zoomedNow)
 		return;
 	const double next = zoomFactor - step * steps;
-	if (next <= 1.0 + step * 0.5) {
+	const double exitAt = std::max(1.0 + step * 0.5, wheelZoomExit);
+	if (next < exitAt || next <= 1.0 + step * 0.5) {
 		manualZoomOut();
 		return;
 	}

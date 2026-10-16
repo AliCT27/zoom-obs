@@ -144,6 +144,8 @@ public:
 	double wheelZoomOutStep = 0.20;
 	double wheelZoomMinimum = 1.0;
 	double wheelZoomMaximum = 5.0;
+	/* Scrolling out below this zoom level returns to the full unzoomed screen (1.0 = only at 1x). */
+	double wheelZoomExit = 1.0;
 	bool wheelZoomEnabled = false;
 	/* Not zoomed: pan the capture sideways so it follows the mouse in x. */
 	bool idleFollowX = false;
