@@ -444,6 +444,10 @@ private:
 		bool lastAppliedValid = false;
 		vec2 lastAppliedPos{};
 		vec2 lastAppliedScale{};
+		/* External edit detection while resting at 1x (see onTick). */
+		bool extSeen = false;
+		vec2 extPos{};
+		vec2 extScale{};
 		/* Focus blur: the source the filter sits on (strong ref) and the
 		 * filter itself (strong ref). Both null when blur is not in use. */
 		obs_source_t *blurTarget = nullptr;
