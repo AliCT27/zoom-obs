@@ -107,6 +107,7 @@ private:
 	QComboBox *cmbWheelMod = nullptr;
 	QDoubleSpinBox *spWheelStep = nullptr;
 	QDoubleSpinBox *spWheelMax = nullptr;
+	QDoubleSpinBox *spWheelExit = nullptr;
 	QSpinBox *spMarkerThickness = nullptr;
 	QPushButton *btnMarkerColor = nullptr;
 	QCheckBox *chkFrame = nullptr;

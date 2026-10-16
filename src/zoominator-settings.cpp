@@ -121,6 +121,7 @@ void ZoominatorController::loadSettings()
 	wheelZoomOutStep = 0.20;
 	wheelZoomMinimum = 1.0;
 	wheelZoomMaximum = 5.0;
+	wheelZoomExit = 1.0;
 	wheelZoomEnabled = false;
 	idleFollowX = false;
 	wheelZoomModifier = QStringLiteral("alt");
@@ -330,6 +331,8 @@ void ZoominatorController::loadSettings()
 		wheelZoomMinimum = obs_data_get_double(data, "wheel_zoom_minimum");
 	if (obs_data_has_user_value(data, "wheel_zoom_maximum"))
 		wheelZoomMaximum = obs_data_get_double(data, "wheel_zoom_maximum");
+	if (obs_data_has_user_value(data, "wheel_zoom_exit"))
+		wheelZoomExit = obs_data_get_double(data, "wheel_zoom_exit");
 	wheelZoomInStep = clampd(wheelZoomInStep, 0.01, 2.0);
 	wheelZoomOutStep = wheelZoomInStep;
 	wheelZoomMinimum = 1.0;
@@ -343,6 +346,7 @@ void ZoominatorController::loadSettings()
 		wheelZoomModifier = QStringLiteral("alt");
 	wheelZoomMinimum = clampd(wheelZoomMinimum, 1.0, 19.0);
 	wheelZoomMaximum = clampd(wheelZoomMaximum, wheelZoomMinimum + 0.1, 20.0);
+	wheelZoomExit = clampd(wheelZoomExit, 1.0, wheelZoomMaximum - 0.1);
 
 	if (obs_data_has_user_value(data, "anim_in_ms"))
 		animInMs = (int)obs_data_get_int(data, "anim_in_ms");
@@ -761,6 +765,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "wheel_zoom_out_step", wheelZoomOutStep);
 	obs_data_set_double(data, "wheel_zoom_minimum", wheelZoomMinimum);
 	obs_data_set_double(data, "wheel_zoom_maximum", wheelZoomMaximum);
+	obs_data_set_double(data, "wheel_zoom_exit", wheelZoomExit);
 	obs_data_set_bool(data, "wheel_zoom_enabled", wheelZoomEnabled);
 	obs_data_set_bool(data, "idle_follow_x", idleFollowX);
 	obs_data_set_string(data, "wheel_zoom_modifier", wheelZoomModifier.toUtf8().constData());
