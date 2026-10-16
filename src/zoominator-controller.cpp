@@ -733,13 +733,12 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 		fx = targetX;
 		fy = targetY;
-		if (centerAnchor && zoomAnchor == ZoomAnchorMode::CursorStatic) {
-			anchorX = (float)((double)targetX + ((double)centerX - (double)targetX) * ttA);
-			anchorY = (float)((double)targetY + ((double)centerY - (double)targetY) * ttA);
-		} else {
-			anchorX = (float)centerX;
-			anchorY = (float)centerY;
-		}
+		/* The anchor slides from the focal point to the canvas centre with the zoom, so at rest (no
+		 * zoom) the transform is the identity. Anchoring at the centre from the start shifts the
+		 * whole capture by (centre - focal) while idle - e.g. after Follow mouse (Alt+C) froze the
+		 * focal point - and only the edge clamp hides it. */
+		anchorX = (float)((double)targetX + ((double)centerX - (double)targetX) * ttA);
+		anchorY = (float)((double)targetY + ((double)centerY - (double)targetY) * ttA);
 	}
 
 	if (showCursorMarker) {
