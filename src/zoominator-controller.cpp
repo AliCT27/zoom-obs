@@ -1050,6 +1050,49 @@ void ZoominatorController::onTick()
 		return;
 	}
 
+	/* While the engine only idles at 1x (sideways follow) the items are expected to sit exactly
+	 * where it last put them. If one was moved or resized from outside (Fit screen, Edit
+	 * Transform, dragging in the preview) the captured original layout is stale and the engine
+	 * would drag the item back to it - so the new layout is adopted as the original. The change
+	 * has to be seen twice in a row, unchanged, to rule out racing the graphics thread. */
+	if (zoomActive.load(std::memory_order_acquire) && !pendingFinish.load(std::memory_order_acquire) &&
+	    animDir.load(std::memory_order_relaxed) == 0 && animT <= 0.0 && !sceneItems.empty()) {
+		bool adopt = false;
+		std::vector<obs_sceneitem_t *> liveNow;
+		if (obs_source_t *cs = obs_frontend_get_current_scene()) {
+			if (obs_scene_t *csc = obs_scene_from_source(cs))
+				collect_live_scene_items(csc, liveNow);
+			obs_source_release(cs);
+		}
+		for (auto &st : sceneItems) {
+			if (!st.item || !st.lastAppliedValid ||
+			    std::find(liveNow.begin(), liveNow.end(), st.item) == liveNow.end())
+				continue;
+			vec2 lp{}, ls{};
+			obs_sceneitem_get_pos(st.item, &lp);
+			obs_sceneitem_get_scale(st.item, &ls);
+			const bool differs = !nearly_equal_vec2(lp, st.lastAppliedPos) ||
+					     !nearly_equal_vec2(ls, st.lastAppliedScale, kScaleEpsilon);
+			if (!differs) {
+				st.extSeen = false;
+				continue;
+			}
+			if (st.extSeen && nearly_equal_vec2(lp, st.extPos) && nearly_equal_vec2(ls, st.extScale, kScaleEpsilon))
+				adopt = true;
+			st.extSeen = true;
+			st.extPos = lp;
+			st.extScale = ls;
+		}
+		if (adopt) {
+			detachBlurFilters();
+			detachIdleBlurs();
+			zoomActive.store(false, std::memory_order_release);
+			sceneItems.clear();
+			sceneContentBoundsValid = false;
+			panHasPos = false;
+		}
+	}
+
 	if (!zoomActive.load(std::memory_order_acquire)) {
 		std::vector<obs_sceneitem_t *> items;
 		enumerateTargetItemsInCurrentScene(items);
