@@ -1054,8 +1054,12 @@ void ZoominatorController::onTick()
 	 * Transform, dragging in the preview) the captured original layout is stale and the engine
 	 * would drag the item back to it - so the new layout is adopted as the original. The change
 	 * has to be seen twice in a row, unchanged, to rule out racing the graphics thread. */
+	const qint64 extNowMs = QDateTime::currentMSecsSinceEpoch();
 	if (zoomActive.load(std::memory_order_acquire) && !pendingFinish.load(std::memory_order_acquire) &&
-	    animDir.load(std::memory_order_relaxed) == 0 && animT <= 0.0 && !sceneItems.empty()) {
+	    animDir.load(std::memory_order_relaxed) == 0 && animT <= 0.0 && !sceneItems.empty() &&
+	    extNowMs - lastExtCheckMs >= 150) {
+		/* Not every tick: this walks the scene under its lock, which the idle pan must not wait on. */
+		lastExtCheckMs = extNowMs;
 		bool adopt = false;
 		std::vector<obs_sceneitem_t *> liveNow;
 		if (obs_source_t *cs = obs_frontend_get_current_scene()) {

@@ -148,6 +148,7 @@ public:
 	 * unzoomed screen. 0 = off (only at 1x). */
 	double wheelZoomExit = 0.0;
 	double wheelOutAccum = 0.0;
+	qint64 lastExtCheckMs = 0;
 	bool wheelZoomEnabled = false;
 	/* Not zoomed: pan the capture sideways so it follows the mouse in x. */
 	bool idleFollowX = false;
