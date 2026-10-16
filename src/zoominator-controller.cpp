@@ -25,6 +25,7 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 		wheelBaseZoom = std::max(1.1, zoomFactor);
 
 	if (direction > 0) {
+		wheelOutAccum = 0.0;
 		if (!zoomedNow) {
 			zoomFactor = clampd(1.0 + step * steps, 1.05, maxZoom);
 			renderedZoomFactor = zoomFactor;
@@ -40,8 +41,9 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 	if (!zoomedNow)
 		return;
 	const double next = zoomFactor - step * steps;
-	const double exitAt = std::max(1.0 + step * 0.5, wheelZoomExit);
-	if (next < exitAt || next <= 1.0 + step * 0.5) {
+	wheelOutAccum += step * steps;
+	if ((wheelZoomExit > 0.0 && wheelOutAccum >= wheelZoomExit - 1e-9) || next <= 1.0 + step * 0.5) {
+		wheelOutAccum = 0.0;
 		manualZoomOut();
 		return;
 	}

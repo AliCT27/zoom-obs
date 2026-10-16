@@ -110,6 +110,7 @@ void ZoominatorController::manualZoomIn()
 		return;
 	/* After a wheel adjustment the Zoom In key brings the view back to the
 	 * configured Zoom Factor (the zoom level eases there while zoomed). */
+	wheelOutAccum = 0.0;
 	if (wheelBaseZoom > 1.0 && zoomedView() && animDir.load(std::memory_order_relaxed) >= 0)
 		zoomFactor = wheelBaseZoom;
 	if (triggerType != "auto") {

@@ -121,7 +121,7 @@ void ZoominatorController::loadSettings()
 	wheelZoomOutStep = 0.20;
 	wheelZoomMinimum = 1.0;
 	wheelZoomMaximum = 5.0;
-	wheelZoomExit = 1.0;
+	wheelZoomExit = 0.0;
 	wheelZoomEnabled = false;
 	idleFollowX = false;
 	wheelZoomModifier = QStringLiteral("alt");
@@ -346,7 +346,7 @@ void ZoominatorController::loadSettings()
 		wheelZoomModifier = QStringLiteral("alt");
 	wheelZoomMinimum = clampd(wheelZoomMinimum, 1.0, 19.0);
 	wheelZoomMaximum = clampd(wheelZoomMaximum, wheelZoomMinimum + 0.1, 20.0);
-	wheelZoomExit = clampd(wheelZoomExit, 1.0, wheelZoomMaximum - 0.1);
+	wheelZoomExit = clampd(wheelZoomExit, 0.0, 19.0);
 
 	if (obs_data_has_user_value(data, "anim_in_ms"))
 		animInMs = (int)obs_data_get_int(data, "anim_in_ms");

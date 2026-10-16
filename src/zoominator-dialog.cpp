@@ -443,7 +443,8 @@ void ZoominatorDialog::buildUi()
 		spWheelMax->setSingleStep(0.5);
 		spWheelMax->setDecimals(1);
 		spWheelExit = new QDoubleSpinBox(page);
-		spWheelExit->setRange(1.0, 19.0);
+		spWheelExit->setRange(0.0, 19.0);
+		spWheelExit->setSpecialValueText(T("Dialog.WheelExitOff"));
 		spWheelExit->setSingleStep(0.1);
 		spWheelExit->setDecimals(1);
 		spWheelExit->setToolTip(T("Dialog.WheelExitTooltip"));
