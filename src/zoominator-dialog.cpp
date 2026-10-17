@@ -1520,7 +1520,7 @@ void ZoominatorDialog::rebuildPresetRows()
 			if (isMain) {
 				/* The main preset keeps its fixed name and cannot be deleted. */
 				edit->setText(T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"));
-				edit->setReadOnly(true);
+				edit->setEnabled(false); /* greyed out: no editing, no text selection */
 			}
 			auto *bRestore = new QPushButton(T("Dialog.Presets.Restore"), host);
 			bRestore->setToolTip(T("Dialog.Presets.RestoreTooltip"));
