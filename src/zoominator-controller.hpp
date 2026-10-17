@@ -287,6 +287,11 @@ private:
 
 	bool getCursorPos(int &x, int &y) const;
 	bool mapCursorToScenePixels(int cursorX, int cursorY, float &sx, float &sy, bool &cursorInside) const;
+	/* Resting-layout bounds of the target items, cached briefly (main thread only). */
+	mutable qint64 restBoundsMs = 0;
+	mutable bool restBoundsValid = false;
+	mutable vec2 restBoundsMin{};
+	mutable vec2 restBoundsMax{};
 
 	void captureOriginal(obs_sceneitem_t *item);
 	void restoreOriginal(obs_sceneitem_t *item);
