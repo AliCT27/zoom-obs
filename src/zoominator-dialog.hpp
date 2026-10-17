@@ -15,6 +15,7 @@ class QListWidget;
 class QPushButton;
 class QSpinBox;
 class QTabWidget;
+class QVBoxLayout;
 struct calldata;
 
 class ZoominatorDialog final : public QDialog {
@@ -39,8 +40,9 @@ private slots:
 	void chooseFrameColor(QPushButton *button);
 	void setColorButton(QPushButton *button, uint32_t rgba);
 	void populateSourcesTab();
-	void applyPreset(bool horizontal);
-	void savePreset(bool horizontal);
+	void applyPreset(const QString &id, bool horizontal);
+	void savePreset(const QString &id, bool horizontal);
+	void rebuildPresetRows();
 
 private:
 	void buildUi();
@@ -101,9 +103,7 @@ private:
 	QSpinBox *spMarkerIdleSize = nullptr;
 	QCheckBox *chkWheelZoom = nullptr;
 	QCheckBox *chkIdleFollowX = nullptr;
-	QPushButton *btnPresetRestore[2] = {nullptr, nullptr};
-	QPushButton *btnPresetSave[2] = {nullptr, nullptr};
-	QPushButton *btnPresetFit[2] = {nullptr, nullptr};
+	QVBoxLayout *presetListLay[2] = {nullptr, nullptr};
 	QComboBox *cmbWheelMod = nullptr;
 	QDoubleSpinBox *spWheelStep = nullptr;
 	QDoubleSpinBox *spWheelMax = nullptr;

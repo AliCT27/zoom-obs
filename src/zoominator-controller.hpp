@@ -92,7 +92,16 @@ public:
 	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
 	 * is currently stored in the settings file, so call saveSettings() first. */
 	/* Two presets: vertical (1080x1920, the original file) and horizontal (1920x1080). */
-	bool hasUserPreset(bool horizontal = false) const;
+	struct PresetInfo {
+		QString id;
+		QString name; /* empty = built-in default name */
+		bool horizontal = false;
+	};
+	QVector<PresetInfo> listPresets();
+	QString addPreset(const QString &name, bool horizontal); /* snapshots the saved settings; returns the id */
+	bool removePreset(const QString &id);
+	bool renamePreset(const QString &id, const QString &name);
+	bool hasUserPreset(const QString &id) const;
 	bool canvasIs(int w, int h) const;
 	/* Scales the captured screen to the canvas width (whole screen visible, centred
 	 * vertically) once the view is at rest. Done on the main thread. */
@@ -114,8 +123,8 @@ public:
 	/* Backup: everything except this computer's screen and sources, plus both presets. */
 	bool exportSettings(const QString &path);
 	bool importSettings(const QString &path);
-	bool saveUserPreset(bool horizontal = false);
-	bool applyUserPreset(bool horizontal = false);
+	bool saveUserPreset(const QString &id);
+	bool applyUserPreset(const QString &id);
 	void notifySettingsChanged();
 	void rebuildRuntimeHooks();
 
@@ -247,7 +256,8 @@ private:
 	ZoominatorController &operator=(const ZoominatorController &) = delete;
 
 	QString configPath() const;
-	QString presetPath(bool horizontal = false) const;
+	QString presetPath(const QString &id) const;
+	QString presetIndexPath() const;
 
 	void ensureTicking(bool on);
 	void startZoomIn();

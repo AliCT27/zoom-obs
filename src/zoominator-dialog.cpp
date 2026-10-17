@@ -34,6 +34,7 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QLabel>
 #include <QListWidget>
 #include <QMap>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QPushButton>
 #include <QScreen>
@@ -923,35 +924,32 @@ void ZoominatorDialog::buildUi()
 			help->setWordWrap(true);
 			lay->addWidget(help);
 
-			btnPresetRestore[i] = new QPushButton(T("Dialog.Presets.Restore"), page);
-			btnPresetRestore[i]->setToolTip(T("Dialog.Presets.RestoreTooltip"));
-			btnPresetSave[i] = new QPushButton(T("Dialog.Presets.Save"), page);
-			btnPresetSave[i]->setToolTip(T("Dialog.Presets.SaveTooltip"));
-			btnPresetFit[i] = new QPushButton(T("Dialog.Presets.Fit"), page);
-			btnPresetFit[i]->setToolTip(T("Dialog.Presets.FitTooltip"));
-			auto *row = new QHBoxLayout;
-			row->setSpacing(8);
-			row->addWidget(btnPresetRestore[i]);
-			row->addWidget(btnPresetSave[i]);
-			row->addWidget(btnPresetFit[i]);
-			row->addStretch(1);
-			lay->addLayout(row);
+			presetListLay[i] = new QVBoxLayout;
+			presetListLay[i]->setSpacing(6);
+			lay->addLayout(presetListLay[i]);
 
-			connect(btnPresetRestore[i], &QPushButton::clicked, this, [this, horizontal]() { applyPreset(horizontal); });
-			connect(btnPresetSave[i], &QPushButton::clicked, this, [this, horizontal]() { savePreset(horizontal); });
-			connect(btnPresetFit[i], &QPushButton::clicked, this, [this, horizontal]() {
+			auto *btnAdd = new QPushButton(T("Dialog.Presets.Add"), page);
+			btnAdd->setToolTip(T("Dialog.Presets.AddTooltip"));
+			auto *addRow = new QHBoxLayout;
+			addRow->addWidget(btnAdd);
+			addRow->addStretch(1);
+			lay->addLayout(addRow);
+			connect(btnAdd, &QPushButton::clicked, this, [this, horizontal]() {
+				applyToController();
 				auto &ctl = ZoominatorController::instance();
-				const int w = horizontal ? 1920 : 1080;
-				const int h = horizontal ? 1080 : 1920;
-				if (!ctl.canvasIs(w, h)) {
-					lblStatus->setText(QString(T("Dialog.Presets.WrongCanvas")).arg(w).arg(h));
+				int count = 0;
+				for (const auto &pi : ctl.listPresets())
+					count += (pi.horizontal == horizontal) ? 1 : 0;
+				const QString name = QString(T("Dialog.Presets.NewName")).arg(count + 1);
+				if (ctl.addPreset(name, horizontal).isEmpty()) {
+					lblStatus->setText(T("Dialog.PresetSaveFailed"));
 					return;
 				}
-				ctl.requestFitScreen();
-				chkIdleFollowX->setChecked(false);
-				lblStatus->setText(T("Dialog.FitScreenDone"));
+				rebuildPresetRows();
+				lblStatus->setText(QString(T("Dialog.Presets.Added")).arg(name));
 			});
 		}
+		rebuildPresetRows();
 		addSection(lay, T("Dialog.Backup.Title"));
 		auto *backupHelp = new QLabel(T("Dialog.Backup.Help"), page);
 		backupHelp->setWordWrap(true);
@@ -1489,18 +1487,102 @@ void ZoominatorDialog::updateTriggerRows()
 /* Presets: "vertical" is for a 1080x1920 canvas, "horizontal" for 1920x1080. Save keeps every
  * setting plus (when the OBS canvas has that size) where the screen sits in it. Restore brings
  * the settings back and, when the canvas matches, the screen layout (or the automatic fit). */
-void ZoominatorDialog::savePreset(bool horizontal)
+/* Rebuilds the preset rows of both sections from the saved list. */
+void ZoominatorDialog::rebuildPresetRows()
+{
+	auto &ctl = ZoominatorController::instance();
+	const QVector<ZoominatorController::PresetInfo> list = ctl.listPresets();
+	for (int i = 0; i < 2; ++i) {
+		QVBoxLayout *vl = presetListLay[i];
+		if (!vl)
+			continue;
+		while (QLayoutItem *it = vl->takeAt(0)) {
+			if (QLayout *cl = it->layout()) {
+				while (QLayoutItem *ci = cl->takeAt(0)) {
+					delete ci->widget();
+					delete ci;
+				}
+			}
+			delete it->widget();
+			delete it;
+		}
+		const bool horizontal = (i == 1);
+		QWidget *host = vl->parentWidget();
+		for (const auto &pi : list) {
+			if (pi.horizontal != horizontal)
+				continue;
+			const QString id = pi.id;
+			auto *edit = new QLineEdit(pi.name, host);
+			edit->setPlaceholderText(T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"));
+			edit->setToolTip(T("Dialog.Presets.NameTooltip"));
+			edit->setMinimumWidth(180);
+			auto *bRestore = new QPushButton(T("Dialog.Presets.Restore"), host);
+			bRestore->setToolTip(T("Dialog.Presets.RestoreTooltip"));
+			auto *bSave = new QPushButton(T("Dialog.Presets.Save"), host);
+			bSave->setToolTip(T("Dialog.Presets.SaveTooltip"));
+			auto *bFit = new QPushButton(T("Dialog.Presets.Fit"), host);
+			bFit->setToolTip(T("Dialog.Presets.FitTooltip"));
+			auto *bDel = new QPushButton(T("Dialog.Presets.Delete"), host);
+			bDel->setToolTip(T("Dialog.Presets.DeleteTooltip"));
+			auto *row = new QHBoxLayout;
+			row->setSpacing(8);
+			row->addWidget(edit, 1);
+			row->addWidget(bRestore);
+			row->addWidget(bSave);
+			row->addWidget(bFit);
+			row->addWidget(bDel);
+			vl->addLayout(row);
+
+			connect(edit, &QLineEdit::editingFinished, this,
+				[id, edit]() { ZoominatorController::instance().renamePreset(id, edit->text()); });
+			connect(bRestore, &QPushButton::clicked, this, [this, id, horizontal]() { applyPreset(id, horizontal); });
+			connect(bSave, &QPushButton::clicked, this, [this, id, horizontal, edit]() {
+				ZoominatorController::instance().renamePreset(id, edit->text());
+				savePreset(id, horizontal);
+			});
+			connect(bFit, &QPushButton::clicked, this, [this, horizontal]() {
+				auto &c = ZoominatorController::instance();
+				const int w = horizontal ? 1920 : 1080;
+				const int h = horizontal ? 1080 : 1920;
+				if (!c.canvasIs(w, h)) {
+					lblStatus->setText(QString(T("Dialog.Presets.WrongCanvas")).arg(w).arg(h));
+					return;
+				}
+				c.requestFitScreen();
+				chkIdleFollowX->setChecked(false);
+				lblStatus->setText(T("Dialog.FitScreenDone"));
+			});
+			connect(bDel, &QPushButton::clicked, this, [this, id, edit, horizontal]() {
+				QString nm = edit->text().trimmed();
+				if (nm.isEmpty())
+					nm = T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical");
+				if (QMessageBox::question(this, T("Dialog.Presets.Delete"),
+							  QString(T("Dialog.Presets.DeleteConfirm")).arg(nm)) != QMessageBox::Yes)
+					return;
+				ZoominatorController::instance().removePreset(id);
+				rebuildPresetRows();
+				lblStatus->setText(QString(T("Dialog.Presets.Deleted")).arg(nm));
+			});
+		}
+	}
+}
+
+void ZoominatorDialog::savePreset(const QString &id, bool horizontal)
 {
 	applyToController();
 	auto &c = ZoominatorController::instance();
 	const int w = horizontal ? 1920 : 1080;
 	const int h = horizontal ? 1080 : 1920;
-	const char *name = horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical";
-	if (!c.saveUserPreset(horizontal)) {
+	QString name = T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical");
+	for (const auto &pi : c.listPresets()) {
+		if (pi.id == id && !pi.name.isEmpty())
+			name = pi.name;
+	}
+	if (!c.saveUserPreset(id)) {
 		lblStatus->setText(T("Dialog.PresetSaveFailed"));
 		return;
 	}
-	QString msg = QString(T("Dialog.Presets.Saved")).arg(T(name));
+	QString msg = QString(T("Dialog.Presets.Saved")).arg(name);
 	if (c.canvasIs(w, h)) {
 		if (c.saveCurrentLayout(w, h) > 0)
 			msg += QStringLiteral(" ") + QString(T("Dialog.Presets.SavedLayout"));
@@ -1510,7 +1592,7 @@ void ZoominatorDialog::savePreset(bool horizontal)
 	lblStatus->setText(msg);
 }
 
-void ZoominatorDialog::applyPreset(bool horizontal)
+void ZoominatorDialog::applyPreset(const QString &id, bool horizontal)
 {
 	auto &ctl = ZoominatorController::instance();
 	const int w = horizontal ? 1920 : 1080;
@@ -1523,7 +1605,7 @@ void ZoominatorDialog::applyPreset(bool horizontal)
 		note = QStringLiteral(" ") + QString(T("Dialog.Presets.LayoutSkipped")).arg(w).arg(h);
 	}
 
-	if (ctl.hasUserPreset(horizontal) && ctl.applyUserPreset(horizontal)) {
+	if (ctl.hasUserPreset(id) && ctl.applyUserPreset(id)) {
 		loadFromController();
 		lblStatus->setText(QString(T("Dialog.Presets.Restored")) + note);
 		return;
