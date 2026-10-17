@@ -22,7 +22,7 @@ void setParams(obs_source_t *filter, float yaw, float pitch, float perspective);
 
 /* Shared by the filter, the frame and the focus / halo placement so they all agree.
  * The turned sheet shrinks a little so the edge swinging towards the camera stays inside its frame. */
-inline float scaleFor(float yaw, float pitch, float persp, float w, float h)
+inline float sheetScale(float yaw, float pitch, float persp, float w, float h)
 {
 	const float longSide = std::max(w, h);
 	const float dist = std::max(0.5f, persp) * longSide;
@@ -32,18 +32,18 @@ inline float scaleFor(float yaw, float pitch, float persp, float w, float h)
 
 /* Where a point of the flat sheet ends up once it is turned: (x, y) is the offset from the sheet's centre
  * in source pixels; replaced by the offset of the displayed point in the same units. */
-inline void project(double yaw, double pitch, double persp, double w, double h, double &x, double &y)
+inline void projectPoint(double yaw, double pitch, double persp, double w, double h, double &x, double &y)
 {
 	const double longSide = std::max(w, h);
 	const double dist = std::max(0.5, persp) * longSide;
 	const double sa = std::sin(yaw), ca = std::cos(yaw), sb = std::sin(pitch), cb = std::cos(pitch);
-	const double X = x * ca + y * sb * sa;
-	const double Y = y * cb;
-	const double Z = -x * sa + y * sb * ca;
-	const double depth = std::max(1.0, dist + Z);
-	const double k = dist / depth * (double)scaleFor((float)yaw, (float)pitch, (float)persp, (float)w, (float)h);
-	x = X * k;
-	y = Y * k;
+	const double xr = x * ca + y * sb * sa;
+	const double yr = y * cb;
+	const double zr = -x * sa + y * sb * ca;
+	const double depth = std::max(1.0, dist + zr);
+	const double k = dist / depth * (double)sheetScale((float)yaw, (float)pitch, (float)persp, (float)w, (float)h);
+	x = xr * k;
+	y = yr * k;
 }
 
 } // namespace zoominator_tilt

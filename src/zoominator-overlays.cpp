@@ -853,7 +853,7 @@ void ZoominatorController::applyTiltToIdlePoint(double &x, double &y) const
 	const double cy = (double)o.effectivePos.y + (h * 0.5 - (double)o.crop.top) * (double)o.effectiveScale.y;
 	const double kx = std::max(1e-4, (double)o.effectiveScale.x), ky = std::max(1e-4, (double)o.effectiveScale.y);
 	double px = (x - cx) / kx, py = (y - cy) / ky;
-	zoominator_tilt::project(yaw, pitch, tilt3dPerspective, w, h, px, py);
+	zoominator_tilt::projectPoint(yaw, pitch, tilt3dPerspective, w, h, px, py);
 	x = cx + px * kx;
 	y = cy + py * ky;
 }

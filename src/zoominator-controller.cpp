@@ -858,7 +858,7 @@ void ZoominatorController::applyZoomToScene(double t)
 		if (!haveSheet)
 			return;
 		double px = (x - tcx) / tkx, py = (y - tcy) / tky;
-		zoominator_tilt::project(tYaw, tPitch, tilt3dPerspective, tw, th, px, py);
+		zoominator_tilt::projectPoint(tYaw, tPitch, tilt3dPerspective, tw, th, px, py);
 		x = tcx + px * tkx;
 		y = tcy + py * tky;
 	};

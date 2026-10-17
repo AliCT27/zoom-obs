@@ -171,7 +171,7 @@ void videoRender(void *data, gs_effect_t *)
 			vec4_set(&t, 0.0f, 0.0f, 0.0f, 1.0f);
 		else
 			vec4_set(&t, tl[0], tl[1], std::max(0.5f, tl[2]) * std::max(rw, rh),
-				 zoominator_tilt::scaleFor(tl[0], tl[1], tl[2], rw, rh));
+				 zoominator_tilt::sheetScale(tl[0], tl[1], tl[2], rw, rh));
 		gs_effect_set_vec4(d->pTilt, &t);
 	}
 	gs_effect_set_float(d->pRadius, s.radiusPx);
