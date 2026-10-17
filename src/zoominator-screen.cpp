@@ -886,11 +886,32 @@ bool ZoominatorController::mapCursorToScenePixels(int cursorX, int cursorY, floa
 	if (cw <= 0.0 || ch <= 0.0)
 		return false;
 
-	if (centerCursorUntilEdge && sceneContentBoundsValid) {
-		const double contentW = std::max(1.0, (double)sceneContentMax.x - (double)sceneContentMin.x);
-		const double contentH = std::max(1.0, (double)sceneContentMax.y - (double)sceneContentMin.y);
-		sx = (float)((double)sceneContentMin.x + relX * contentW);
-		sy = (float)((double)sceneContentMin.y + relY * contentH);
+	/* The cursor is mapped onto where the captured screen actually sits in the scene. While the
+	 * zoom engine is running that is the bounds it captured; otherwise (e.g. a fitted screen
+	 * on a vertical canvas, nothing zooming) the live layout is measured, so the spotlight and
+	 * halo land on the cursor instead of assuming the capture fills the whole canvas. */
+	vec2 bMin = sceneContentMin, bMax = sceneContentMax;
+	bool bValid = sceneContentBoundsValid;
+	if (centerCursorUntilEdge && !bValid) {
+		const qint64 nowB = QDateTime::currentMSecsSinceEpoch();
+		if (nowB - restBoundsMs >= 250) {
+			restBoundsMs = nowB;
+			std::vector<obs_sceneitem_t *> items;
+			enumerateTargetItemsInCurrentScene(items);
+			vec2 mn{}, mx{};
+			restBoundsValid = !items.empty() && computeTargetBounds(items, mn, mx);
+			restBoundsMin = mn;
+			restBoundsMax = mx;
+		}
+		bMin = restBoundsMin;
+		bMax = restBoundsMax;
+		bValid = restBoundsValid;
+	}
+	if (centerCursorUntilEdge && bValid) {
+		const double contentW = std::max(1.0, (double)bMax.x - (double)bMin.x);
+		const double contentH = std::max(1.0, (double)bMax.y - (double)bMin.y);
+		sx = (float)((double)bMin.x + relX * contentW);
+		sy = (float)((double)bMin.y + relY * contentH);
 	} else {
 		sx = (float)(relX * cw);
 		sy = (float)(relY * ch);
