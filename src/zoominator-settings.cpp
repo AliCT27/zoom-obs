@@ -632,6 +632,18 @@ QVector<ZoominatorController::PresetInfo> ZoominatorController::listPresets()
 				obs_data_array_release(arr);
 			}
 			obs_data_release(root);
+			/* The two main presets always exist and come first in their section. */
+			bool hasV = false, hasH = false;
+			for (const auto &pi : list) {
+				hasV = hasV || pi.id == QStringLiteral("v1");
+				hasH = hasH || pi.id == QStringLiteral("h1");
+			}
+			if (!hasH)
+				list.push_front({QStringLiteral("h1"), QString(), true});
+			if (!hasV)
+				list.push_front({QStringLiteral("v1"), QString(), false});
+			if (!hasV || !hasH)
+				save_preset_index(ip, list);
 			return list;
 		}
 	}
@@ -654,6 +666,8 @@ QString ZoominatorController::addPreset(const QString &name, bool horizontal)
 
 bool ZoominatorController::removePreset(const QString &id)
 {
+	if (id == QStringLiteral("v1") || id == QStringLiteral("h1"))
+		return false; /* the main presets cannot be deleted */
 	QVector<PresetInfo> list = listPresets();
 	bool found = false;
 	for (int i = 0; i < list.size(); ++i) {

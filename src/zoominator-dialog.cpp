@@ -1516,6 +1516,12 @@ void ZoominatorDialog::rebuildPresetRows()
 			edit->setPlaceholderText(T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"));
 			edit->setToolTip(T("Dialog.Presets.NameTooltip"));
 			edit->setMinimumWidth(180);
+			const bool isMain = (id == QLatin1String("v1") || id == QLatin1String("h1"));
+			if (isMain) {
+				/* The main preset keeps its fixed name and cannot be deleted. */
+				edit->setText(T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"));
+				edit->setReadOnly(true);
+			}
 			auto *bRestore = new QPushButton(T("Dialog.Presets.Restore"), host);
 			bRestore->setToolTip(T("Dialog.Presets.RestoreTooltip"));
 			auto *bSave = new QPushButton(T("Dialog.Presets.Save"), host);
@@ -1523,7 +1529,8 @@ void ZoominatorDialog::rebuildPresetRows()
 			auto *bFit = new QPushButton(T("Dialog.Presets.Fit"), host);
 			bFit->setToolTip(T("Dialog.Presets.FitTooltip"));
 			auto *bDel = new QPushButton(T("Dialog.Presets.Delete"), host);
-			bDel->setToolTip(T("Dialog.Presets.DeleteTooltip"));
+			bDel->setToolTip(T(isMain ? "Dialog.Presets.DeleteMainTooltip" : "Dialog.Presets.DeleteTooltip"));
+			bDel->setEnabled(!isMain);
 			auto *row = new QHBoxLayout;
 			row->setSpacing(8);
 			row->addWidget(edit, 1);
@@ -1533,11 +1540,13 @@ void ZoominatorDialog::rebuildPresetRows()
 			row->addWidget(bDel);
 			vl->addLayout(row);
 
-			connect(edit, &QLineEdit::editingFinished, this,
-				[id, edit]() { ZoominatorController::instance().renamePreset(id, edit->text()); });
+			if (!isMain)
+				connect(edit, &QLineEdit::editingFinished, this,
+					[id, edit]() { ZoominatorController::instance().renamePreset(id, edit->text()); });
 			connect(bRestore, &QPushButton::clicked, this, [this, id, horizontal]() { applyPreset(id, horizontal); });
-			connect(bSave, &QPushButton::clicked, this, [this, id, horizontal, edit]() {
-				ZoominatorController::instance().renamePreset(id, edit->text());
+			connect(bSave, &QPushButton::clicked, this, [this, id, horizontal, edit, isMain]() {
+				if (!isMain)
+					ZoominatorController::instance().renamePreset(id, edit->text());
 				savePreset(id, horizontal);
 			});
 			connect(bFit, &QPushButton::clicked, this, [this, horizontal]() {
