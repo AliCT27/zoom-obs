@@ -553,9 +553,15 @@ void ZoominatorController::loadSettings()
 	emit settingsChanged();
 }
 
-QString ZoominatorController::presetPath(bool horizontal) const
+QString ZoominatorController::presetPath(const QString &id) const
 {
-	char *path = obs_module_config_path(horizontal ? "zoominator-preset-horizontal.json" : "zoominator-preset.json");
+	/* The two original presets keep their old file names. */
+	QString file = QStringLiteral("zoominator-preset-%1.json").arg(id);
+	if (id == QStringLiteral("v1"))
+		file = QStringLiteral("zoominator-preset.json");
+	else if (id == QStringLiteral("h1"))
+		file = QStringLiteral("zoominator-preset-horizontal.json");
+	char *path = obs_module_config_path(file.toUtf8().constData());
 	if (!path)
 		return {};
 	QString p = QString::fromUtf8(path);
@@ -563,10 +569,120 @@ QString ZoominatorController::presetPath(bool horizontal) const
 	return p;
 }
 
-bool ZoominatorController::hasUserPreset(bool horizontal) const
+QString ZoominatorController::presetIndexPath() const
 {
-	const QString p = presetPath(horizontal);
+	char *path = obs_module_config_path("zoominator-presets.json");
+	if (!path)
+		return {};
+	QString p = QString::fromUtf8(path);
+	bfree(path);
+	return p;
+}
+
+bool ZoominatorController::hasUserPreset(const QString &id) const
+{
+	const QString p = presetPath(id);
 	return !p.isEmpty() && QFileInfo::exists(p);
+}
+
+static void save_preset_index(const QString &path, const QVector<ZoominatorController::PresetInfo> &list)
+{
+	if (path.isEmpty())
+		return;
+	obs_data_t *root = obs_data_create();
+	obs_data_array_t *arr = obs_data_array_create();
+	for (const auto &pi : list) {
+		obs_data_t *row = obs_data_create();
+		obs_data_set_string(row, "id", pi.id.toUtf8().constData());
+		obs_data_set_string(row, "name", pi.name.toUtf8().constData());
+		obs_data_set_bool(row, "horizontal", pi.horizontal);
+		obs_data_array_push_back(arr, row);
+		obs_data_release(row);
+	}
+	obs_data_set_array(root, "presets", arr);
+	obs_data_array_release(arr);
+	ensure_parent_dir_exists(path);
+	const QByteArray u = path.toUtf8();
+	obs_data_save_json_safe(root, u.constData(), "tmp", "bak");
+	obs_data_release(root);
+}
+
+/* The list of presets; the first start (or a missing index) seeds the two original ones. */
+QVector<ZoominatorController::PresetInfo> ZoominatorController::listPresets()
+{
+	QVector<PresetInfo> list;
+	const QString ip = presetIndexPath();
+	if (!ip.isEmpty() && QFileInfo::exists(ip)) {
+		const QByteArray u = ip.toUtf8();
+		if (obs_data_t *root = obs_data_create_from_json_file_safe(u.constData(), "bak")) {
+			if (obs_data_array_t *arr = obs_data_get_array(root, "presets")) {
+				const size_t n = obs_data_array_count(arr);
+				for (size_t i = 0; i < n; ++i) {
+					obs_data_t *row = obs_data_array_item(arr, i);
+					if (!row)
+						continue;
+					PresetInfo pi;
+					pi.id = QString::fromUtf8(obs_data_get_string(row, "id"));
+					pi.name = QString::fromUtf8(obs_data_get_string(row, "name"));
+					pi.horizontal = obs_data_get_bool(row, "horizontal");
+					if (!pi.id.isEmpty())
+						list.push_back(pi);
+					obs_data_release(row);
+				}
+				obs_data_array_release(arr);
+			}
+			obs_data_release(root);
+			return list;
+		}
+	}
+	list.push_back({QStringLiteral("v1"), QString(), false});
+	list.push_back({QStringLiteral("h1"), QString(), true});
+	save_preset_index(ip, list);
+	return list;
+}
+
+QString ZoominatorController::addPreset(const QString &name, bool horizontal)
+{
+	QVector<PresetInfo> list = listPresets();
+	const QString id = QString::number(QDateTime::currentMSecsSinceEpoch(), 36);
+	list.push_back({id, name.trimmed(), horizontal});
+	if (!saveUserPreset(id))
+		return {};
+	save_preset_index(presetIndexPath(), list);
+	return id;
+}
+
+bool ZoominatorController::removePreset(const QString &id)
+{
+	QVector<PresetInfo> list = listPresets();
+	bool found = false;
+	for (int i = 0; i < list.size(); ++i) {
+		if (list[i].id == id) {
+			list.removeAt(i);
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+		return false;
+	save_preset_index(presetIndexPath(), list);
+	const QString pp = presetPath(id);
+	if (!pp.isEmpty())
+		QFile::remove(pp);
+	return true;
+}
+
+bool ZoominatorController::renamePreset(const QString &id, const QString &name)
+{
+	QVector<PresetInfo> list = listPresets();
+	for (auto &pi : list) {
+		if (pi.id == id) {
+			pi.name = name.trimmed();
+			save_preset_index(presetIndexPath(), list);
+			return true;
+		}
+	}
+	return false;
 }
 
 /* Settings that belong to this computer or this moment rather than to a look. */
@@ -578,10 +694,10 @@ static void erase_machine_specific_keys(obs_data_t *data)
 		obs_data_erase(data, key);
 }
 
-bool ZoominatorController::saveUserPreset(bool horizontal)
+bool ZoominatorController::saveUserPreset(const QString &id)
 {
 	const QString cfg = configPath();
-	const QString dst = presetPath(horizontal);
+	const QString dst = presetPath(id);
 	if (cfg.isEmpty() || dst.isEmpty())
 		return false;
 
@@ -621,16 +737,25 @@ bool ZoominatorController::exportSettings(const QString &path)
 	obs_data_t *bundle = obs_data_create();
 	obs_data_set_string(bundle, "zoominator_export", "1");
 	obs_data_set_obj(bundle, "settings", data);
-	for (int i = 0; i < 2; ++i) {
-		const QString pp = presetPath(i == 1);
+	obs_data_array_t *presetArr = obs_data_array_create();
+	for (const PresetInfo &pi : listPresets()) {
+		const QString pp = presetPath(pi.id);
 		if (pp.isEmpty() || !QFileInfo::exists(pp))
 			continue;
 		const QByteArray ppUtf8 = pp.toUtf8();
 		if (obs_data_t *preset = obs_data_create_from_json_file_safe(ppUtf8.constData(), "bak")) {
-			obs_data_set_obj(bundle, i == 1 ? "preset_horizontal" : "preset_vertical", preset);
+			obs_data_t *row = obs_data_create();
+			obs_data_set_string(row, "id", pi.id.toUtf8().constData());
+			obs_data_set_string(row, "name", pi.name.toUtf8().constData());
+			obs_data_set_bool(row, "horizontal", pi.horizontal);
+			obs_data_set_obj(row, "data", preset);
+			obs_data_array_push_back(presetArr, row);
+			obs_data_release(row);
 			obs_data_release(preset);
 		}
 	}
+	obs_data_set_array(bundle, "presets", presetArr);
+	obs_data_array_release(presetArr);
 	obs_data_release(data);
 
 	const QByteArray outUtf8 = path.toUtf8();
@@ -673,17 +798,51 @@ bool ZoominatorController::importSettings(const QString &path)
 	obs_data_release(data);
 	obs_data_release(settings);
 
-	for (int i = 0; ok && i < 2; ++i) {
-		obs_data_t *preset = obs_data_get_obj(bundle, i == 1 ? "preset_horizontal" : "preset_vertical");
-		if (!preset)
-			continue;
-		const QString pp = presetPath(i == 1);
-		if (!pp.isEmpty()) {
+	if (ok) {
+		QVector<PresetInfo> list = listPresets();
+		auto upsert = [&](const QString &id, const QString &name, bool horizontal, obs_data_t *preset) {
+			if (id.isEmpty() || !preset)
+				return;
+			const QString pp = presetPath(id);
+			if (pp.isEmpty())
+				return;
 			ensure_parent_dir_exists(pp);
 			const QByteArray ppUtf8 = pp.toUtf8();
 			obs_data_save_json_safe(preset, ppUtf8.constData(), "tmp", "bak");
+			for (auto &pi : list) {
+				if (pi.id == id) {
+					pi.name = name;
+					pi.horizontal = horizontal;
+					return;
+				}
+			}
+			list.push_back({id, name, horizontal});
+		};
+		if (obs_data_array_t *arr = obs_data_get_array(bundle, "presets")) {
+			const size_t n = obs_data_array_count(arr);
+			for (size_t i = 0; i < n; ++i) {
+				obs_data_t *row = obs_data_array_item(arr, i);
+				if (!row)
+					continue;
+				obs_data_t *pd = obs_data_get_obj(row, "data");
+				upsert(QString::fromUtf8(obs_data_get_string(row, "id")),
+				       QString::fromUtf8(obs_data_get_string(row, "name")), obs_data_get_bool(row, "horizontal"),
+				       pd);
+				if (pd)
+					obs_data_release(pd);
+				obs_data_release(row);
+			}
+			obs_data_array_release(arr);
 		}
-		obs_data_release(preset);
+		/* Files from before presets could be added. */
+		for (int i = 0; i < 2; ++i) {
+			obs_data_t *preset = obs_data_get_obj(bundle, i == 1 ? "preset_horizontal" : "preset_vertical");
+			if (!preset)
+				continue;
+			upsert(i == 1 ? QStringLiteral("h1") : QStringLiteral("v1"), QString(), i == 1, preset);
+			obs_data_release(preset);
+		}
+		save_preset_index(presetIndexPath(), list);
 	}
 	obs_data_release(bundle);
 	if (!ok)
@@ -696,10 +855,10 @@ bool ZoominatorController::importSettings(const QString &path)
 
 /* Lays the saved preset over the current settings file and reloads it, so the
  * target screen and ticked sources stay as they are. */
-bool ZoominatorController::applyUserPreset(bool horizontal)
+bool ZoominatorController::applyUserPreset(const QString &id)
 {
 	const QString cfg = configPath();
-	const QString src = presetPath(horizontal);
+	const QString src = presetPath(id);
 	if (cfg.isEmpty() || src.isEmpty() || !QFileInfo::exists(src))
 		return false;
 
