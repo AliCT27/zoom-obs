@@ -124,6 +124,11 @@ void ZoominatorController::loadSettings()
 	wheelZoomExit = 0.0;
 	wheelZoomEnabled = false;
 	idleFollowX = false;
+	tilt3dEnabled = false;
+	tilt3dMaxX = 12.0;
+	tilt3dMaxY = 8.0;
+	tilt3dPerspective = 2.0;
+	tilt3dInvert = false;
 	wheelZoomModifier = QStringLiteral("alt");
 	animInMs = 180;
 	animOutMs = 320;
@@ -338,6 +343,19 @@ void ZoominatorController::loadSettings()
 	wheelZoomMinimum = 1.0;
 	if (obs_data_has_user_value(data, "idle_follow_x"))
 		idleFollowX = obs_data_get_bool(data, "idle_follow_x");
+	if (obs_data_has_user_value(data, "tilt3d_enabled"))
+		tilt3dEnabled = obs_data_get_bool(data, "tilt3d_enabled");
+	if (obs_data_has_user_value(data, "tilt3d_max_x"))
+		tilt3dMaxX = obs_data_get_double(data, "tilt3d_max_x");
+	if (obs_data_has_user_value(data, "tilt3d_max_y"))
+		tilt3dMaxY = obs_data_get_double(data, "tilt3d_max_y");
+	if (obs_data_has_user_value(data, "tilt3d_perspective"))
+		tilt3dPerspective = obs_data_get_double(data, "tilt3d_perspective");
+	if (obs_data_has_user_value(data, "tilt3d_invert"))
+		tilt3dInvert = obs_data_get_bool(data, "tilt3d_invert");
+	tilt3dMaxX = clampd(tilt3dMaxX, 0.0, 45.0);
+	tilt3dMaxY = clampd(tilt3dMaxY, 0.0, 45.0);
+	tilt3dPerspective = clampd(tilt3dPerspective, 0.8, 8.0);
 	if (obs_data_has_user_value(data, "wheel_zoom_enabled"))
 		wheelZoomEnabled = obs_data_get_bool(data, "wheel_zoom_enabled");
 	if (obs_data_has_user_value(data, "wheel_zoom_modifier"))
@@ -941,6 +959,11 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "wheel_zoom_exit", wheelZoomExit);
 	obs_data_set_bool(data, "wheel_zoom_enabled", wheelZoomEnabled);
 	obs_data_set_bool(data, "idle_follow_x", idleFollowX);
+	obs_data_set_bool(data, "tilt3d_enabled", tilt3dEnabled);
+	obs_data_set_double(data, "tilt3d_max_x", tilt3dMaxX);
+	obs_data_set_double(data, "tilt3d_max_y", tilt3dMaxY);
+	obs_data_set_double(data, "tilt3d_perspective", tilt3dPerspective);
+	obs_data_set_bool(data, "tilt3d_invert", tilt3dInvert);
 	obs_data_set_string(data, "wheel_zoom_modifier", wheelZoomModifier.toUtf8().constData());
 	obs_data_set_int(data, "anim_in_ms", animInMs);
 	obs_data_set_int(data, "anim_out_ms", animOutMs);

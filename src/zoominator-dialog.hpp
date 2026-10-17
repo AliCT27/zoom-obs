@@ -103,6 +103,11 @@ private:
 	QSpinBox *spMarkerIdleSize = nullptr;
 	QCheckBox *chkWheelZoom = nullptr;
 	QCheckBox *chkIdleFollowX = nullptr;
+	QCheckBox *chkTilt3d = nullptr;
+	QCheckBox *chkTiltInvert = nullptr;
+	QDoubleSpinBox *spTiltX = nullptr;
+	QDoubleSpinBox *spTiltY = nullptr;
+	QDoubleSpinBox *spTiltPersp = nullptr;
 	QVBoxLayout *presetListLay[2] = {nullptr, nullptr};
 	QComboBox *cmbWheelMod = nullptr;
 	QDoubleSpinBox *spWheelStep = nullptr;

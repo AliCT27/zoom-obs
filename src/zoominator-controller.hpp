@@ -161,6 +161,12 @@ public:
 	bool wheelZoomEnabled = false;
 	/* Not zoomed: pan the capture sideways so it follows the mouse in x. */
 	bool idleFollowX = false;
+	/* 3D camera: the captured screen leans towards the mouse. */
+	bool tilt3dEnabled = false;
+	double tilt3dMaxX = 12.0;  /* degrees of turn when the mouse is at the left / right edge */
+	double tilt3dMaxY = 8.0;   /* degrees of turn when the mouse is at the top / bottom edge */
+	double tilt3dPerspective = 2.0; /* camera distance in multiples of the screen's longer side */
+	bool tilt3dInvert = false;
 	QString wheelZoomModifier = QStringLiteral("alt");
 	int animInMs = 180;
 	int animOutMs = 320;
@@ -485,6 +491,19 @@ private:
 		obs_source_t *filter = nullptr; /* strong ref */
 	};
 	std::vector<IdleBlur> idleBlurs;
+
+	/* 3D camera filters on the target sources. Main thread only. */
+	struct TiltTarget {
+		obs_sceneitem_t *item = nullptr;
+		obs_source_t *target = nullptr; /* strong ref */
+		obs_source_t *filter = nullptr; /* strong ref */
+	};
+	std::vector<TiltTarget> tiltTargets;
+	double tiltYaw = 0.0, tiltPitch = 0.0; /* smoothed, radians */
+	qint64 tiltLastMs = 0;
+	qint64 tiltSyncMs = 0;
+	void updateTilt();
+	void detachTilt();
 	void updateIdleBlur(bool on, bool cursorOk, float sx, float sy);
 	void detachIdleBlurs();
 	void detachBlurFilters();

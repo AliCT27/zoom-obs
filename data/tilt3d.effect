@@ -1,0 +1,71 @@
+// Zoominator 3D tilt: shows the source as a flat sheet turned in 3D (perspective).
+// Rotation is around the sheet's centre; the camera looks straight at the screen plane.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 size_px;   // source size in pixels
+uniform float2 angles;    // x = rotation around the vertical axis, y = around the horizontal axis (radians)
+uniform float dist_px;    // camera distance in pixels
+uniform float scl;        // output scale (<= 1 keeps the turned sheet inside the frame)
+
+sampler_state tilt_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = vert_in.uv;
+	return vert_out;
+}
+
+float4 PSTilt(VertInOut vert_in) : TARGET
+{
+	float sa = sin(angles.x);
+	float ca = cos(angles.x);
+	float sb = sin(angles.y);
+	float cb = cos(angles.y);
+
+	float2 p = (vert_in.uv - 0.5) * size_px / scl;
+	float3 dir = float3(p.x, p.y, dist_px);
+	float3 n = float3(cb * sa, -sb, cb * ca);   // normal of the turned sheet
+	float denom = dot(dir, n);
+	if (denom < 0.0001)
+		return float4(0.0, 0.0, 0.0, 0.0);
+
+	float t = dist_px * n.z / denom;
+	float3 h = float3(t * dir.x, t * dir.y, -dist_px + t * dir.z);
+
+	// back to the sheet's own plane: Rx(-b) * Ry(-a)
+	float x1 = h.x * ca - h.z * sa;
+	float z1 = h.x * sa + h.z * ca;
+	float y2 = h.y * cb + z1 * sb;
+
+	float2 uv = float2(x1, y2) / size_px + 0.5;
+	float2 edge = min(uv, 1.0 - uv) * size_px;
+	float cover = saturate(min(edge.x, edge.y) + 0.5);
+	if (cover <= 0.0)
+		return float4(0.0, 0.0, 0.0, 0.0);
+
+	float4 c = image.Sample(tilt_sampler, uv);
+	c.a *= cover;
+	return c;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSTilt(vert_in);
+	}
+}

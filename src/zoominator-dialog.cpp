@@ -510,6 +510,42 @@ void ZoominatorDialog::buildUi()
 		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
 		lay->addWidget(chkIdleFollowX);
 
+		addSection(lay, T("Dialog.Section.Tilt3d"));
+		auto *tiltHelp = new QLabel(T("Dialog.Tilt3dHelp"), page);
+		tiltHelp->setWordWrap(true);
+		lay->addWidget(tiltHelp);
+		chkTilt3d = new QCheckBox(T("Dialog.Tilt3d"), page);
+		chkTilt3d->setToolTip(T("Dialog.Tilt3dTooltip"));
+		lay->addWidget(chkTilt3d);
+		spTiltX = new QDoubleSpinBox(page);
+		spTiltX->setRange(0.0, 45.0);
+		spTiltX->setSingleStep(1.0);
+		spTiltX->setDecimals(1);
+		spTiltX->setSuffix(QStringLiteral("°"));
+		spTiltX->setToolTip(T("Dialog.Tilt3dXTooltip"));
+		spTiltY = new QDoubleSpinBox(page);
+		spTiltY->setRange(0.0, 45.0);
+		spTiltY->setSingleStep(1.0);
+		spTiltY->setDecimals(1);
+		spTiltY->setSuffix(QStringLiteral("°"));
+		spTiltY->setToolTip(T("Dialog.Tilt3dYTooltip"));
+		spTiltPersp = new QDoubleSpinBox(page);
+		spTiltPersp->setRange(0.8, 8.0);
+		spTiltPersp->setSingleStep(0.2);
+		spTiltPersp->setDecimals(1);
+		spTiltPersp->setToolTip(T("Dialog.Tilt3dPerspTooltip"));
+		auto *tiltRow = new QHBoxLayout;
+		tiltRow->setSpacing(12);
+		tiltRow->addWidget(mkField(T("Dialog.Tilt3dX"), spTiltX), 1);
+		tiltRow->addWidget(mkField(T("Dialog.Tilt3dY"), spTiltY), 1);
+		tiltRow->addWidget(mkField(T("Dialog.Tilt3dPersp"), spTiltPersp), 1);
+		lay->addLayout(tiltRow);
+		chkTiltInvert = new QCheckBox(T("Dialog.Tilt3dInvert"), page);
+		chkTiltInvert->setToolTip(T("Dialog.Tilt3dInvertTooltip"));
+		lay->addWidget(chkTiltInvert);
+		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert})
+			connect(chkTilt3d, &QCheckBox::toggled, w, &QWidget::setEnabled);
+
 		addSection(lay, T("Dialog.Section.CursorHalo"));
 
 		chkShowCursorMarker = new QCheckBox(T("Dialog.ShowCursorHalo"), page);
@@ -1294,6 +1330,13 @@ void ZoominatorDialog::loadFromController()
 		chkCenterFocus->setChecked(c.centerFocus);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkIdleFollowX->setChecked(c.idleFollowX);
+		chkTilt3d->setChecked(c.tilt3dEnabled);
+		spTiltX->setValue(c.tilt3dMaxX);
+		spTiltY->setValue(c.tilt3dMaxY);
+		spTiltPersp->setValue(c.tilt3dPerspective);
+		chkTiltInvert->setChecked(c.tilt3dInvert);
+		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert})
+			w->setEnabled(c.tilt3dEnabled);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
 		spMarkerSize->setEnabled(c.showCursorMarker);
@@ -1423,6 +1466,11 @@ void ZoominatorDialog::applyToController()
 	c.mouseIdleTimeoutMs = 0;
 	c.portraitCover = chkPortraitCover->isChecked();
 	c.idleFollowX = chkIdleFollowX->isChecked();
+	c.tilt3dEnabled = chkTilt3d->isChecked();
+	c.tilt3dMaxX = spTiltX->value();
+	c.tilt3dMaxY = spTiltY->value();
+	c.tilt3dPerspective = spTiltPersp->value();
+	c.tilt3dInvert = chkTiltInvert->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
 	c.markerOnlyOnClick = true;
