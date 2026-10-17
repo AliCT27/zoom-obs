@@ -14,6 +14,7 @@ uniform float4x4 ViewProj;
 
 uniform float2 canvas_px;
 uniform float4 rect_px;
+uniform float4 tilt;     // yaw, pitch (radians), camera distance (px), sheet scale; distance 0 = flat
 uniform float radius_px;
 uniform float border_px;
 uniform float glow_px;
@@ -45,8 +46,30 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float2 half_size = float2(rect_px.z - rect_px.x, rect_px.w - rect_px.y) * 0.5;
 	float r = min(radius_px, min(half_size.x, half_size.y));
 
+	// 3D camera: look up where this pixel falls on the turned sheet (same maths as tilt3d.effect).
+	float2 pl = p;
+	if (tilt.z > 0.0) {
+		float sa = sin(tilt.x);
+		float ca = cos(tilt.x);
+		float sb = sin(tilt.y);
+		float cb = cos(tilt.y);
+		float3 dir = float3((p - center) / tilt.w, tilt.z);
+		float3 n = float3(cb * sa, -sb, cb * ca);
+		float denom = dot(dir, n);
+		if (denom < 0.0001) {
+			pl = center + float2(100000.0, 100000.0);
+		} else {
+			float t = tilt.z * n.z / denom;
+			float3 h = float3(t * dir.x, t * dir.y, -tilt.z + t * dir.z);
+			float x1 = h.x * ca - h.z * sa;
+			float z1 = h.x * sa + h.z * ca;
+			float y2 = h.y * cb + z1 * sb;
+			pl = center + float2(x1, y2);
+		}
+	}
+
 	// Signed distance to the rounded rectangle: negative inside, positive outside.
-	float2 q = abs(p - center) - (half_size - float2(r, r));
+	float2 q = abs(pl - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
 	float3 col = bg_color.rgb;

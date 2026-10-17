@@ -106,8 +106,7 @@ static void videoRender(void *data, gs_effect_t *)
 	const float longSide = (float)std::max(w, h);
 	const float dist = std::max(0.5f, d->persp.load(std::memory_order_relaxed)) * longSide;
 	/* The edge that swings towards the camera would grow past the frame; shrink the whole sheet to match. */
-	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
-	const float scale = std::clamp((dist - swing) / dist, 0.3f, 1.0f);
+	const float scale = scaleFor(yaw, pitch, d->persp.load(std::memory_order_relaxed), (float)w, (float)h);
 
 	vec2 v{};
 	v.x = (float)w;
