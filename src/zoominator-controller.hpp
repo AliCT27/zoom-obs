@@ -500,6 +500,8 @@ private:
 	};
 	std::vector<TiltTarget> tiltTargets;
 	double tiltYaw = 0.0, tiltPitch = 0.0; /* smoothed, radians */
+	std::atomic<double> tiltYawA{0.0}, tiltPitchA{0.0}; /* the same, readable from the graphics thread */
+	void applyTiltToIdlePoint(double &x, double &y) const;
 	qint64 tiltLastMs = 0;
 	qint64 tiltSyncMs = 0;
 	void updateTilt();
