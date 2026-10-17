@@ -498,6 +498,9 @@ void ZoominatorDialog::buildUi()
 
 		addSection(lay, T("Dialog.Section.Canvas"));
 
+		auto *coverHelp = new QLabel(T("Dialog.PortraitCoverHelp"), page);
+		coverHelp->setWordWrap(true);
+		lay->addWidget(coverHelp);
 		chkPortraitCover = new QCheckBox(T("Dialog.PortraitCover"), page);
 		chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
 		lay->addWidget(chkPortraitCover);
