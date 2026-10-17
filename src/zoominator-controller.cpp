@@ -987,6 +987,7 @@ void ZoominatorController::onTick()
 	}
 
 	checkAutoIdle();
+	updateTilt();
 
 	if (pendingFit && !zoomActive.load(std::memory_order_acquire) && !pendingFinish.load(std::memory_order_acquire)) {
 		pendingFit = false;
@@ -1007,7 +1008,7 @@ void ZoominatorController::onTick()
 	if (idleFocus || (!zoomTickWanted && (focusShown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !markerClickHasPos) {
-		if (!idleFocus && !idleFollowX)
+		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 			ensureTicking(false);
 		return;
 	}
@@ -1017,7 +1018,7 @@ void ZoominatorController::onTick()
 		markerClickFlashStartMs = 0;
 		markerClickFlashHoldUntilMs = 0;
 		markerClickFlashFadeOutEndMs = 0;
-		if (!idleFocus && !idleFollowX)
+		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 			ensureTicking(false);
 		return;
 	}
@@ -1044,7 +1045,7 @@ void ZoominatorController::onTick()
 			markerClickFlashStartMs = 0;
 			markerClickFlashHoldUntilMs = 0;
 			markerClickFlashFadeOutEndMs = 0;
-			if (!idleFocus && !idleFollowX)
+			if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 				ensureTicking(false);
 		}
 		return;
@@ -1104,7 +1105,7 @@ void ZoominatorController::onTick()
 			if (debug)
 				blog(LOG_WARNING, "[Zoominator] No movable scene items in current scene.");
 			tickingWanted.store(false, std::memory_order_release);
-			if (!idleFollowX)
+			if (!idleFollowX && !tilt3dEnabled)
 				ensureTicking(false);
 			resetState();
 			return;
