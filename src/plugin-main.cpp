@@ -1,6 +1,7 @@
 #include "frame-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "focus-blur-filter.hpp"
+#include "tilt-filter.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
@@ -20,6 +21,7 @@ bool obs_module_load(void)
 	obs_log(LOG_INFO, "[Zoominator] loaded (version %s)", PLUGIN_VERSION);
 
 	zoominator_blur::registerFilter();
+	zoominator_tilt::registerFilter();
 	zoominator_frame::registerSource();
 	zoominator_camring::registerFilter();
 	ZoominatorController::instance().initialize();

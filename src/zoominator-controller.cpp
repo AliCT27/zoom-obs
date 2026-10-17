@@ -415,6 +415,7 @@ void ZoominatorController::shutdown()
 	ensureTicking(false);
 	detachBlurFilters();
 	detachIdleBlurs();
+	detachTilt();
 	releaseSoundSources();
 	zoominator_frame::clearRect();
 	if (camFilter) {
