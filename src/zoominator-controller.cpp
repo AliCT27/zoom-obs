@@ -825,44 +825,6 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 	}
 
-	/* 3D camera: the screen is a sheet turned about its centre by the tilt filter, so the points that must sit
-	 * on the picture (spotlight, halo) are moved the same way. The frame does it in its own shader. */
-	const double tYaw = tiltYawA.load(std::memory_order_relaxed);
-	const double tPitch = tiltPitchA.load(std::memory_order_relaxed);
-	double tcx = 0.0, tcy = 0.0, tkx = 1.0, tky = 1.0, tw = 0.0, th = 0.0;
-	bool haveSheet = false;
-	if (tilt3dEnabled && (std::fabs(tYaw) > 0.0005 || std::fabs(tPitch) > 0.0005)) {
-		for (auto &st : sceneItems) {
-			if (!st.item || !st.orig.valid || !isLiveItem(st.item) || !obs_sceneitem_visible(st.item))
-				continue;
-			obs_source_t *tsrc = obs_sceneitem_get_source(st.item);
-			if (!tsrc)
-				continue;
-			tw = (double)obs_source_get_width(tsrc);
-			th = (double)obs_source_get_height(tsrc);
-			if (tw < 1.0 || th < 1.0)
-				continue;
-			const double cxo = (double)st.orig.effectivePos.x +
-					   (tw * 0.5 - (double)st.orig.crop.left) * (double)st.orig.effectiveScale.x;
-			const double cyo = (double)st.orig.effectivePos.y +
-					   (th * 0.5 - (double)st.orig.crop.top) * (double)st.orig.effectiveScale.y;
-			tcx = (double)anchorX + (cxo - (double)fx) * z + offsetX;
-			tcy = (double)anchorY + (cyo - (double)fy) * z + offsetY;
-			tkx = std::max(1e-4, (double)st.orig.effectiveScale.x * z);
-			tky = std::max(1e-4, (double)st.orig.effectiveScale.y * z);
-			haveSheet = true;
-			break;
-		}
-	}
-	auto tiltPt = [&](double &x, double &y) {
-		if (!haveSheet)
-			return;
-		double px = (x - tcx) / tkx, py = (y - tcy) / tky;
-		zoominator_tilt::projectPoint(tYaw, tPitch, tilt3dPerspective, tw, th, px, py);
-		x = tcx + px * tkx;
-		y = tcy + py * tky;
-	};
-
 	const qint64 nowApplyMs = nowMs;
 	const bool steadyFollow = zoomAnchor == ZoomAnchorMode::CursorFollow && followMouseRuntimeEnabled &&
 				  !mouseTrackingIdle && animDir.load(std::memory_order_relaxed) == 0 && animT >= 0.999;
@@ -875,13 +837,11 @@ void ZoominatorController::applyZoomToScene(double t)
 			pendingMarkerVisible = showCursorMarker && markerHasPoint;
 			pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 			pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
-			tiltPt(pendingMarkerX, pendingMarkerY);
-			pendingFocusVisible = focusEnabled && mapped && snapInside;
+				pendingFocusVisible = focusEnabled && mapped && snapInside;
 			pendingFocusFresh = true;
 			pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
 			pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
-			tiltPt(pendingFocusX, pendingFocusY);
-			pendingFocusOpacity = (int)std::lround(ttA * 255.0);
+				pendingFocusOpacity = (int)std::lround(ttA * 255.0);
 			return;
 		}
 	}
@@ -982,7 +942,7 @@ void ZoominatorController::applyZoomToScene(double t)
 	}
 
 	/* Frame: the screen's rectangle as it appears right now. */
-	if (frameEnabled) {
+	if (frameEnabled || tilt3dEnabled) {
 		vec2 fmn{}, fmx{};
 		bool fvalid = false;
 		for (auto &state : sceneItems) {
@@ -995,8 +955,10 @@ void ZoominatorController::applyZoomToScene(double t)
 			moved.effectiveScale = state.lastAppliedScale;
 			accumulateItemBounds(moved, obs_sceneitem_get_source(state.item), fmn, fmx, fvalid);
 		}
-		if (fvalid)
+		if (fvalid && frameEnabled)
 			zoominator_frame::setRect(fmn.x, fmn.y, fmx.x, fmx.y);
+		if (fvalid && tilt3dEnabled)
+			zoominator_tilt::setSheet(fmn.x, fmn.y, fmx.x, fmx.y);
 	}
 
 	/* Marker placement is published rather than applied: creating the marker
@@ -1009,11 +971,9 @@ void ZoominatorController::applyZoomToScene(double t)
 		pendingMarkerVisible = showCursorMarker && markerHasPoint;
 		pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 		pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
-		tiltPt(pendingMarkerX, pendingMarkerY);
 		pendingFocusVisible = focusEnabled && mapped && snapInside;
 		pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
 		pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
-		tiltPt(pendingFocusX, pendingFocusY);
 		pendingFocusOpacity = (int)std::lround(ttA * 255.0);
 	}
 }
@@ -1197,6 +1157,8 @@ void ZoominatorController::onTick()
 
 		/* With "show focus when not zoomed" the spotlight stays fully visible while
 		 * zooming and only its radius eases; otherwise it fades with the zoom. */
+		applyTiltToIdlePoint(focusX, focusY);
+		applyTiltToIdlePoint(markerX, markerY);
 		const bool keepIdle = showFocusWhenNotZoomed && wantsDim();
 		if (wantsDim() && focusVisible && (focusOpacity > 0 || keepIdle)) {
 			updateFocus(sc, focusX, focusY, keepIdle ? 255 : focusOpacity, false, focusOpacity);

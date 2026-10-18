@@ -25,7 +25,6 @@ std::mutex g_mutex;
 Style g_style;
 bool g_rectValid = false;
 float g_rect[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-float g_tilt[3] = {0.0f, 0.0f, 2.0f}; /* yaw, pitch (radians), perspective */
 bool g_loadFailed = false;
 
 struct FrameData {
@@ -33,6 +32,7 @@ struct FrameData {
 	gs_eparam_t *pCanvas = nullptr;
 	gs_eparam_t *pRect = nullptr;
 	gs_eparam_t *pTilt = nullptr; /* optional */
+	gs_eparam_t *pTiltPivot = nullptr; /* optional */
 	gs_eparam_t *pRadius = nullptr;
 	gs_eparam_t *pBorder = nullptr;
 	gs_eparam_t *pGlow = nullptr;
@@ -68,6 +68,7 @@ void loadEffect(FrameData *d)
 		d->pCanvas = gs_effect_get_param_by_name(d->effect, "canvas_px");
 		d->pRect = gs_effect_get_param_by_name(d->effect, "rect_px");
 		d->pTilt = gs_effect_get_param_by_name(d->effect, "tilt");
+		d->pTiltPivot = gs_effect_get_param_by_name(d->effect, "tilt_pivot");
 		d->pRadius = gs_effect_get_param_by_name(d->effect, "radius_px");
 		d->pBorder = gs_effect_get_param_by_name(d->effect, "border_px");
 		d->pGlow = gs_effect_get_param_by_name(d->effect, "glow_px");
@@ -137,7 +138,6 @@ void videoRender(void *data, gs_effect_t *)
 
 	Style s;
 	float r[4];
-	float tl[3];
 	bool valid;
 	{
 		std::lock_guard<std::mutex> lock(g_mutex);
@@ -145,8 +145,6 @@ void videoRender(void *data, gs_effect_t *)
 		valid = g_rectValid;
 		for (int i = 0; i < 4; ++i)
 			r[i] = g_rect[i];
-		for (int i = 0; i < 3; ++i)
-			tl[i] = g_tilt[i];
 	}
 	if (!valid)
 		return;
@@ -163,16 +161,20 @@ void videoRender(void *data, gs_effect_t *)
 	vec4 rect;
 	vec4_set(&rect, r[0], r[1], r[2], r[3]);
 	gs_effect_set_vec4(d->pRect, &rect);
-	if (d->pTilt) {
-		/* The screen is a sheet of the rectangle's size turned about its centre: same maths as the filter. */
-		const float rw = r[2] - r[0], rh = r[3] - r[1];
+	if (d->pTilt && d->pTiltPivot) {
+		/* The screen is turned about the pivot: same maths as the filter (see Pose). */
+		zoominator_tilt::Pose pose;
 		vec4 t;
-		if ((std::fabs(tl[0]) < 0.0005f && std::fabs(tl[1]) < 0.0005f) || rw < 4.0f || rh < 4.0f)
+		vec2 pv;
+		if (zoominator_tilt::getPose(pose)) {
+			vec4_set(&t, pose.yaw, pose.pitch, pose.dist, pose.scl);
+			vec2_set(&pv, pose.px, pose.py);
+		} else {
 			vec4_set(&t, 0.0f, 0.0f, 0.0f, 1.0f);
-		else
-			vec4_set(&t, tl[0], tl[1], std::max(0.5f, tl[2]) * std::max(rw, rh),
-				 zoominator_tilt::sheetScale(tl[0], tl[1], tl[2], rw, rh));
+			vec2_set(&pv, 0.0f, 0.0f);
+		}
 		gs_effect_set_vec4(d->pTilt, &t);
+		gs_effect_set_vec2(d->pTiltPivot, &pv);
 	}
 	gs_effect_set_float(d->pRadius, s.radiusPx);
 	gs_effect_set_float(d->pBorder, s.borderPx);
@@ -240,14 +242,6 @@ void setRect(float left, float top, float right, float bottom)
 	g_rect[2] = right;
 	g_rect[3] = bottom;
 	g_rectValid = true;
-}
-
-void setTilt(float yaw, float pitch, float perspective)
-{
-	std::lock_guard<std::mutex> lock(g_mutex);
-	g_tilt[0] = yaw;
-	g_tilt[1] = pitch;
-	g_tilt[2] = perspective;
 }
 
 void clearRect()

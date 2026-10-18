@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <mutex>
 
 namespace zoominator_tilt {
 
@@ -17,41 +18,123 @@ static constexpr const char *kEffectFile = "tilt3d.effect";
 struct TiltData {
 	obs_source_t *context = nullptr;
 	gs_effect_t *effect = nullptr;
+	gs_eparam_t *pOrigin = nullptr;
 	gs_eparam_t *pSize = nullptr;
+	gs_eparam_t *pPivot = nullptr;
 	gs_eparam_t *pAngles = nullptr;
 	gs_eparam_t *pDist = nullptr;
 	gs_eparam_t *pScale = nullptr;
-
-	std::atomic<float> yaw{0.0f};
-	std::atomic<float> pitch{0.0f};
-	std::atomic<float> persp{2.0f};
 };
+
+namespace {
+std::mutex g_mutex;
+float g_yaw = 0.0f, g_pitch = 0.0f, g_persp = 2.0f;
+bool g_sheetValid = false;
+float g_sheet[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+float satf(float v)
+{
+	return std::clamp(v, 0.0f, 1.0f);
+}
+
+/* Pivot on one axis: the middle of the sheet while the sheet is no bigger than the canvas, the sheet point under
+ * the middle of the canvas once it is zoomed past it. Blended so nothing jumps while zooming. */
+float pivotAxis(float lo, float hi, float canvasMid)
+{
+	const float mid = 0.5f * (lo + hi);
+	const float under = std::clamp(canvasMid, lo, hi);
+	const float t = satf(((hi - lo) / (2.0f * canvasMid) - 1.0f) / 0.25f);
+	return mid + (under - mid) * t;
+}
+} // namespace
+
+void setAngles(float yaw, float pitch, float perspective)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_yaw = yaw;
+	g_pitch = pitch;
+	g_persp = perspective;
+}
+
+void setSheet(float left, float top, float right, float bottom)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_sheet[0] = left;
+	g_sheet[1] = top;
+	g_sheet[2] = right;
+	g_sheet[3] = bottom;
+	g_sheetValid = right - left > 1.0f && bottom - top > 1.0f;
+}
+
+void reset()
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_sheetValid = false;
+	g_yaw = 0.0f;
+	g_pitch = 0.0f;
+}
+
+bool getPose(Pose &out)
+{
+	float yaw, pitch, persp, sh[4];
+	{
+		std::lock_guard<std::mutex> lock(g_mutex);
+		if (!g_sheetValid)
+			return false;
+		yaw = g_yaw;
+		pitch = g_pitch;
+		persp = g_persp;
+		for (int i = 0; i < 4; ++i)
+			sh[i] = g_sheet[i];
+	}
+	if (std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f)
+		return false;
+	obs_video_info ovi{};
+	if (!obs_get_video_info(&ovi) || ovi.base_width == 0 || ovi.base_height == 0)
+		return false;
+	const float cw = (float)ovi.base_width, ch = (float)ovi.base_height;
+	const float w = sh[2] - sh[0], h = sh[3] - sh[1];
+	const float longCanvas = std::max(cw, ch);
+	const float longSheet = std::min(std::max(w, h), longCanvas);
+	const float sy = std::fabs(std::sin(yaw)), sp = std::fabs(std::sin(pitch));
+
+	out.yaw = yaw;
+	out.pitch = pitch;
+	out.px = pivotAxis(sh[0], sh[2], cw * 0.5f);
+	out.py = pivotAxis(sh[1], sh[3], ch * 0.5f);
+	out.dist = std::max(0.5f, persp) * longSheet;
+	out.left = sh[0];
+	out.top = sh[1];
+	out.width = w;
+	out.height = h;
+
+	/* Not zoomed: shrink so the edge swinging towards the camera stays on the canvas. Zoomed: the sheet runs past
+	 * the canvas, so instead grow it a little so the edge swinging away does not leave a gap. */
+	const float swing = 0.5f * longSheet * std::max(sy, sp);
+	const float shrink = std::clamp((out.dist - swing) / out.dist, 0.3f, 1.0f);
+	const float grow = 1.01f + std::max(0.5f * cw * sy, 0.5f * ch * sp) / out.dist;
+	const float zoomT = satf((std::max(w / cw, h / ch) - 1.0f) / 0.25f);
+	out.scl = shrink + (grow - shrink) * zoomT;
+	return true;
+}
+
+void projectPoint(const Pose &p, double &x, double &y)
+{
+	const double sa = std::sin(p.yaw), ca = std::cos(p.yaw);
+	const double sb = std::sin(p.pitch), cb = std::cos(p.pitch);
+	const double X = x - p.px, Y = y - p.py;
+	const double hy = Y * cb;
+	const double z1 = Y * sb;
+	const double hx = X * ca + z1 * sa;
+	const double hz = -X * sa + z1 * ca;
+	const double k = (double)p.dist / std::max(0.01 * (double)p.dist, hz + (double)p.dist);
+	x = p.px + hx * k * (double)p.scl;
+	y = p.py + hy * k * (double)p.scl;
+}
 
 static const char *getName(void *)
 {
 	return kFilterName;
-}
-
-float sheetScale(float yaw, float pitch, float persp, float w, float h)
-{
-	const float longSide = std::max(w, h);
-	const float dist = std::max(0.5f, persp) * longSide;
-	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
-	return std::clamp((dist - swing) / dist, 0.3f, 1.0f);
-}
-
-void projectPoint(double yaw, double pitch, double persp, double w, double h, double &x, double &y)
-{
-	const double longSide = std::max(w, h);
-	const double dist = std::max(0.5, persp) * longSide;
-	const double sa = std::sin(yaw), ca = std::cos(yaw), sb = std::sin(pitch), cb = std::cos(pitch);
-	const double xr = x * ca + y * sb * sa;
-	const double yr = y * cb;
-	const double zr = -x * sa + y * sb * ca;
-	const double depth = std::max(1.0, dist + zr);
-	const double k = dist / depth * (double)sheetScale((float)yaw, (float)pitch, (float)persp, (float)w, (float)h);
-	x = xr * k;
-	y = yr * k;
 }
 
 static void loadEffect(TiltData *d)
@@ -68,11 +151,13 @@ static void loadEffect(TiltData *d)
 		blog(LOG_WARNING, "[Zoominator] 3D tilt: shader failed to load from %s: %s", path,
 		     error ? error : "(no message)");
 	} else {
-		d->pSize = gs_effect_get_param_by_name(d->effect, "size_px");
+		d->pOrigin = gs_effect_get_param_by_name(d->effect, "sheet_origin");
+		d->pSize = gs_effect_get_param_by_name(d->effect, "sheet_size");
+		d->pPivot = gs_effect_get_param_by_name(d->effect, "pivot");
 		d->pAngles = gs_effect_get_param_by_name(d->effect, "angles");
 		d->pDist = gs_effect_get_param_by_name(d->effect, "dist_px");
 		d->pScale = gs_effect_get_param_by_name(d->effect, "scl");
-		if (!d->pSize || !d->pAngles || !d->pDist || !d->pScale) {
+		if (!d->pOrigin || !d->pSize || !d->pPivot || !d->pAngles || !d->pDist || !d->pScale) {
 			blog(LOG_WARNING, "[Zoominator] 3D tilt: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -112,12 +197,11 @@ static void videoRender(void *data, gs_effect_t *)
 		return;
 	}
 
-	const float yaw = d->yaw.load(std::memory_order_relaxed);
-	const float pitch = d->pitch.load(std::memory_order_relaxed);
 	obs_source_t *target = obs_filter_get_target(d->context);
 	const uint32_t w = target ? obs_source_get_base_width(target) : 0;
 	const uint32_t h = target ? obs_source_get_base_height(target) : 0;
-	if ((std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f) || w == 0 || h == 0) {
+	Pose pose;
+	if (!getPose(pose) || w == 0 || h == 0) {
 		obs_source_skip_video_filter(d->context);
 		return;
 	}
@@ -125,20 +209,21 @@ static void videoRender(void *data, gs_effect_t *)
 	if (!obs_source_process_filter_begin(d->context, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING))
 		return;
 
-	const float longSide = (float)std::max(w, h);
-	const float dist = std::max(0.5f, d->persp.load(std::memory_order_relaxed)) * longSide;
-	/* The edge that swings towards the camera would grow past the frame; shrink the whole sheet to match. */
-	const float scale = sheetScale(yaw, pitch, d->persp.load(std::memory_order_relaxed), (float)w, (float)h);
-
 	vec2 v{};
-	v.x = (float)w;
-	v.y = (float)h;
+	v.x = pose.left;
+	v.y = pose.top;
+	gs_effect_set_vec2(d->pOrigin, &v);
+	v.x = pose.width;
+	v.y = pose.height;
 	gs_effect_set_vec2(d->pSize, &v);
-	v.x = yaw;
-	v.y = pitch;
+	v.x = pose.px;
+	v.y = pose.py;
+	gs_effect_set_vec2(d->pPivot, &v);
+	v.x = pose.yaw;
+	v.y = pose.pitch;
 	gs_effect_set_vec2(d->pAngles, &v);
-	gs_effect_set_float(d->pDist, dist);
-	gs_effect_set_float(d->pScale, scale);
+	gs_effect_set_float(d->pDist, pose.dist);
+	gs_effect_set_float(d->pScale, pose.scl);
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
@@ -180,8 +265,6 @@ obs_source_t *attach(obs_source_t *target)
 		obs_source_release(filter);
 		return nullptr;
 	}
-	d->yaw.store(0.0f, std::memory_order_relaxed);
-	d->pitch.store(0.0f, std::memory_order_relaxed);
 	return filter;
 }
 
@@ -189,23 +272,9 @@ void detach(obs_source_t *target, obs_source_t *filter)
 {
 	if (!filter)
 		return;
-	if (TiltData *d = dataOf(filter)) {
-		d->yaw.store(0.0f, std::memory_order_relaxed);
-		d->pitch.store(0.0f, std::memory_order_relaxed);
-	}
 	if (target)
 		obs_source_filter_remove(target, filter);
 	obs_source_release(filter);
-}
-
-void setParams(obs_source_t *filter, float yaw, float pitch, float perspective)
-{
-	TiltData *d = dataOf(filter);
-	if (!d)
-		return;
-	d->yaw.store(yaw, std::memory_order_relaxed);
-	d->pitch.store(pitch, std::memory_order_relaxed);
-	d->persp.store(perspective, std::memory_order_relaxed);
 }
 
 } // namespace zoominator_tilt
