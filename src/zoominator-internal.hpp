@@ -7,6 +7,19 @@
 #include "zoominator-controller.hpp"
 #include "focus-blur-filter.hpp"
 #include "tilt-filter.hpp"
+
+/* Moves a canvas point to where the 3D camera shows it (no-op when the screen is not turned). Used for
+ * everything drawn on top of the picture that has to stay on the cursor: focus spotlight, cursor halo. */
+inline void zoominatorTiltPoint(double &x, double &y)
+{
+	zoominator_tilt::Pose pose;
+	if (!zoominator_tilt::getPose(pose))
+		return;
+	float ox = 0.0f, oy = 0.0f, ls = 1.0f;
+	zoominator_tilt::project(pose, (float)x, (float)y, ox, oy, ls);
+	x = ox;
+	y = oy;
+}
 #include "frame-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "caret-locator.hpp"

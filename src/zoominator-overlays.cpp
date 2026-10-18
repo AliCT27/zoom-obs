@@ -795,7 +795,9 @@ void ZoominatorController::updateIdleFocus(bool on)
 			bool inside = false;
 			cursorOk = getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside;
 			if (cursorOk && wantsDim()) {
-				updateFocus(scene, (double)sx, (double)sy, 255, true);
+				double fxp = (double)sx, fyp = (double)sy;
+				zoominatorTiltPoint(fxp, fyp);
+				updateFocus(scene, fxp, fyp, 255, true);
 				shown = focusShown;
 			}
 		}
@@ -826,6 +828,7 @@ void ZoominatorController::detachTilt()
 	tiltTargets.clear();
 	tiltYaw = 0.0;
 	tiltPitch = 0.0;
+	zoominator_tilt::clearSheet();
 }
 
 /* 3D camera: turns the captured screen towards the mouse. The filter sits on the source, so it works
@@ -841,6 +844,11 @@ void ZoominatorController::updateTilt()
 	const qint64 now = QDateTime::currentMSecsSinceEpoch();
 	if (tiltTargets.empty() || now - tiltSyncMs >= 500) {
 		tiltSyncMs = now;
+		/* The turn has to be the last filter on the source, so the blur is turned along with the picture. */
+		for (auto &t : tiltTargets) {
+			if (t.target && t.filter)
+				obs_source_filter_set_order(t.target, t.filter, OBS_ORDER_MOVE_BOTTOM);
+		}
 		std::vector<obs_sceneitem_t *> items;
 		enumerateTargetItemsInCurrentScene(items);
 		bool same = items.size() == tiltTargets.size();
@@ -886,6 +894,20 @@ void ZoominatorController::updateTilt()
 
 	for (auto &t : tiltTargets)
 		zoominator_tilt::setParams(t.filter, (float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective);
+
+	/* The same turn for everything drawn outside the filter: the Frame and the spotlight / halo. While
+	 * zooming the graphics thread publishes the sheet every frame; otherwise it is the content's bounds. */
+	zoominator_tilt::setAngles((float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective);
+	if (!zoomActive.load(std::memory_order_acquire)) {
+		std::vector<obs_sceneitem_t *> items;
+		for (auto &t : tiltTargets)
+			items.push_back(t.item);
+		vec2 mn{}, mx{};
+		if (computeTargetBounds(items, mn, mx))
+			zoominator_tilt::setSheet(mn.x, mn.y, mx.x, mx.y);
+		else
+			zoominator_tilt::clearSheet();
+	}
 }
 
 void ZoominatorController::hideFocusInScene(obs_scene_t *scene)

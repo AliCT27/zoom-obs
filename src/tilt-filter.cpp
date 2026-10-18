@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <mutex>
 
 namespace zoominator_tilt {
 
@@ -26,6 +27,77 @@ struct TiltData {
 	std::atomic<float> pitch{0.0f};
 	std::atomic<float> persp{2.0f};
 };
+
+namespace {
+std::mutex g_poseMutex;
+float g_yaw = 0.0f, g_pitch = 0.0f, g_persp = 2.0f;
+bool g_sheetValid = false;
+float g_sheet[4] = {0, 0, 0, 0};
+
+/* The same distance / shrink rule the filter uses, for a sheet of w x h pixels. */
+void geometry(float w, float h, float yaw, float pitch, float persp, float &dist, float &scale)
+{
+	const float longSide = std::max(w, h);
+	dist = std::max(0.5f, persp) * longSide;
+	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
+	scale = std::clamp((dist - swing) / dist, 0.3f, 1.0f);
+}
+} // namespace
+
+void setAngles(float yaw, float pitch, float perspective)
+{
+	std::lock_guard<std::mutex> lock(g_poseMutex);
+	g_yaw = yaw;
+	g_pitch = pitch;
+	g_persp = perspective;
+}
+
+void setSheet(float left, float top, float right, float bottom)
+{
+	std::lock_guard<std::mutex> lock(g_poseMutex);
+	g_sheet[0] = left;
+	g_sheet[1] = top;
+	g_sheet[2] = right;
+	g_sheet[3] = bottom;
+	g_sheetValid = right - left > 1.0f && bottom - top > 1.0f;
+}
+
+void clearSheet()
+{
+	std::lock_guard<std::mutex> lock(g_poseMutex);
+	g_sheetValid = false;
+	g_yaw = 0.0f;
+	g_pitch = 0.0f;
+}
+
+bool getPose(Pose &out)
+{
+	std::lock_guard<std::mutex> lock(g_poseMutex);
+	if (!g_sheetValid || (std::fabs(g_yaw) < 0.0005f && std::fabs(g_pitch) < 0.0005f))
+		return false;
+	out.yaw = g_yaw;
+	out.pitch = g_pitch;
+	out.cx = (g_sheet[0] + g_sheet[2]) * 0.5f;
+	out.cy = (g_sheet[1] + g_sheet[3]) * 0.5f;
+	geometry(g_sheet[2] - g_sheet[0], g_sheet[3] - g_sheet[1], g_yaw, g_pitch, g_persp, out.dist, out.scl);
+	return true;
+}
+
+void project(const Pose &p, float x, float y, float &outX, float &outY, float &localScale)
+{
+	const float sa = std::sin(p.yaw), ca = std::cos(p.yaw);
+	const float sb = std::sin(p.pitch), cb = std::cos(p.pitch);
+	const float X = x - p.cx;
+	const float Y = y - p.cy;
+	const float hy = Y * cb;
+	const float z1 = Y * sb;
+	const float hx = X * ca + z1 * sa;
+	const float hz = -X * sa + z1 * ca;
+	const float k = p.dist / std::max(0.01f * p.dist, hz + p.dist);
+	outX = p.cx + hx * k * p.scl;
+	outY = p.cy + hy * k * p.scl;
+	localScale = k * p.scl;
+}
 
 static const char *getName(void *)
 {
@@ -103,11 +175,9 @@ static void videoRender(void *data, gs_effect_t *)
 	if (!obs_source_process_filter_begin(d->context, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING))
 		return;
 
-	const float longSide = (float)std::max(w, h);
-	const float dist = std::max(0.5f, d->persp.load(std::memory_order_relaxed)) * longSide;
-	/* The edge that swings towards the camera would grow past the frame; shrink the whole sheet to match. */
-	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
-	const float scale = std::clamp((dist - swing) / dist, 0.3f, 1.0f);
+	float dist = 1.0f, scale = 1.0f;
+	/* The edge that swings towards the camera would grow past the frame; geometry() shrinks the sheet to match. */
+	geometry((float)w, (float)h, yaw, pitch, d->persp.load(std::memory_order_relaxed), dist, scale);
 
 	vec2 v{};
 	v.x = (float)w;

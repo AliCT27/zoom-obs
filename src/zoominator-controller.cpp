@@ -942,8 +942,8 @@ void ZoominatorController::applyZoomToScene(double t)
 		camLastValid = true;
 	}
 
-	/* Frame: the screen's rectangle as it appears right now. */
-	if (frameEnabled) {
+	/* Frame / 3D camera: the screen's rectangle as it appears right now. */
+	if (frameEnabled || tilt3dEnabled) {
 		vec2 fmn{}, fmx{};
 		bool fvalid = false;
 		for (auto &state : sceneItems) {
@@ -956,8 +956,10 @@ void ZoominatorController::applyZoomToScene(double t)
 			moved.effectiveScale = state.lastAppliedScale;
 			accumulateItemBounds(moved, obs_sceneitem_get_source(state.item), fmn, fmx, fvalid);
 		}
-		if (fvalid)
+		if (fvalid && frameEnabled)
 			zoominator_frame::setRect(fmn.x, fmn.y, fmx.x, fmx.y);
+		if (fvalid && tilt3dEnabled)
+			zoominator_tilt::setSheet(fmn.x, fmn.y, fmx.x, fmx.y);
 	}
 
 	/* Marker placement is published rather than applied: creating the marker
@@ -1032,8 +1034,11 @@ void ZoominatorController::onTick()
 		obs_source_t *sceneSource = obs_frontend_get_current_scene();
 		if (obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr) {
 			const int opacity = currentMarkerOpacity(nowMs);
-			if (showCursorMarker && opacity > 0)
-				updateMarkerPosition(scene, markerClickX, markerClickY, opacity, true);
+			if (showCursorMarker && opacity > 0) {
+				double clickX = markerClickX, clickY = markerClickY;
+				zoominatorTiltPoint(clickX, clickY);
+				updateMarkerPosition(scene, clickX, clickY, opacity, true);
+			}
 			else
 				hideMarkerInScene(scene);
 		}
@@ -1152,6 +1157,8 @@ void ZoominatorController::onTick()
 
 		/* With "show focus when not zoomed" the spotlight stays fully visible while
 		 * zooming and only its radius eases; otherwise it fades with the zoom. */
+		zoominatorTiltPoint(focusX, focusY);
+		zoominatorTiltPoint(markerX, markerY);
 		const bool keepIdle = showFocusWhenNotZoomed && wantsDim();
 		if (wantsDim() && focusVisible && (focusOpacity > 0 || keepIdle)) {
 			updateFocus(sc, focusX, focusY, keepIdle ? 255 : focusOpacity, false, focusOpacity);

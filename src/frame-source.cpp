@@ -1,4 +1,5 @@
 #include "frame-source.hpp"
+#include "tilt-filter.hpp"
 
 #include <graphics/graphics.h>
 #include <graphics/vec2.h>
@@ -37,6 +38,11 @@ struct FrameData {
 	gs_eparam_t *pBgColor2 = nullptr;
 	gs_eparam_t *pBgMode = nullptr;
 	gs_eparam_t *pBgAngle = nullptr;
+	gs_eparam_t *pTiltOn = nullptr;
+	gs_eparam_t *pTiltCenter = nullptr;
+	gs_eparam_t *pTiltAngles = nullptr;
+	gs_eparam_t *pTiltDist = nullptr;
+	gs_eparam_t *pTiltScl = nullptr;
 };
 
 const char *getName(void *)
@@ -71,7 +77,16 @@ void loadEffect(FrameData *d)
 		d->pBgColor2 = gs_effect_get_param_by_name(d->effect, "bg_color2");
 		d->pBgMode = gs_effect_get_param_by_name(d->effect, "bg_mode");
 		d->pBgAngle = gs_effect_get_param_by_name(d->effect, "bg_angle");
-		if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
+		d->pTiltOn = gs_effect_get_param_by_name(d->effect, "tilt_on");
+		d->pTiltCenter = gs_effect_get_param_by_name(d->effect, "tilt_center");
+		d->pTiltAngles = gs_effect_get_param_by_name(d->effect, "tilt_angles");
+		d->pTiltDist = gs_effect_get_param_by_name(d->effect, "tilt_dist");
+		d->pTiltScl = gs_effect_get_param_by_name(d->effect, "tilt_scl");
+		if (!d->pTiltOn || !d->pTiltCenter || !d->pTiltAngles || !d->pTiltDist || !d->pTiltScl) {
+			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing the 3D parameters", kEffectFile);
+			gs_effect_destroy(d->effect);
+			d->effect = nullptr;
+		} else if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
 		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle) {
 			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -163,6 +178,17 @@ void videoRender(void *data, gs_effect_t *)
 	setColor(d->pBgColor2, s.bgColor2);
 	gs_effect_set_float(d->pBgMode, (float)s.bgMode);
 	gs_effect_set_float(d->pBgAngle, s.bgAngleDeg * 3.14159265f / 180.0f);
+
+	zoominator_tilt::Pose pose;
+	const bool tilted = zoominator_tilt::getPose(pose);
+	gs_effect_set_float(d->pTiltOn, tilted ? 1.0f : 0.0f);
+	vec2 tv;
+	vec2_set(&tv, pose.cx, pose.cy);
+	gs_effect_set_vec2(d->pTiltCenter, &tv);
+	vec2_set(&tv, pose.yaw, pose.pitch);
+	gs_effect_set_vec2(d->pTiltAngles, &tv);
+	gs_effect_set_float(d->pTiltDist, pose.dist);
+	gs_effect_set_float(d->pTiltScl, pose.scl);
 
 	while (gs_effect_loop(d->effect, "Draw"))
 		gs_draw_sprite(nullptr, 0, (uint32_t)w, (uint32_t)h);

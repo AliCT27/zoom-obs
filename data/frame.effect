@@ -24,6 +24,15 @@ uniform float4 bg_color2;
 uniform float bg_mode;   // 0 solid, 1 linear, 2 radial
 uniform float bg_angle;  // radians, linear only: 0 = left to right, pi/2 = top to bottom
 
+// 3D camera: when tilt_on > 0.5 the screen is a sheet turned in 3D around tilt_center (canvas
+// pixels). The same ray / plane maths as tilt3d.effect turns each canvas pixel back into a
+// position on the flat sheet, so the border and glow follow the turned screen.
+uniform float tilt_on;
+uniform float2 tilt_center;
+uniform float2 tilt_angles;  // x = yaw, y = pitch (radians)
+uniform float tilt_dist;
+uniform float tilt_scl;
+
 struct VertInOut {
 	float4 pos : POSITION;
 	float2 uv  : TEXCOORD0;
@@ -40,13 +49,35 @@ VertInOut VSDefault(VertInOut vert_in)
 float4 PSFrame(VertInOut vert_in) : TARGET
 {
 	float2 p = vert_in.uv * canvas_px;
+	float2 pq = p;   // position on the flat sheet, used for the rectangle distance
+
+	if (tilt_on > 0.5) {
+		float sa = sin(tilt_angles.x);
+		float ca = cos(tilt_angles.x);
+		float sb = sin(tilt_angles.y);
+		float cb = cos(tilt_angles.y);
+		float2 o = (p - tilt_center) / tilt_scl;
+		float3 dir = float3(o.x, o.y, tilt_dist);
+		float3 n = float3(cb * sa, -sb, cb * ca);
+		float denom = dot(dir, n);
+		if (denom < 0.0001) {
+			pq = float2(100000.0, 100000.0);
+		} else {
+			float t = tilt_dist * n.z / denom;
+			float3 h = float3(t * dir.x, t * dir.y, -tilt_dist + t * dir.z);
+			float x1 = h.x * ca - h.z * sa;
+			float z1 = h.x * sa + h.z * ca;
+			float y2 = h.y * cb + z1 * sb;
+			pq = tilt_center + float2(x1, y2);
+		}
+	}
 
 	float2 center = float2(rect_px.x + rect_px.z, rect_px.y + rect_px.w) * 0.5;
 	float2 half_size = float2(rect_px.z - rect_px.x, rect_px.w - rect_px.y) * 0.5;
 	float r = min(radius_px, min(half_size.x, half_size.y));
 
 	// Signed distance to the rounded rectangle: negative inside, positive outside.
-	float2 q = abs(p - center) - (half_size - float2(r, r));
+	float2 q = abs(pq - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
 	float3 col = bg_color.rgb;
