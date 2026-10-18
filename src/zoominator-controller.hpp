@@ -208,7 +208,11 @@ public:
 	int focusRadius = 300;
 	int focusIdleRadius = 300;
 	int focusSoftness = 80;
-	int focusCone = 50; /* "light cone" 0..100: small = tight flashlight, large = wide gentle light; 50 = as set */
+	int focusCone = 50; /* "light cone" 0..100: small = tight flashlight, large = wide gentle light */
+	/* The beam (zoomed) follows from the light cone alone; focusRadius / focusSoftness are derived from it. */
+	static int beamRadiusForCone(int cone);
+	static int beamSoftnessForCone(int cone);
+	static int coneForBeamRadius(int radius); /* inverse, to carry old radius settings over */
 	FocusStyle focusStyle = FocusStyle::Dim;
 	/* Blur radius in canvas pixels for the Blur styles. */
 	int focusBlurPx = 16;
