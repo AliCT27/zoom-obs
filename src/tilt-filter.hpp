@@ -2,10 +2,14 @@
 
 #include <obs-module.h>
 
-
 /* A video filter that shows its source as a flat sheet turned in 3D, so the
  * captured screen can lean towards the mouse. The controller keeps one on each
- * target source while "3D camera" is enabled and removes it again afterwards. */
+ * target source while "3D camera" is enabled and removes it again afterwards.
+ *
+ * Everything that has to agree with the turn (the filter, the Frame shader, the
+ * spotlight and halo placement) reads one shared Pose, computed in canvas pixels.
+ * The sheet turns about the point of the screen that is at the middle of the
+ * canvas, so a zoomed view keeps its middle where it is. */
 namespace zoominator_tilt {
 
 void registerFilter();
@@ -14,16 +18,24 @@ void registerFilter();
 obs_source_t *attach(obs_source_t *target);
 void detach(obs_source_t *target, obs_source_t *filter);
 
-/* Thread safe. Angles in radians: yaw turns around the vertical axis, pitch around the horizontal one.
- * perspective is the camera distance in multiples of the source's longer side. */
-void setParams(obs_source_t *filter, float yaw, float pitch, float perspective);
+struct Pose {
+	float yaw = 0.0f, pitch = 0.0f;      /* radians */
+	float px = 0.0f, py = 0.0f;          /* pivot: canvas pixel that stays where it is */
+	float dist = 1.0f;                   /* camera distance in canvas pixels */
+	float scl = 1.0f;                    /* <1 shrinks the sheet (not zoomed), >1 grows it (zoomed) so no gap shows */
+	float left = 0.0f, top = 0.0f;       /* the flat sheet's rectangle on the canvas */
+	float width = 1.0f, height = 1.0f;
+};
 
-/* Shared by the filter, the frame and the focus / halo placement so they all agree (defined in tilt-filter.cpp).
- * The turned sheet shrinks a little so the edge swinging towards the camera stays inside its frame. */
-float sheetScale(float yaw, float pitch, float persp, float w, float h);
-
-/* Where a point of the flat sheet ends up once it is turned: (x, y) is the offset from the sheet's centre
- * in source pixels; replaced by the offset of the displayed point in the same units. */
-void projectPoint(double yaw, double pitch, double persp, double w, double h, double &x, double &y);
+/* Thread safe. Turn angles in radians and the camera distance in multiples of the screen's longer side. */
+void setAngles(float yaw, float pitch, float perspective);
+/* Thread safe. The screen's flat rectangle on the canvas as it is drawn right now. */
+void setSheet(float left, float top, float right, float bottom);
+/* Forgets the sheet and the angles. */
+void reset();
+/* False when nothing is turned (no sheet, or angles ~ 0). */
+bool getPose(Pose &out);
+/* Where a point of the flat screen (canvas pixels) is shown once the screen is turned. */
+void projectPoint(const Pose &pose, double &x, double &y);
 
 } // namespace zoominator_tilt

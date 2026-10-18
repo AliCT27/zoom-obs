@@ -38,8 +38,6 @@ void setStyle(const Style &style);
  * canvas. Safe to call from any thread. */
 void setRect(float left, float top, float right, float bottom);
 
-/* 3D camera: the rectangle is drawn as a sheet turned by these angles (radians). 0, 0 = flat. */
-void setTilt(float yaw, float pitch, float perspective);
 
 /* Nothing is drawn until a rectangle has been set. */
 void clearRect();

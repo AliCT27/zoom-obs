@@ -1,13 +1,15 @@
 // Zoominator 3D tilt: shows the source as a flat sheet turned in 3D (perspective).
-// Rotation is around the sheet's centre; the camera looks straight at the screen plane.
+// Rotation is around the pivot (the screen point under the middle of the canvas); the camera looks straight at the screen plane.
 
 uniform float4x4 ViewProj;
 uniform texture2d image;
 
-uniform float2 size_px;   // source size in pixels
-uniform float2 angles;    // x = rotation around the vertical axis, y = around the horizontal axis (radians)
-uniform float dist_px;    // camera distance in pixels
-uniform float scl;        // output scale (<= 1 keeps the turned sheet inside the frame)
+uniform float2 sheet_origin; // top-left of the flat screen on the canvas, canvas pixels
+uniform float2 sheet_size;   // size of the flat screen on the canvas, canvas pixels
+uniform float2 pivot;        // canvas pixel the screen turns about (stays where it is)
+uniform float2 angles;       // x = rotation around the vertical axis, y = around the horizontal axis (radians)
+uniform float dist_px;       // camera distance in canvas pixels
+uniform float scl;           // output scale (< 1 keeps the turned sheet inside the frame, > 1 avoids gaps when zoomed)
 
 sampler_state tilt_sampler {
 	Filter   = Linear;
@@ -35,7 +37,8 @@ float4 PSTilt(VertInOut vert_in) : TARGET
 	float sb = sin(angles.y);
 	float cb = cos(angles.y);
 
-	float2 p = (vert_in.uv - 0.5) * size_px / scl;
+	// where this output pixel is on the canvas, relative to the pivot
+	float2 p = (sheet_origin + vert_in.uv * sheet_size - pivot) / scl;
 	float3 dir = float3(p.x, p.y, dist_px);
 	float3 n = float3(cb * sa, -sb, cb * ca);   // normal of the turned sheet
 	float denom = dot(dir, n);
@@ -50,8 +53,8 @@ float4 PSTilt(VertInOut vert_in) : TARGET
 	float z1 = h.x * sa + h.z * ca;
 	float y2 = h.y * cb + z1 * sb;
 
-	float2 uv = float2(x1, y2) / size_px + 0.5;
-	float2 edge = min(uv, 1.0 - uv) * size_px;
+	float2 uv = (pivot + float2(x1, y2) - sheet_origin) / sheet_size;
+	float2 edge = min(uv, 1.0 - uv) * sheet_size;
 	float cover = saturate(min(edge.x, edge.y) + 0.5);
 	if (cover <= 0.0)
 		return float4(0.0, 0.0, 0.0, 0.0);

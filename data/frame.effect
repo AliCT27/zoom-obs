@@ -15,6 +15,7 @@ uniform float4x4 ViewProj;
 uniform float2 canvas_px;
 uniform float4 rect_px;
 uniform float4 tilt;     // yaw, pitch (radians), camera distance (px), sheet scale; distance 0 = flat
+uniform float2 tilt_pivot; // canvas pixel the screen turns about
 uniform float radius_px;
 uniform float border_px;
 uniform float glow_px;
@@ -53,7 +54,7 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 		float ca = cos(tilt.x);
 		float sb = sin(tilt.y);
 		float cb = cos(tilt.y);
-		float3 dir = float3((p - center) / tilt.w, tilt.z);
+		float3 dir = float3((p - tilt_pivot) / tilt.w, tilt.z);
 		float3 n = float3(cb * sa, -sb, cb * ca);
 		float denom = dot(dir, n);
 		if (denom < 0.0001) {
@@ -64,7 +65,7 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 			float x1 = h.x * ca - h.z * sa;
 			float z1 = h.x * sa + h.z * ca;
 			float y2 = h.y * cb + z1 * sb;
-			pl = center + float2(x1, y2);
+			pl = tilt_pivot + float2(x1, y2);
 		}
 	}
 
