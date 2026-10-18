@@ -914,8 +914,12 @@ void ZoominatorController::updateTilt()
 		for (auto &t : tiltTargets)
 			tItems.push_back(t.item);
 		vec2 mn{}, mx{};
-		if (computeTargetBounds(tItems, mn, mx))
+		if (computeTargetBounds(tItems, mn, mx)) {
 			zoominator_tilt::setSheet(mn.x, mn.y, mx.x, mx.y);
+			/* Same rectangle, same moment: the Frame must not trail the picture it is turned with. */
+			if (frameEnabled)
+				zoominator_frame::setRect(mn.x, mn.y, mx.x, mx.y);
+		}
 	}
 }
 
