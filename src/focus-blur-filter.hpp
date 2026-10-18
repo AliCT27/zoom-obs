@@ -27,4 +27,8 @@ void detach(obs_source_t *target, obs_source_t *filter);
 void setParams(obs_source_t *filter, float centerX, float centerY, float radius, float softness, float blurRadius,
 	       float strength);
 
+/* 0 = the spotlight edge is a soft-edged circle, 1 = a flashlight whose light fades continuously from the centre.
+ * Same value for every filter; safe to call from any thread. */
+void setBeam(float beam);
+
 } // namespace zoominator_blur

@@ -444,6 +444,11 @@ static void coneBand(int radius, int softness, int cone, double &inner, double &
 	outer = std::max(outer, inner + 4.0);
 }
 
+double ZoominatorController::coneBeam() const
+{
+	return std::clamp((50.0 - (double)std::clamp(focusCone, 0, 100)) / 50.0, 0.0, 1.0);
+}
+
 int ZoominatorController::coneRadius(int radius) const
 {
 	double inner = 0.0, outer = 0.0;
@@ -503,7 +508,7 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 			else
 				t = d >= radius ? 1.0 : 0.0;
 			/* Black, so premultiplied and straight alpha are the same value. */
-			line[x] = qRgba(0, 0, 0, (int)std::lround(smoothstep(t) * dimAlpha));
+			line[x] = qRgba(0, 0, 0, (int)std::lround(beamShape(t, coneBeam()) * dimAlpha));
 		}
 	}
 	img.save(path, "PNG");
@@ -590,6 +595,7 @@ void ZoominatorController::updateFocusAppearance()
 	mix((uint64_t)coneRadius(focusRadius));
 	mix((uint64_t)coneRadius(focusIdleRadius));
 	mix((uint64_t)coneSoftness());
+	mix((uint64_t)std::lround(coneBeam() * 100.0));
 	mix((uint64_t)std::clamp(focusDimPct, 0, 95));
 
 	if (!focusSource) {

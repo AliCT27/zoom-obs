@@ -15,6 +15,7 @@ uniform float radius_px;    // radius of the sharp area
 uniform float soft_px;      // width of the sharp -> blurred transition
 uniform float blur_px;      // maximum blur radius
 uniform float strength;     // 0 = off, 1 = full (animated while zooming)
+uniform float beam;         // 0 = soft-edged circle, 1 = flashlight: light fades continuously from the centre
 
 sampler_state blur_sampler {
 	Filter   = Linear;
@@ -48,7 +49,8 @@ float4 PSFocusBlur(VertInOut vert_in) : TARGET
 	float inner = max(0.0, radius_px - soft_px * 0.5);
 	float outer = radius_px + soft_px * 0.5;
 	float t = saturate((d - inner) / max(outer - inner, 0.001));
-	t = t * t * (3.0 - 2.0 * t);
+	float tb = 1.0 - pow(1.0 - t, 3.0);   // flashlight: bright hot centre, long fade
+	t = lerp(t * t * (3.0 - 2.0 * t), tb, beam);
 
 	float r = blur_px * t * strength;
 	if (r < 0.5)

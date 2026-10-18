@@ -977,6 +977,7 @@ void ZoominatorController::applyZoomToScene(double t)
  * allowed to touch and publishes it. Deliberately does no animation work. */
 void ZoominatorController::onTick()
 {
+	zoominator_blur::setBeam((float)coneBeam());
 	if (pendingFinish.exchange(false)) {
 		finishZoomOnMainThread();
 		return;

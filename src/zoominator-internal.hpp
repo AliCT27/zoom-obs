@@ -16,6 +16,8 @@
 #include <obs.h>
 #include <util/platform.h>
 
+#include <cmath>
+
 #include <QGuiApplication>
 #include <QScreen>
 #include <QCursor>
@@ -179,9 +181,20 @@ inline bool scene_item_pointer_is_live(obs_scene_t *scene, obs_sceneitem_t *item
 }
 
 
+/* Dim amount across the spotlight edge, t = 0 (inside) .. 1 (outside). beam 0 = smooth edge, 1 = flashlight falloff
+ * (must match focus_blur.effect). */
+inline double beamShape(double t, double beam);
+
 inline double smoothstep(double t)
 {
 	return t * t * (3.0 - 2.0 * t);
+}
+
+inline double beamShape(double t, double beam)
+{
+	const double smooth = smoothstep(t);
+	const double flash = 1.0 - std::pow(1.0 - t, 3.0);
+	return smooth + (flash - smooth) * beam;
 }
 
 

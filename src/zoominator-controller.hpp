@@ -340,6 +340,7 @@ private:
 			 int progress255 = -1);
 	double focusIdleScale() const;
 	int coneRadius(int radius) const;  /* spotlight radius after the light cone setting */
+	double coneBeam() const;           /* 0..1: how far the edge is a flashlight falloff instead of a soft circle */
 	int coneSoftness() const;          /* edge softness after the light cone setting */
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();

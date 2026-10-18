@@ -8,6 +8,13 @@
 
 namespace zoominator_blur {
 
+static std::atomic<float> g_beam{0.0f};
+
+void setBeam(float beam)
+{
+	g_beam.store(beam, std::memory_order_relaxed);
+}
+
 static constexpr const char *kFilterId = "zoominator_focus_blur";
 static constexpr const char *kFilterName = "Zoominator Focus Blur";
 static constexpr const char *kEffectFile = "focus_blur.effect";
@@ -22,6 +29,7 @@ struct BlurData {
 	gs_eparam_t *pSoft = nullptr;
 	gs_eparam_t *pBlur = nullptr;
 	gs_eparam_t *pStrength = nullptr;
+	gs_eparam_t *pBeam = nullptr; /* optional */
 
 	/* Written from other threads, read by the render thread. */
 	std::atomic<float> cx{0.0f};
@@ -59,6 +67,7 @@ static void loadEffect(BlurData *d)
 		d->pSoft = gs_effect_get_param_by_name(d->effect, "soft_px");
 		d->pBlur = gs_effect_get_param_by_name(d->effect, "blur_px");
 		d->pStrength = gs_effect_get_param_by_name(d->effect, "strength");
+		d->pBeam = gs_effect_get_param_by_name(d->effect, "beam");
 		if (!d->pTexelSize || !d->pCenter || !d->pRadius || !d->pSoft || !d->pBlur || !d->pStrength) {
 			blog(LOG_WARNING, "[Zoominator] Focus blur: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -123,6 +132,8 @@ static void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pSoft, d->soft.load(std::memory_order_relaxed));
 	gs_effect_set_float(d->pBlur, d->blur.load(std::memory_order_relaxed));
 	gs_effect_set_float(d->pStrength, strength);
+	if (d->pBeam)
+		gs_effect_set_float(d->pBeam, g_beam.load(std::memory_order_relaxed));
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
