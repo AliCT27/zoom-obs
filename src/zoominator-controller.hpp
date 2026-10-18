@@ -416,6 +416,9 @@ private:
 	 * by the graphics thread; that ordering is what makes sceneItems safe to
 	 * read there without holding a lock across the transform writes. */
 	std::atomic<bool> zoomActive{false};
+	/* The zoomed screen's rectangle on the canvas, published by the graphics thread (dim is clipped to it). */
+	std::atomic<float> sheetL{0.0f}, sheetT{0.0f}, sheetR{0.0f}, sheetB{0.0f};
+	std::atomic<bool> sheetPub{false};
 
 	double animT = 0.0;
 	int lastTickDir = 0; /* graphics thread only: direction seen on the previous tick */
@@ -545,6 +548,7 @@ private:
 	QPointer<ZoominatorDialog> dialog;
 	obs_source_t *markerSource = nullptr;
 	obs_source_t *focusSource = nullptr;
+	void clipFocusToScreen(obs_sceneitem_t *item, const vec2 &pos, double scale);
 	obs_source_t *focusFilter = nullptr;
 	int focusCurrentOpacity = -1;
 	uint64_t focusAppearanceHash = 0;
