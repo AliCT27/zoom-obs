@@ -28,7 +28,8 @@ struct Pose {
 };
 
 /* Thread safe. Turn angles in radians and the camera distance in multiples of the screen's longer side. */
-void setAngles(float yaw, float pitch, float perspective);
+/* keepWhenZoomed: keep the turn while zoomed, fading it only as far as needed near the screen's edges. */
+void setAngles(float yaw, float pitch, float perspective, bool keepWhenZoomed);
 /* Thread safe. The screen's flat rectangle on the canvas as it is drawn right now. */
 void setSheet(float left, float top, float right, float bottom);
 /* Forgets the sheet and the angles. */

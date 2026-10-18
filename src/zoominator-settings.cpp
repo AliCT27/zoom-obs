@@ -126,6 +126,7 @@ void ZoominatorController::loadSettings()
 	tilt3dMaxY = 8.0;
 	tilt3dPerspective = 2.0;
 	tilt3dInvert = false;
+	tilt3dInZoom = true;
 	wheelZoomModifier = QStringLiteral("alt");
 	animInMs = 180;
 	animOutMs = 320;
@@ -351,6 +352,8 @@ void ZoominatorController::loadSettings()
 		tilt3dPerspective = obs_data_get_double(data, "tilt3d_perspective");
 	if (obs_data_has_user_value(data, "tilt3d_invert"))
 		tilt3dInvert = obs_data_get_bool(data, "tilt3d_invert");
+	if (obs_data_has_user_value(data, "tilt3d_in_zoom"))
+		tilt3dInZoom = obs_data_get_bool(data, "tilt3d_in_zoom");
 	tilt3dMaxX = clampd(tilt3dMaxX, 0.0, 45.0);
 	tilt3dMaxY = clampd(tilt3dMaxY, 0.0, 45.0);
 	tilt3dPerspective = clampd(tilt3dPerspective, 0.8, 8.0);
@@ -966,6 +969,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "tilt3d_max_y", tilt3dMaxY);
 	obs_data_set_double(data, "tilt3d_perspective", tilt3dPerspective);
 	obs_data_set_bool(data, "tilt3d_invert", tilt3dInvert);
+	obs_data_set_bool(data, "tilt3d_in_zoom", tilt3dInZoom);
 	obs_data_set_string(data, "wheel_zoom_modifier", wheelZoomModifier.toUtf8().constData());
 	obs_data_set_int(data, "anim_in_ms", animInMs);
 	obs_data_set_int(data, "anim_out_ms", animOutMs);

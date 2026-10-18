@@ -29,6 +29,7 @@ struct TiltData {
 namespace {
 std::mutex g_mutex;
 float g_yaw = 0.0f, g_pitch = 0.0f, g_persp = 2.0f;
+bool g_keepZoomed = true;
 bool g_sheetValid = false;
 float g_sheet[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -48,9 +49,10 @@ float pivotAxis(float lo, float hi, float canvasMid)
 }
 } // namespace
 
-void setAngles(float yaw, float pitch, float perspective)
+void setAngles(float yaw, float pitch, float perspective, bool keepWhenZoomed)
 {
 	std::lock_guard<std::mutex> lock(g_mutex);
+	g_keepZoomed = keepWhenZoomed;
 	g_yaw = yaw;
 	g_pitch = pitch;
 	g_persp = perspective;
@@ -77,6 +79,7 @@ void reset()
 bool getPose(Pose &out)
 {
 	float yaw, pitch, persp, sh[4];
+	bool keepZoomed = true;
 	{
 		std::lock_guard<std::mutex> lock(g_mutex);
 		if (!g_sheetValid)
@@ -84,6 +87,7 @@ bool getPose(Pose &out)
 		yaw = g_yaw;
 		pitch = g_pitch;
 		persp = g_persp;
+		keepZoomed = g_keepZoomed;
 		for (int i = 0; i < 4; ++i)
 			sh[i] = g_sheet[i];
 	}
@@ -95,21 +99,12 @@ bool getPose(Pose &out)
 	const float cw = (float)ovi.base_width, ch = (float)ovi.base_height;
 	const float w = sh[2] - sh[0], h = sh[3] - sh[1];
 
-	/* The turn fades out as the view zooms in and is gone by 1.5x: a zoomed view has to show the screen's real
-	 * edges and corners (the zoom framing puts them exactly on the canvas border), which a turned picture cannot. */
-	const float zoomRatio = std::max(1.0f, std::max(w / cw, h / ch));
-	const float strength = satf(1.0f - (zoomRatio - 1.0f) / 0.5f);
-	yaw *= strength;
-	pitch *= strength;
-	if (std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f)
-		return false;
-
 	const float longCanvas = std::max(cw, ch);
 	const float longSheet = std::min(std::max(w, h), longCanvas);
-	const float sy = std::fabs(std::sin(yaw)), sp = std::fabs(std::sin(pitch));
+	const float zx = satf((w / cw - 1.0f) / 0.25f);
+	const float zy = satf((h / ch - 1.0f) / 0.25f);
+	const float zoomT = std::max(zx, zy); /* 0 = the whole screen is on the canvas, 1 = zoomed in */
 
-	out.yaw = yaw;
-	out.pitch = pitch;
 	out.px = pivotAxis(sh[0], sh[2], cw * 0.5f);
 	out.py = pivotAxis(sh[1], sh[3], ch * 0.5f);
 	out.dist = std::max(0.5f, persp) * longSheet;
@@ -117,6 +112,70 @@ bool getPose(Pose &out)
 	out.top = sh[1];
 	out.width = w;
 	out.height = h;
+
+	float strength = 1.0f;
+	if (zoomT > 0.0f) {
+		if (!keepZoomed) {
+			/* The turn fades out as the view zooms in and is gone by 1.5x. */
+			const float zoomRatio = std::max(1.0f, std::max(w / cw, h / ch));
+			strength = satf(1.0f - (zoomRatio - 1.0f) / 0.5f);
+		} else {
+			/* Keep as much of the turn as still shows the screen's real edges: the zoom framing puts the screen
+			 * edge exactly on the canvas border, and a turned picture pulls it in. Largest strength for which every
+			 * canvas border point that the flat screen covers is still covered (bisection; 0 always works). */
+			auto covered = [&](float s) {
+				Pose p = out;
+				p.yaw = yaw * s;
+				p.pitch = pitch * s;
+				p.scl = 1.0f;
+				const double sa = std::sin(p.yaw), ca = std::cos(p.yaw), sb = std::sin(p.pitch),
+					     cb = std::cos(p.pitch);
+				for (int side = 0; side < 4; ++side) {
+					for (int k = 0; k <= 4; ++k) {
+						const double f = k / 4.0;
+						const double qx = side < 2 ? f * cw : (side == 2 ? 0.0 : (double)cw);
+						const double qy = side < 2 ? (side == 0 ? 0.0 : (double)ch) : f * ch;
+						if (qx < sh[0] - 0.5 || qx > sh[2] + 0.5 || qy < sh[1] - 0.5 || qy > sh[3] + 0.5)
+							continue; /* the flat screen does not cover this point anyway */
+						const double dx = qx - p.px, dy = qy - p.py;
+						const double nx = cb * sa, ny = -sb, nz = cb * ca;
+						const double denom = dx * nx + dy * ny + (double)p.dist * nz;
+						if (denom < 1e-4)
+							return false;
+						const double t = (double)p.dist * nz / denom;
+						const double hx = t * dx, hy = t * dy, hz = -(double)p.dist + t * (double)p.dist;
+						const double x1 = hx * ca - hz * sa;
+						const double z1 = hx * sa + hz * ca;
+						const double y2 = hy * cb + z1 * sb;
+						const double ux = p.px + x1, uy = p.py + y2;
+						if (ux < sh[0] || ux > sh[2] || uy < sh[1] || uy > sh[3])
+							return false;
+					}
+				}
+				return true;
+			};
+			float feas = 1.0f;
+			if (!covered(1.0f)) {
+				float lo = 0.0f, hi = 1.0f;
+				for (int i = 0; i < 10; ++i) {
+					const float mid = 0.5f * (lo + hi);
+					if (covered(mid))
+						lo = mid;
+					else
+						hi = mid;
+				}
+				feas = lo;
+			}
+			strength = 1.0f + (feas - 1.0f) * zoomT;
+		}
+	}
+	yaw *= strength;
+	pitch *= strength;
+	if (std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f)
+		return false;
+
+	out.yaw = yaw;
+	out.pitch = pitch;
 
 	/* Not zoomed: shrink so the turned sheet fits exactly inside the flat sheet's rectangle. The filter can only
 	 * draw inside that rectangle, so a corner swinging towards the camera would otherwise be cut off flat. Each
@@ -144,13 +203,8 @@ bool getPose(Pose &out)
 		}
 		shrink = std::clamp(shrink, 0.3f, 1.0f);
 	}
-	const float zx = satf((w / cw - 1.0f) / 0.25f);
-	const float zy = satf((h / ch - 1.0f) / 0.25f);
-	const float needX = 1.005f * (1.0f + 0.5f * cw * sy / out.dist) / std::max(0.5f, std::cos(yaw));
-	const float needY = 1.005f * (1.0f + 0.5f * ch * sp / out.dist) / std::max(0.5f, std::cos(pitch));
-	const float grow = std::max(1.0f + zx * (needX - 1.0f), 1.0f + zy * (needY - 1.0f));
-	const float zoomT = std::max(zx, zy);
-	out.scl = shrink + (grow - shrink) * zoomT;
+	/* Zoomed, the picture is not shrunk (that would pull its edges off the canvas border). */
+	out.scl = shrink + (1.0f - shrink) * zoomT;
 	return true;
 }
 
