@@ -208,6 +208,7 @@ public:
 	int focusRadius = 300;
 	int focusIdleRadius = 300;
 	int focusSoftness = 80;
+	int focusCone = 50; /* "light cone" 0..100: small = tight flashlight, large = wide gentle light; 50 = as set */
 	FocusStyle focusStyle = FocusStyle::Dim;
 	/* Blur radius in canvas pixels for the Blur styles. */
 	int focusBlurPx = 16;
@@ -338,6 +339,8 @@ private:
 	void updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false,
 			 int progress255 = -1);
 	double focusIdleScale() const;
+	int coneRadius(int radius) const;  /* spotlight radius after the light cone setting */
+	int coneSoftness() const;          /* edge softness after the light cone setting */
 	void hideFocusInScene(obs_scene_t *scene);
 	void hideFocusInAllScenes();
 	void updateIdleFocus(bool on);

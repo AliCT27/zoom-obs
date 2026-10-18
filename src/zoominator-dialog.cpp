@@ -828,12 +828,24 @@ void ZoominatorDialog::buildUi()
 		spFocusSoftness->setSuffix(T("Unit.Pixels"));
 		spFocusSoftness->setToolTip(T("Dialog.FocusSoftnessTooltip"));
 
+		spFocusCone = new QSpinBox(page);
+		spFocusCone->setRange(0, 100);
+		spFocusCone->setSingleStep(5);
+		spFocusCone->setSuffix(QStringLiteral(" %"));
+		spFocusCone->setToolTip(T("Dialog.FocusConeTooltip"));
+
 		auto *focusRow = new QHBoxLayout;
 		focusRow->setSpacing(12);
 		focusRow->addWidget(mkField(T("Dialog.FocusDim"), spFocusDim), 1);
 		focusRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
 		focusRow->addWidget(mkField(T("Dialog.FocusSoftness"), spFocusSoftness), 1);
 		lay->addLayout(focusRow);
+		lay->addSpacing(6);
+		auto *focusConeRow = new QHBoxLayout;
+		focusConeRow->setSpacing(12);
+		focusConeRow->addWidget(mkField(T("Dialog.FocusCone"), spFocusCone), 1);
+		focusConeRow->addStretch(2);
+		lay->addLayout(focusConeRow);
 		lay->addSpacing(6);
 
 		spFocusIdleRadius = new QSpinBox(page);
@@ -860,6 +872,7 @@ void ZoominatorDialog::buildUi()
 			spFocusRadius->setEnabled(on);
 			spFocusIdleRadius->setEnabled(on && chkFocusWhenNotZoomed->isChecked());
 			spFocusSoftness->setEnabled(on);
+			spFocusCone->setEnabled(on);
 		};
 		syncFocusFieldsFn = syncFocusFields;
 		connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
@@ -1293,6 +1306,7 @@ void ZoominatorDialog::loadFromController()
 		spFocusRadius->setValue(c.focusRadius);
 		spFocusIdleRadius->setValue(c.focusIdleRadius);
 		spFocusSoftness->setValue(c.focusSoftness);
+		spFocusCone->setValue(c.focusCone);
 		spFocusBlur->setValue(c.focusBlurPx);
 		const int styleIdx = cmbFocusStyle->findData(ZoominatorController::focusStyleToString(c.focusStyle));
 		cmbFocusStyle->setCurrentIndex(styleIdx >= 0 ? styleIdx : 0);
@@ -1451,6 +1465,7 @@ void ZoominatorDialog::applyToController()
 	c.focusRadius = spFocusRadius->value();
 	c.focusIdleRadius = spFocusIdleRadius->value();
 	c.focusSoftness = spFocusSoftness->value();
+	c.focusCone = spFocusCone->value();
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
 	c.caretFollow = chkCaretFollow->isChecked();
