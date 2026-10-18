@@ -117,11 +117,32 @@ bool getPose(Pose &out)
 	out.width = w;
 	out.height = h;
 
-	/* Not zoomed: shrink so the edge swinging towards the camera stays on the canvas. Zoomed: the sheet runs past
-	 * the canvas, so instead grow it just enough that its edges, which may sit exactly on the canvas border, stay
-	 * outside the canvas: the turned sheet is narrower by cos(angle) and the edge swinging away by perspective. */
-	const float swing = 0.5f * longSheet * std::max(sy, sp);
-	const float shrink = std::clamp((out.dist - swing) / out.dist, 0.3f, 1.0f);
+	/* Not zoomed: shrink so the turned sheet fits exactly inside the flat sheet's rectangle. The filter can only
+	 * draw inside that rectangle, so a corner swinging towards the camera would otherwise be cut off flat. Each
+	 * corner is turned (without scaling) and the scale that keeps it inside the rectangle is taken. */
+	float shrink = 1.0f;
+	{
+		Pose probe = out;
+		probe.scl = 1.0f;
+		const double cxs[2] = {sh[0], sh[2]};
+		const double cys[2] = {sh[1], sh[3]};
+		for (int i = 0; i < 2; ++i) {
+			for (int j = 0; j < 2; ++j) {
+				double x = cxs[i], y = cys[j];
+				projectPoint(probe, x, y);
+				const double dx = x - out.px, dy = y - out.py;
+				if (dx > 0.5)
+					shrink = std::min(shrink, (float)((sh[2] - out.px) / dx));
+				else if (dx < -0.5)
+					shrink = std::min(shrink, (float)((sh[0] - out.px) / dx));
+				if (dy > 0.5)
+					shrink = std::min(shrink, (float)((sh[3] - out.py) / dy));
+				else if (dy < -0.5)
+					shrink = std::min(shrink, (float)((sh[1] - out.py) / dy));
+			}
+		}
+		shrink = std::clamp(shrink, 0.3f, 1.0f);
+	}
 	const float zx = satf((w / cw - 1.0f) / 0.25f);
 	const float zy = satf((h / ch - 1.0f) / 0.25f);
 	const float needX = 1.005f * (1.0f + 0.5f * cw * sy / out.dist) / std::max(0.5f, std::cos(yaw));
