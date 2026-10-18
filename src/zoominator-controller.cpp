@@ -1167,10 +1167,13 @@ void ZoominatorController::onTick()
 			focusShown = false;
 		}
 
-		if (showCursorMarker && markerVisible) {
+		/* The engine also runs at 1x (sideways follow), which is not zoomed: there the halo obeys "Show halo
+		 * when not zoomed" and uses the not-zoomed size. */
+		const bool zoomedNow = zoomedView() || animT > 0.001;
+		if (showCursorMarker && markerVisible && (zoomedNow || showMarkerWhenNotZoomed)) {
 			const int opacity = currentMarkerOpacity(QDateTime::currentMSecsSinceEpoch());
 			if (opacity > 0)
-				updateMarkerPosition(sc, markerX, markerY, opacity);
+				updateMarkerPosition(sc, markerX, markerY, opacity, !zoomedNow);
 			else
 				hideMarkerInScene(sc);
 		} else if (showCursorMarker) {
