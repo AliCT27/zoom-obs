@@ -711,12 +711,7 @@ void ZoominatorController::applyZoomToScene(double t)
 		}
 	} else {
 		if (!targetHasPos) {
-			if (zoomAnchor == ZoomAnchorMode::CanvasCenter) {
-				/* The cursor must not influence the zoom at all - not even
-				 * by seeding the focal point at trigger time. */
-				targetX = (float)centerX;
-				targetY = (float)centerY;
-			} else if (followHasPos) {
+			if (followHasPos) {
 				/* Follow mode frozen mid-zoom by the runtime toggle or the
 				 * idle timeout: hold the view where the cursor last led it. */
 				targetX = followX;
