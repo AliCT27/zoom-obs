@@ -15,6 +15,8 @@ void detach(obs_source_t *target, obs_source_t *filter);
 /* Thread safe. The screen's flat rectangle on the canvas (empty / invalid = do not mask). */
 void setSheet(float left, float top, float right, float bottom);
 void clearSheet();
+/* Thread safe. Corner radius of the screen in canvas pixels (0 = square corners). */
+void setRadius(float radiusPx);
 /* Thread safe. Where the dim image is drawn: its centre and scale on the canvas. */
 void setItem(float centerX, float centerY, float scale);
 

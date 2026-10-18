@@ -753,6 +753,7 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 		sc.x = sc.y = (float)(kFocusImageScale * k);
 		obs_sceneitem_set_scale(item, &sc);
 		zoominator_dimmask::setItem(pos.x, pos.y, sc.x);
+		zoominator_dimmask::setRadius(frameEnabled ? (float)std::clamp(frameRadiusPx, 0, 400) : 0.0f);
 		if (!zoomActive.load(std::memory_order_acquire))
 			publishDimSheet();
 	}
