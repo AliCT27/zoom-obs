@@ -424,9 +424,8 @@ double ZoominatorController::focusImagePad() const
 /* The spotlight is a flashlight beam: the light is brightest at the cursor and falls off continuously with
  * distance, L(d) = exp(-ln2 * (d / R)^p). R is where it has dropped to half, p how hard the edge is (2 is a
  * gentle, natural beam; more is a crisper disc).
- * The Light cone setting is the one control of the zoomed beam: 0 = a narrow, tight beam on a very small spot,
- * 50 = a medium beam, 100 = a wide beam whose light spreads gently. It gives the radius and, with it, how soft
- * the edge is (narrow beams are crisper, wide ones gentler). */
+ * Spotlight radius sets the size of the zoomed beam; the Light cone setting sets its shape: 0 = a concentrated,
+ * crisp beam, 50 = medium, 100 = light that spreads gently (the edge softness is a share of the radius). */
 int ZoominatorController::beamRadiusForCone(int cone)
 {
 	const double c = (double)std::clamp(cone, 0, 100);
@@ -434,11 +433,11 @@ int ZoominatorController::beamRadiusForCone(int cone)
 	return (int)std::lround(r);
 }
 
-int ZoominatorController::beamSoftnessForCone(int cone)
+int ZoominatorController::beamSoftnessForCone(int cone, int radius)
 {
 	const double c = (double)std::clamp(cone, 0, 100);
 	const double ratio = c <= 50.0 ? 0.15 + (0.27 - 0.15) * (c / 50.0) : 0.27 + (0.6 - 0.27) * ((c - 50.0) / 50.0);
-	return (int)std::lround(ratio * (double)beamRadiusForCone(cone));
+	return (int)std::lround(ratio * (double)std::clamp(radius, 40, 2000));
 }
 
 int ZoominatorController::coneForBeamRadius(int radius)

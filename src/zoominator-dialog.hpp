@@ -135,6 +135,7 @@ private:
 	QSpinBox *spFrameGlowPct = nullptr;
 	QCheckBox *chkFocus = nullptr;
 	QCheckBox *chkFocusWhenNotZoomed = nullptr;
+	QSpinBox *spFocusRadius = nullptr;
 	QSpinBox *spFocusIdleRadius = nullptr;
 	QComboBox *cmbFocusStyle = nullptr;
 	std::function<void()> syncFocusFieldsFn;

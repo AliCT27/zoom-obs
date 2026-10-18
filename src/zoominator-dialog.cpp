@@ -833,6 +833,11 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(focusRow);
 		lay->addSpacing(6);
 
+		spFocusRadius = new QSpinBox(page);
+		spFocusRadius->setRange(40, 2000);
+		spFocusRadius->setSingleStep(10);
+		spFocusRadius->setSuffix(T("Unit.Pixels"));
+		spFocusRadius->setToolTip(T("Dialog.FocusRadiusTooltip"));
 		spFocusIdleRadius = new QSpinBox(page);
 		spFocusIdleRadius->setRange(40, 2000);
 		spFocusIdleRadius->setSingleStep(10);
@@ -842,8 +847,8 @@ void ZoominatorDialog::buildUi()
 		lay->addSpacing(4);
 		auto *focusIdleRow = new QHBoxLayout;
 		focusIdleRow->setSpacing(12);
+		focusIdleRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
 		focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
-		focusIdleRow->addStretch(2);
 		lay->addLayout(focusIdleRow);
 		lay->addSpacing(10);
 
@@ -856,6 +861,7 @@ void ZoominatorDialog::buildUi()
 			spFocusDim->setEnabled(on && style != QLatin1String("blur"));
 			spFocusIdleRadius->setEnabled(on && chkFocusWhenNotZoomed->isChecked());
 			spFocusCone->setEnabled(on);
+			spFocusRadius->setEnabled(on);
 		};
 		syncFocusFieldsFn = syncFocusFields;
 		connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
@@ -1287,6 +1293,7 @@ void ZoominatorDialog::loadFromController()
 		chkFocusWhenNotZoomed->setChecked(c.showFocusWhenNotZoomed);
 		spFocusDim->setValue(c.focusDimPct);
 		spFocusIdleRadius->setValue(c.focusIdleRadius);
+		spFocusRadius->setValue(c.focusRadius);
 		spFocusCone->setValue(c.focusCone);
 		spFocusBlur->setValue(c.focusBlurPx);
 		const int styleIdx = cmbFocusStyle->findData(ZoominatorController::focusStyleToString(c.focusStyle));
@@ -1447,8 +1454,8 @@ void ZoominatorDialog::applyToController()
 	c.focusStyle = ZoominatorController::focusStyleFromString(cmbFocusStyle->currentData().toString());
 	c.focusIdleRadius = spFocusIdleRadius->value();
 	c.focusCone = spFocusCone->value();
-	c.focusRadius = ZoominatorController::beamRadiusForCone(c.focusCone);
-	c.focusSoftness = ZoominatorController::beamSoftnessForCone(c.focusCone);
+	c.focusRadius = spFocusRadius->value();
+	c.focusSoftness = ZoominatorController::beamSoftnessForCone(c.focusCone, c.focusRadius);
 	c.autoOnClick = chkAutoClick->isChecked();
 	c.autoOnTyping = chkAutoTyping->isChecked();
 	c.caretFollow = chkCaretFollow->isChecked();
