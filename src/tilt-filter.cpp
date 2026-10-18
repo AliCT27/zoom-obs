@@ -94,6 +94,15 @@ bool getPose(Pose &out)
 		return false;
 	const float cw = (float)ovi.base_width, ch = (float)ovi.base_height;
 	const float w = sh[2] - sh[0], h = sh[3] - sh[1];
+
+	/* The more the view is zoomed in, the less the picture is turned: a turn is a big move of a zoomed picture and
+	 * would push its corners away from the canvas edges, which the zoom framing places them on. */
+	const float zoomRatio = std::max(1.0f, std::max(w / cw, h / ch));
+	yaw /= zoomRatio;
+	pitch /= zoomRatio;
+	if (std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f)
+		return false;
+
 	const float longCanvas = std::max(cw, ch);
 	const float longSheet = std::min(std::max(w, h), longCanvas);
 	const float sy = std::fabs(std::sin(yaw)), sp = std::fabs(std::sin(pitch));
@@ -115,8 +124,8 @@ bool getPose(Pose &out)
 	const float shrink = std::clamp((out.dist - swing) / out.dist, 0.3f, 1.0f);
 	const float zx = satf((w / cw - 1.0f) / 0.25f);
 	const float zy = satf((h / ch - 1.0f) / 0.25f);
-	const float needX = 1.02f * (1.0f + 0.5f * cw * sy / out.dist) / std::max(0.5f, std::cos(yaw));
-	const float needY = 1.02f * (1.0f + 0.5f * ch * sp / out.dist) / std::max(0.5f, std::cos(pitch));
+	const float needX = 1.005f * (1.0f + 0.5f * cw * sy / out.dist) / std::max(0.5f, std::cos(yaw));
+	const float needY = 1.005f * (1.0f + 0.5f * ch * sp / out.dist) / std::max(0.5f, std::cos(pitch));
 	const float grow = std::max(1.0f + zx * (needX - 1.0f), 1.0f + zy * (needY - 1.0f));
 	const float zoomT = std::max(zx, zy);
 	out.scl = shrink + (grow - shrink) * zoomT;
