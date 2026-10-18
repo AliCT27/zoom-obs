@@ -937,7 +937,7 @@ void ZoominatorController::applyZoomToScene(double t)
 	}
 
 	/* Frame: the screen's rectangle as it appears right now. */
-	if (frameEnabled || tilt3dEnabled) {
+	if (frameEnabled || tilt3dEnabled || focusEnabled) {
 		vec2 fmn{}, fmx{};
 		bool fvalid = false;
 		for (auto &state : sceneItems) {
@@ -950,6 +950,8 @@ void ZoominatorController::applyZoomToScene(double t)
 			moved.effectiveScale = state.lastAppliedScale;
 			accumulateItemBounds(moved, obs_sceneitem_get_source(state.item), fmn, fmx, fvalid);
 		}
+		if (fvalid && focusEnabled)
+			zoominator_dimmask::setSheet(fmn.x, fmn.y, fmx.x, fmx.y);
 		if (fvalid && frameEnabled)
 			zoominator_frame::setRect(fmn.x, fmn.y, fmx.x, fmx.y);
 		if (fvalid && tilt3dEnabled)

@@ -22,6 +22,7 @@ bool obs_module_load(void)
 
 	zoominator_blur::registerFilter();
 	zoominator_tilt::registerFilter();
+	zoominator_dimmask::registerFilter();
 	zoominator_frame::registerSource();
 	zoominator_camring::registerFilter();
 	ZoominatorController::instance().initialize();

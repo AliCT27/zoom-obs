@@ -1,0 +1,76 @@
+// Zoominator dim mask: the dim image only darkens the captured screen, not the background around it.
+// Every pixel of the dim image is mapped to a canvas pixel and kept only where the (possibly 3D-turned) screen is.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 item_origin;  // canvas position of the image's top-left corner
+uniform float2 item_extent;  // size of the whole image on the canvas, canvas pixels
+uniform float2 sheet_origin; // top-left of the flat screen on the canvas
+uniform float2 sheet_size;   // size of the flat screen on the canvas
+uniform float2 pivot;        // turn pivot, canvas pixels
+uniform float2 angles;       // yaw, pitch (radians)
+uniform float dist_px;       // camera distance, canvas pixels
+uniform float scl;           // same output scale as the tilt filter
+uniform float tilted;        // 1 = screen is turned, 0 = flat rectangle
+
+sampler_state mask_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = vert_in.uv;
+	return vert_out;
+}
+
+float4 PSMask(VertInOut vert_in) : TARGET
+{
+	float4 c = image.Sample(mask_sampler, vert_in.uv);
+	float2 q = item_origin + vert_in.uv * item_extent;   // this pixel on the canvas
+	float cover = 0.0;
+
+	if (tilted > 0.5) {
+		float sa = sin(angles.x);
+		float ca = cos(angles.x);
+		float sb = sin(angles.y);
+		float cb = cos(angles.y);
+		float2 p = (q - pivot) / scl;
+		float3 dir = float3(p.x, p.y, dist_px);
+		float3 n = float3(cb * sa, -sb, cb * ca);
+		float denom = dot(dir, n);
+		if (denom >= 0.0001) {
+			float t = dist_px * n.z / denom;
+			float3 h = float3(t * dir.x, t * dir.y, -dist_px + t * dir.z);
+			float x1 = h.x * ca - h.z * sa;
+			float z1 = h.x * sa + h.z * ca;
+			float y2 = h.y * cb + z1 * sb;
+			float2 uv = (pivot + float2(x1, y2) - sheet_origin) / sheet_size;
+			float2 edge = min(uv, 1.0 - uv) * sheet_size;
+			cover = saturate(min(edge.x, edge.y) + 0.5);
+		}
+	} else {
+		float2 edge = min(q - sheet_origin, sheet_origin + sheet_size - q);
+		cover = saturate(min(edge.x, edge.y) + 0.5);
+	}
+
+	return c * cover;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSMask(vert_in);
+	}
+}

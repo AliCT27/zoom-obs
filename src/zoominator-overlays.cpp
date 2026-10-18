@@ -573,6 +573,9 @@ void ZoominatorController::ensureFocusSource()
 
 	if (focusSource) {
 		ensureFocusFilter();
+		/* Keeps the dim off the background around the screen (the filter stays on the source). */
+		if (obs_source_t *mask = zoominator_dimmask::attach(focusSource))
+			obs_source_release(mask);
 		focusAppearanceHash = 0; /* force the next updateFocusAppearance to record the real hash */
 	}
 }
@@ -691,6 +694,17 @@ void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_scene
 		obs_sceneitem_set_order_position(item, topIndex);
 }
 
+void ZoominatorController::publishDimSheet()
+{
+	std::vector<obs_sceneitem_t *> items;
+	enumerateTargetItemsInCurrentScene(items);
+	vec2 mn{}, mx{};
+	if (computeTargetBounds(items, mn, mx))
+		zoominator_dimmask::setSheet(mn.x, mn.y, mx.x, mx.y);
+	else
+		zoominator_dimmask::clearSheet();
+}
+
 void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle,
 				       int progress255)
 {
@@ -738,6 +752,9 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 		vec2 sc{};
 		sc.x = sc.y = (float)(kFocusImageScale * k);
 		obs_sceneitem_set_scale(item, &sc);
+		zoominator_dimmask::setItem(pos.x, pos.y, sc.x);
+		if (!zoomActive.load(std::memory_order_acquire))
+			publishDimSheet();
 	}
 
 	if (!obs_sceneitem_visible(item)) {

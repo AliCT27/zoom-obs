@@ -546,6 +546,7 @@ private:
 	obs_source_t *markerSource = nullptr;
 	obs_source_t *focusSource = nullptr;
 	obs_source_t *focusFilter = nullptr;
+	void publishDimSheet(); /* main thread, not zoomed: the screen's resting rectangle for the dim mask */
 	int focusCurrentOpacity = -1;
 	uint64_t focusAppearanceHash = 0;
 	bool focusShown = false;
