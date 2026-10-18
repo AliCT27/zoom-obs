@@ -948,7 +948,7 @@ void ZoominatorController::updateTilt()
 
 	/* One pose for the filter, the Frame and the spotlight / halo. While zooming the graphics thread publishes
 	 * the screen's rectangle every frame; otherwise it is the content's resting bounds. */
-	zoominator_tilt::setAngles((float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective);
+	zoominator_tilt::setAngles((float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective, tilt3dInZoom);
 	if (!zoomActive.load(std::memory_order_acquire)) {
 		std::vector<obs_sceneitem_t *> tItems;
 		for (auto &t : tiltTargets)

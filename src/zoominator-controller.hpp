@@ -164,6 +164,7 @@ public:
 	double tilt3dMaxY = 8.0;   /* degrees of turn when the mouse is at the top / bottom edge */
 	double tilt3dPerspective = 2.0; /* camera distance in multiples of the screen's longer side */
 	bool tilt3dInvert = false;
+	bool tilt3dInZoom = true; /* keep the turn while zoomed (fades only near the screen's edges) */
 	QString wheelZoomModifier = QStringLiteral("alt");
 	int animInMs = 180;
 	int animOutMs = 320;

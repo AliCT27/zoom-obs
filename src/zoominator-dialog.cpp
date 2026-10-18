@@ -542,7 +542,11 @@ void ZoominatorDialog::buildUi()
 		chkTiltInvert = new QCheckBox(T("Dialog.Tilt3dInvert"), page);
 		chkTiltInvert->setToolTip(T("Dialog.Tilt3dInvertTooltip"));
 		lay->addWidget(chkTiltInvert);
-		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert})
+		chkTiltInZoom = new QCheckBox(T("Dialog.Tilt3dInZoom"), page);
+		chkTiltInZoom->setToolTip(T("Dialog.Tilt3dInZoomTooltip"));
+		lay->addWidget(chkTiltInZoom);
+		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert,
+				   (QWidget *)chkTiltInZoom})
 			connect(chkTilt3d, &QCheckBox::toggled, w, &QWidget::setEnabled);
 
 		addSection(lay, T("Dialog.Section.CursorHalo"));
@@ -1325,7 +1329,9 @@ void ZoominatorDialog::loadFromController()
 		spTiltY->setValue(c.tilt3dMaxY);
 		spTiltPersp->setValue(c.tilt3dPerspective);
 		chkTiltInvert->setChecked(c.tilt3dInvert);
-		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert})
+		chkTiltInZoom->setChecked(c.tilt3dInZoom);
+		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert,
+				   (QWidget *)chkTiltInZoom})
 			w->setEnabled(c.tilt3dEnabled);
 		chkShowCursorMarker->setChecked(c.showCursorMarker);
 		chkShowMarkerWhenNotZoomed->setChecked(c.showMarkerWhenNotZoomed);
@@ -1462,6 +1468,7 @@ void ZoominatorDialog::applyToController()
 	c.tilt3dMaxY = spTiltY->value();
 	c.tilt3dPerspective = spTiltPersp->value();
 	c.tilt3dInvert = chkTiltInvert->isChecked();
+	c.tilt3dInZoom = chkTiltInZoom->isChecked();
 	c.showCursorMarker = chkShowCursorMarker->isChecked();
 	c.showMarkerWhenNotZoomed = chkShowMarkerWhenNotZoomed->isChecked();
 	c.markerOnlyOnClick = true;

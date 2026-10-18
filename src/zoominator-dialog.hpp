@@ -105,6 +105,7 @@ private:
 	QCheckBox *chkIdleFollowX = nullptr;
 	QCheckBox *chkTilt3d = nullptr;
 	QCheckBox *chkTiltInvert = nullptr;
+	QCheckBox *chkTiltInZoom = nullptr;
 	QDoubleSpinBox *spTiltX = nullptr;
 	QDoubleSpinBox *spTiltY = nullptr;
 	QDoubleSpinBox *spTiltPersp = nullptr;
