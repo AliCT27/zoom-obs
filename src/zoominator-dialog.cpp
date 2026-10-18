@@ -843,12 +843,19 @@ void ZoominatorDialog::buildUi()
 		spFocusIdleRadius->setSingleStep(10);
 		spFocusIdleRadius->setSuffix(T("Unit.Pixels"));
 		spFocusIdleRadius->setToolTip(T("Dialog.FocusIdleRadiusTooltip"));
+		/* One under the other: the zoomed size, then "show when not zoomed" with its own size below it. */
+		auto *focusSizeRow = new QHBoxLayout;
+		focusSizeRow->setSpacing(12);
+		focusSizeRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
+		focusSizeRow->addStretch(1);
+		lay->addLayout(focusSizeRow);
+		lay->addSpacing(6);
 		lay->addWidget(chkFocusWhenNotZoomed);
 		lay->addSpacing(4);
 		auto *focusIdleRow = new QHBoxLayout;
 		focusIdleRow->setSpacing(12);
-		focusIdleRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
 		focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
+		focusIdleRow->addStretch(1);
 		lay->addLayout(focusIdleRow);
 		lay->addSpacing(10);
 

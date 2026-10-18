@@ -244,6 +244,7 @@ public:
 	bool portraitCover = true;
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
+	std::atomic<bool> markerFlashStartedZoomed{false}; /* a click halo that began while zoomed finishes as zoomed */
 	bool markerOnlyOnClick = true;
 	uint32_t markerColor = 0xFFFF0000;
 	int markerSize = 26;
