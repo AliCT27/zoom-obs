@@ -691,82 +691,6 @@ void ZoominatorController::placeFocusBelowOverlays(obs_scene_t *scene, obs_scene
 		obs_sceneitem_set_order_position(item, topIndex);
 }
 
-/* The dim only darkens the captured screen, not the background around it: the image is cropped to the screen's
- * rectangle on the canvas (with the 3D turn, the box around the turned screen). */
-void ZoominatorController::clipFocusToScreen(obs_sceneitem_t *item, const vec2 &pos, double scale)
-{
-	if (!item || !focusSource || scale <= 0.0)
-		return;
-	obs_sceneitem_crop crop{};
-	double l = 0.0, t = 0.0, r = 0.0, b = 0.0;
-	bool have = false;
-	if (zoomActive.load(std::memory_order_acquire)) {
-		if (sheetPub.load(std::memory_order_acquire)) {
-			l = sheetL.load(std::memory_order_relaxed);
-			t = sheetT.load(std::memory_order_relaxed);
-			r = sheetR.load(std::memory_order_relaxed);
-			b = sheetB.load(std::memory_order_relaxed);
-			have = true;
-		}
-	} else {
-		std::vector<obs_sceneitem_t *> items;
-		enumerateTargetItemsInCurrentScene(items);
-		vec2 mn{}, mx{};
-		if (computeTargetBounds(items, mn, mx)) {
-			l = mn.x;
-			t = mn.y;
-			r = mx.x;
-			b = mx.y;
-			have = true;
-		}
-	}
-	const double iw = (double)obs_source_get_width(focusSource);
-	const double ih = (double)obs_source_get_height(focusSource);
-	if (have && tilt3dEnabled && iw > 0.0 && ih > 0.0) {
-		zoominator_tilt::Pose pose;
-		if (zoominator_tilt::getPose(pose)) {
-			double nl = 1e9, nt = 1e9, nr = -1e9, nb = -1e9;
-			const double xs[2] = {l, r}, ys[2] = {t, b};
-			for (int i = 0; i < 2; ++i)
-				for (int j = 0; j < 2; ++j) {
-					double px = xs[i], py = ys[j];
-					zoominator_tilt::projectPoint(pose, px, py);
-					nl = std::min(nl, px);
-					nr = std::max(nr, px);
-					nt = std::min(nt, py);
-					nb = std::max(nb, py);
-				}
-			l = nl;
-			t = nt;
-			r = nr;
-			b = nb;
-		}
-	}
-	if (have && iw > 0.0 && ih > 0.0 && r - l > 4.0 && b - t > 4.0) {
-		auto toCrop = [](double v) { return (int)std::clamp(std::lround(v), 0L, 100000L); };
-		const double sl = (l - pos.x) / scale + iw * 0.5;
-		const double sr = (r - pos.x) / scale + iw * 0.5;
-		const double st = (t - pos.y) / scale + ih * 0.5;
-		const double sb = (b - pos.y) / scale + ih * 0.5;
-		crop.left = toCrop(sl);
-		crop.right = toCrop(iw - sr);
-		crop.top = toCrop(st);
-		crop.bottom = toCrop(ih - sb);
-		/* Never crop everything away. */
-		if (crop.left + crop.right >= (int)iw - 1 || crop.top + crop.bottom >= (int)ih - 1)
-			crop = {};
-	}
-	/* The item is centre-aligned, so cropping one side more than the other moves its centre; put it back. */
-	vec2 cpos = pos;
-	cpos.x += (float)((double)(crop.left - crop.right) * 0.5 * scale);
-	cpos.y += (float)((double)(crop.top - crop.bottom) * 0.5 * scale);
-	obs_sceneitem_set_pos(item, &cpos);
-	obs_sceneitem_crop cur{};
-	obs_sceneitem_get_crop(item, &cur);
-	if (cur.left != crop.left || cur.right != crop.right || cur.top != crop.top || cur.bottom != crop.bottom)
-		obs_sceneitem_set_crop(item, &crop);
-}
-
 void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, int opacity255, bool idle,
 				       int progress255)
 {
@@ -814,7 +738,6 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 		vec2 sc{};
 		sc.x = sc.y = (float)(kFocusImageScale * k);
 		obs_sceneitem_set_scale(item, &sc);
-		clipFocusToScreen(item, pos, (double)sc.x);
 	}
 
 	if (!obs_sceneitem_visible(item)) {
