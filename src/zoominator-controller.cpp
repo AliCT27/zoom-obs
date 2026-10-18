@@ -893,14 +893,14 @@ void ZoominatorController::applyZoomToScene(double t)
 			if (showFocusWhenNotZoomed) {
 				/* Stays fully on and only the radius eases between the two sizes. */
 				const double idleS = focusIdleScale();
-				const double rad = (double)focusIdleRadius + ((double)focusRadius - (double)focusIdleRadius) * ttA;
+				const double rad = (double)coneRadius(focusIdleRadius) + ((double)coneRadius(focusRadius) - (double)coneRadius(focusIdleRadius)) * ttA;
 				const double softK = idleS + (1.0 - idleS) * ttA;
 				zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)rad / shown,
-							   (float)(focusSoftness * softK) / shown, blurSrc,
+							   (float)(coneSoftness() * softK) / shown, blurSrc,
 							   on ? 1.0f : 0.0f);
 			} else {
-				zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)focusRadius / shown,
-							   (float)focusSoftness / shown, blurSrc, on ? (float)ttA : 0.0f);
+				zoominator_blur::setParams(state.blurFilter, cxSrc, cySrc, (float)coneRadius(focusRadius) / shown,
+							   (float)coneSoftness() / shown, blurSrc, on ? (float)ttA : 0.0f);
 			}
 		}
 	}

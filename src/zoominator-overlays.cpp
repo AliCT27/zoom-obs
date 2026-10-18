@@ -415,14 +415,40 @@ double ZoominatorController::focusImagePad() const
 {
 	/* Large enough for both the zoomed radius and the not-zoomed radius (the
 	 * image is only ever scaled, see focusIdleScale). */
-	const double r = (double)std::max(std::clamp(focusRadius, 40, 2000), std::clamp(focusIdleRadius, 40, 2000));
-	return r + (double)std::clamp(focusSoftness, 0, 600) * 0.5 + 4.0;
+	const double r = (double)std::max(coneRadius(focusRadius), coneRadius(focusIdleRadius));
+	return r + (double)coneSoftness() * 0.5 + 4.0;
 }
 
 /* The spotlight not zoomed is the zoomed image scaled by this factor. */
+/* Light cone: 0 = a tight flashlight on a very small circle, 50 = the radius and softness as set, 100 = a wide,
+ * gently spread light. */
+static double coneRadiusFactor(int cone)
+{
+	const double f = std::clamp(cone, 0, 100) / 100.0;
+	return f <= 0.5 ? 0.3 + 1.4 * f : 1.0 + (f - 0.5) * 1.6;
+}
+
+static double coneSoftFactor(int cone)
+{
+	const double f = std::clamp(cone, 0, 100) / 100.0;
+	return f <= 0.5 ? 0.5 + f : 1.0 + (f - 0.5) * 2.4;
+}
+
+int ZoominatorController::coneRadius(int radius) const
+{
+	const double r = (double)std::clamp(radius, 40, 2000) * coneRadiusFactor(focusCone);
+	return (int)std::lround(std::clamp(r, 16.0, 3600.0));
+}
+
+int ZoominatorController::coneSoftness() const
+{
+	const double s = (double)std::clamp(focusSoftness, 0, 600) * coneSoftFactor(focusCone);
+	return (int)std::lround(std::clamp(s, 0.0, 1320.0));
+}
+
 double ZoominatorController::focusIdleScale() const
 {
-	return (double)std::clamp(focusIdleRadius, 40, 2000) / (double)std::clamp(focusRadius, 40, 2000);
+	return (double)coneRadius(focusIdleRadius) / (double)coneRadius(focusRadius);
 }
 
 void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
@@ -443,8 +469,8 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 	const double minScale = std::min(1.0, focusIdleScale());
 	const int w = std::max(8, (int)std::ceil((2.0 * canvasW + 2.0 * pad) / minScale / kFocusImageScale) + 2);
 	const int h = std::max(8, (int)std::ceil((2.0 * canvasH + 2.0 * pad) / minScale / kFocusImageScale) + 2);
-	const double radius = (double)std::clamp(focusRadius, 40, 2000) / kFocusImageScale;
-	const double soft = (double)std::clamp(focusSoftness, 0, 600) / kFocusImageScale;
+	const double radius = (double)coneRadius(focusRadius) / kFocusImageScale;
+	const double soft = (double)coneSoftness() / kFocusImageScale;
 	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
 	const double inner = std::max(0.0, radius - soft * 0.5);
 	const double outer = radius + soft * 0.5;
@@ -548,9 +574,9 @@ void ZoominatorController::updateFocusAppearance()
 	};
 	mix((uint64_t)cw);
 	mix((uint64_t)ch);
-	mix((uint64_t)std::clamp(focusRadius, 40, 2000));
-	mix((uint64_t)std::clamp(focusIdleRadius, 40, 2000));
-	mix((uint64_t)std::clamp(focusSoftness, 0, 600));
+	mix((uint64_t)coneRadius(focusRadius));
+	mix((uint64_t)coneRadius(focusIdleRadius));
+	mix((uint64_t)coneSoftness());
 	mix((uint64_t)std::clamp(focusDimPct, 0, 95));
 
 	if (!focusSource) {
@@ -777,8 +803,8 @@ void ZoominatorController::updateIdleBlur(bool on, bool cursorOk, float sx, floa
 		const float shown = std::max(0.0001f, (osx + osy) * 0.5f);
 		const float blurSrc = std::min(12.0f, (float)focusBlurPx / shown);
 		const double idleS = focusIdleScale();
-		zoominator_blur::setParams(b.filter, cxSrc, cySrc, (float)focusIdleRadius / shown,
-					   (float)(focusSoftness * idleS) / shown, blurSrc, 1.0f);
+		zoominator_blur::setParams(b.filter, cxSrc, cySrc, (float)coneRadius(focusIdleRadius) / shown,
+					   (float)(coneSoftness() * idleS) / shown, blurSrc, 1.0f);
 	}
 }
 
@@ -980,8 +1006,8 @@ void ZoominatorController::attachBlurFilters()
 				const float cxSrc = (sx - state.orig.effectivePos.x) / osx + (float)state.orig.crop.left;
 				const float cySrc = (sy - state.orig.effectivePos.y) / osy + (float)state.orig.crop.top;
 				const float shown = std::max(0.0001f, (osx + osy) * 0.5f);
-				zoominator_blur::setParams(filter, cxSrc, cySrc, (float)focusIdleRadius / shown,
-							   (float)(focusSoftness * focusIdleScale()) / shown,
+				zoominator_blur::setParams(filter, cxSrc, cySrc, (float)coneRadius(focusIdleRadius) / shown,
+							   (float)(coneSoftness() * focusIdleScale()) / shown,
 							   std::min(12.0f, (float)focusBlurPx / shown), 1.0f);
 			}
 		}
