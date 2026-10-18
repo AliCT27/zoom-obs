@@ -17,7 +17,8 @@ struct MaskData {
 	obs_source_t *context = nullptr;
 	gs_effect_t *effect = nullptr;
 	gs_eparam_t *pItemOrigin = nullptr, *pItemExtent = nullptr, *pSheetOrigin = nullptr, *pSheetSize = nullptr,
-		    *pPivot = nullptr, *pAngles = nullptr, *pDist = nullptr, *pScale = nullptr, *pTilted = nullptr;
+		    *pPivot = nullptr, *pAngles = nullptr, *pDist = nullptr, *pScale = nullptr, *pTilted = nullptr,
+		    *pRadius = nullptr;
 };
 
 namespace {
@@ -25,6 +26,7 @@ std::mutex g_mutex;
 bool g_sheetValid = false;
 float g_sheet[4] = {0, 0, 0, 0};
 float g_item[3] = {0, 0, 1};
+float g_radius = 0.0f;
 } // namespace
 
 void setSheet(float left, float top, float right, float bottom)
@@ -41,6 +43,12 @@ void clearSheet()
 {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	g_sheetValid = false;
+}
+
+void setRadius(float radiusPx)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_radius = radiusPx;
 }
 
 void setItem(float centerX, float centerY, float scale)
@@ -79,8 +87,9 @@ static void loadEffect(MaskData *d)
 		d->pDist = gs_effect_get_param_by_name(d->effect, "dist_px");
 		d->pScale = gs_effect_get_param_by_name(d->effect, "scl");
 		d->pTilted = gs_effect_get_param_by_name(d->effect, "tilted");
+		d->pRadius = gs_effect_get_param_by_name(d->effect, "radius_px");
 		if (!d->pItemOrigin || !d->pItemExtent || !d->pSheetOrigin || !d->pSheetSize || !d->pPivot ||
-		    !d->pAngles || !d->pDist || !d->pScale || !d->pTilted) {
+		    !d->pAngles || !d->pDist || !d->pScale || !d->pTilted || !d->pRadius) {
 			blog(LOG_WARNING, "[Zoominator] dim mask: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -124,10 +133,11 @@ static void videoRender(void *data, gs_effect_t *)
 	const uint32_t h = target ? obs_source_get_base_height(target) : 0;
 
 	bool valid;
-	float sh[4], item[3];
+	float sh[4], item[3], radius;
 	{
 		std::lock_guard<std::mutex> lock(g_mutex);
 		valid = g_sheetValid;
+		radius = g_radius;
 		for (int i = 0; i < 4; ++i)
 			sh[i] = g_sheet[i];
 		for (int i = 0; i < 3; ++i)
@@ -168,6 +178,7 @@ static void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pDist, tilted ? pose.dist : 1.0f);
 	gs_effect_set_float(d->pScale, tilted ? pose.scl : 1.0f);
 	gs_effect_set_float(d->pTilted, tilted ? 1.0f : 0.0f);
+	gs_effect_set_float(d->pRadius, radius);
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
