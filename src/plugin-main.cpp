@@ -2,6 +2,7 @@
 #include "cam-ring-filter.hpp"
 #include "focus-blur-filter.hpp"
 #include "tilt-filter.hpp"
+#include "dim-mask-filter.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
