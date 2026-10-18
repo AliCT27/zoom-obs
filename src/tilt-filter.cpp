@@ -95,11 +95,12 @@ bool getPose(Pose &out)
 	const float cw = (float)ovi.base_width, ch = (float)ovi.base_height;
 	const float w = sh[2] - sh[0], h = sh[3] - sh[1];
 
-	/* The more the view is zoomed in, the less the picture is turned: a turn is a big move of a zoomed picture and
-	 * would push its corners away from the canvas edges, which the zoom framing places them on. */
+	/* The turn fades out as the view zooms in and is gone by 1.5x: a zoomed view has to show the screen's real
+	 * edges and corners (the zoom framing puts them exactly on the canvas border), which a turned picture cannot. */
 	const float zoomRatio = std::max(1.0f, std::max(w / cw, h / ch));
-	yaw /= zoomRatio;
-	pitch /= zoomRatio;
+	const float strength = satf(1.0f - (zoomRatio - 1.0f) / 0.5f);
+	yaw *= strength;
+	pitch *= strength;
 	if (std::fabs(yaw) < 0.0005f && std::fabs(pitch) < 0.0005f)
 		return false;
 
