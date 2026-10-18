@@ -32,6 +32,28 @@ static const char *getName(void *)
 	return kFilterName;
 }
 
+float sheetScale(float yaw, float pitch, float persp, float w, float h)
+{
+	const float longSide = std::max(w, h);
+	const float dist = std::max(0.5f, persp) * longSide;
+	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
+	return std::clamp((dist - swing) / dist, 0.3f, 1.0f);
+}
+
+void projectPoint(double yaw, double pitch, double persp, double w, double h, double &x, double &y)
+{
+	const double longSide = std::max(w, h);
+	const double dist = std::max(0.5, persp) * longSide;
+	const double sa = std::sin(yaw), ca = std::cos(yaw), sb = std::sin(pitch), cb = std::cos(pitch);
+	const double xr = x * ca + y * sb * sa;
+	const double yr = y * cb;
+	const double zr = -x * sa + y * sb * ca;
+	const double depth = std::max(1.0, dist + zr);
+	const double k = dist / depth * (double)sheetScale((float)yaw, (float)pitch, (float)persp, (float)w, (float)h);
+	x = xr * k;
+	y = yr * k;
+}
+
 static void loadEffect(TiltData *d)
 {
 	char *path = obs_module_file(kEffectFile);
@@ -106,8 +128,7 @@ static void videoRender(void *data, gs_effect_t *)
 	const float longSide = (float)std::max(w, h);
 	const float dist = std::max(0.5f, d->persp.load(std::memory_order_relaxed)) * longSide;
 	/* The edge that swings towards the camera would grow past the frame; shrink the whole sheet to match. */
-	const float swing = 0.5f * longSide * std::max(std::fabs(std::sin(yaw)), std::fabs(std::sin(pitch)));
-	const float scale = std::clamp((dist - swing) / dist, 0.3f, 1.0f);
+	const float scale = sheetScale(yaw, pitch, d->persp.load(std::memory_order_relaxed), (float)w, (float)h);
 
 	vec2 v{};
 	v.x = (float)w;

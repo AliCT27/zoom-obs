@@ -795,7 +795,9 @@ void ZoominatorController::updateIdleFocus(bool on)
 			bool inside = false;
 			cursorOk = getCursorPos(cx, cy) && mapCursorToScenePixels(cx, cy, sx, sy, inside) && inside;
 			if (cursorOk && wantsDim()) {
-				updateFocus(scene, (double)sx, (double)sy, 255, true);
+				double dx = (double)sx, dy = (double)sy;
+				applyTiltToIdlePoint(dx, dy);
+				updateFocus(scene, dx, dy, 255, true);
 				shown = focusShown;
 			}
 		}
@@ -826,6 +828,34 @@ void ZoominatorController::detachTilt()
 	tiltTargets.clear();
 	tiltYaw = 0.0;
 	tiltPitch = 0.0;
+	tiltYawA.store(0.0, std::memory_order_relaxed);
+	tiltPitchA.store(0.0, std::memory_order_relaxed);
+	zoominator_frame::setTilt(0.0f, 0.0f, (float)tilt3dPerspective);
+}
+
+/* Idle only (the zoom engine is not running): where a point mapped onto the flat screen is shown once the
+ * screen is turned. Uses the screen item's current resting layout. */
+void ZoominatorController::applyTiltToIdlePoint(double &x, double &y) const
+{
+	const double yaw = tiltYawA.load(std::memory_order_relaxed);
+	const double pitch = tiltPitchA.load(std::memory_order_relaxed);
+	if (!tilt3dEnabled || tiltTargets.empty() || (std::fabs(yaw) < 0.0005 && std::fabs(pitch) < 0.0005))
+		return;
+	obs_sceneitem_t *item = tiltTargets[0].item;
+	obs_source_t *src = tiltTargets[0].target;
+	if (!item || !src)
+		return;
+	const OrigState o = computeOrigState(item);
+	const double w = (double)obs_source_get_width(src), h = (double)obs_source_get_height(src);
+	if (!o.valid || w < 1.0 || h < 1.0)
+		return;
+	const double cx = (double)o.effectivePos.x + (w * 0.5 - (double)o.crop.left) * (double)o.effectiveScale.x;
+	const double cy = (double)o.effectivePos.y + (h * 0.5 - (double)o.crop.top) * (double)o.effectiveScale.y;
+	const double kx = std::max(1e-4, (double)o.effectiveScale.x), ky = std::max(1e-4, (double)o.effectiveScale.y);
+	double px = (x - cx) / kx, py = (y - cy) / ky;
+	zoominator_tilt::projectPoint(yaw, pitch, tilt3dPerspective, w, h, px, py);
+	x = cx + px * kx;
+	y = cy + py * ky;
 }
 
 /* 3D camera: turns the captured screen towards the mouse. The filter sits on the source, so it works
@@ -834,6 +864,8 @@ void ZoominatorController::updateTilt()
 {
 	if (!tilt3dEnabled || shuttingDown) {
 		if (!tiltTargets.empty())
+			detachTilt();
+		else if (tiltYawA.load(std::memory_order_relaxed) != 0.0 || tiltPitchA.load(std::memory_order_relaxed) != 0.0)
 			detachTilt();
 		return;
 	}
@@ -846,6 +878,10 @@ void ZoominatorController::updateTilt()
 		bool same = items.size() == tiltTargets.size();
 		for (size_t i = 0; same && i < items.size(); ++i)
 			same = tiltTargets[i].item == items[i];
+		if (same) {
+			for (auto &t : tiltTargets)
+				obs_source_filter_set_order(t.target, t.filter, OBS_ORDER_MOVE_TOP);
+		}
 		if (!same) {
 			detachTilt();
 			for (obs_sceneitem_t *item : items) {
@@ -884,8 +920,11 @@ void ZoominatorController::updateTilt()
 	tiltYaw += (targetYaw - tiltYaw) * resp;
 	tiltPitch += (targetPitch - tiltPitch) * resp;
 
+	tiltYawA.store(tiltYaw, std::memory_order_relaxed);
+	tiltPitchA.store(tiltPitch, std::memory_order_relaxed);
 	for (auto &t : tiltTargets)
 		zoominator_tilt::setParams(t.filter, (float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective);
+	zoominator_frame::setTilt((float)tiltYaw, (float)tiltPitch, (float)tilt3dPerspective);
 }
 
 void ZoominatorController::hideFocusInScene(obs_scene_t *scene)
