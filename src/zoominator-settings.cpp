@@ -396,10 +396,11 @@ void ZoominatorController::loadSettings()
 	focusIdleRadius = focusRadius;
 	if (obs_data_has_user_value(data, "focus_idle_radius"))
 		focusIdleRadius = (int)obs_data_get_int(data, "focus_idle_radius");
-	if (obs_data_has_user_value(data, "focus_cone"))
-		focusCone = (int)obs_data_get_int(data, "focus_cone");
-	if (obs_data_has_user_value(data, "focus_softness"))
-		focusSoftness = (int)obs_data_get_int(data, "focus_softness");
+	/* The beam is set by the light cone alone. Settings from before that carry their radius over to it. */
+	if (obs_data_has_user_value(data, "focus_beam"))
+		focusCone = (int)obs_data_get_int(data, "focus_beam");
+	else
+		focusCone = coneForBeamRadius(focusRadius);
 	if (obs_data_has_user_value(data, "focus_style"))
 		focusStyle = focusStyleFromString(getStr("focus_style"));
 	if (obs_data_has_user_value(data, "focus_blur_px"))
@@ -407,8 +408,9 @@ void ZoominatorController::loadSettings()
 	focusDimPct = std::clamp(focusDimPct, 0, 95);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
-	focusSoftness = std::clamp(focusSoftness, 0, 600);
 	focusCone = std::clamp(focusCone, 0, 100);
+	focusRadius = beamRadiusForCone(focusCone);
+	focusSoftness = beamSoftnessForCone(focusCone);
 	if (obs_data_has_user_value(data, "cam_ring_enabled"))
 		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
 	camSourceName = getStr("cam_source");
@@ -976,10 +978,8 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "focus_enabled", focusEnabled);
 	obs_data_set_bool(data, "show_focus_when_not_zoomed", showFocusWhenNotZoomed);
 	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
-	obs_data_set_int(data, "focus_radius", focusRadius);
 	obs_data_set_int(data, "focus_idle_radius", focusIdleRadius);
-	obs_data_set_int(data, "focus_softness", focusSoftness);
-	obs_data_set_int(data, "focus_cone", focusCone);
+	obs_data_set_int(data, "focus_beam", focusCone);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
 	obs_data_set_bool(data, "cam_ring_enabled", camRingEnabled);

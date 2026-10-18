@@ -139,8 +139,6 @@ private:
 	std::function<void()> syncFocusFieldsFn;
 	QSpinBox *spFocusBlur = nullptr;
 	QSpinBox *spFocusDim = nullptr;
-	QSpinBox *spFocusRadius = nullptr;
-	QSpinBox *spFocusSoftness = nullptr;
 	QSpinBox *spFocusCone = nullptr;
 	QCheckBox *chkDebug = nullptr;
 	QCheckBox *chkSoundEnabled = nullptr;
