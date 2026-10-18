@@ -416,47 +416,38 @@ double ZoominatorController::focusImagePad() const
 	/* Large enough for both the zoomed radius and the not-zoomed radius (the
 	 * image is only ever scaled, see focusIdleScale). */
 	const double r = (double)std::max(coneRadius(focusRadius), coneRadius(focusIdleRadius));
-	return r + (double)coneSoftness() * 0.5 + 4.0;
+	/* The beam has a long tail: it is practically gone at about 2.6x its half-brightness radius. */
+	return std::min(2.6 * r + 4.0, 3000.0);
 }
 
 /* The spotlight not zoomed is the zoomed image scaled by this factor. */
-/* Light cone shapes the fade between the bright spot and the dimmed area (zoomed size; the not-zoomed spotlight is
- * this image scaled, see focusIdleScale):
- *   50    the radius and softness exactly as set.
- *   lower the light keeps only its centre bright and fades continuously from there, towards a smaller edge:
- *         a tight flashlight beam, 0 = a very small hot spot.
- *   higher the bright core stays and the fade stretches over a much wider area: a gentle, wide light. */
-static void coneBand(int radius, int softness, int cone, double &inner, double &outer)
+/* The spotlight is a flashlight beam: the light is brightest at the cursor and falls off continuously with
+ * distance, L(d) = exp(-ln2 * (d / R)^p). R is where it has dropped to half, p how hard the edge is (2 is a
+ * gentle, natural beam; more is a crisper disc). Edge softness sets p: 0 px is crisp, wider is gentler.
+ * Light cone scales the beam: 0 = a narrow, concentrated beam, 50 = the radius as set, 100 = a wide, gently
+ * spread light. The radius and softness are scaled together so the shape stays the same, only the size changes. */
+static double coneFactor(int cone)
 {
-	const double R = (double)std::clamp(radius, 40, 2000);
-	const double S = (double)std::clamp(softness, 0, 600);
-	inner = std::max(0.0, R - S * 0.5);
-	outer = R + S * 0.5;
-	const double c = (double)std::clamp(cone, 0, 100);
-	if (c < 50.0) {
-		const double u = (50.0 - c) / 50.0;
-		inner *= (1.0 - u);
-		outer *= (1.0 - 0.6 * u);
-	} else {
-		const double v = (c - 50.0) / 50.0;
-		outer += v * 2.0 * R;
-	}
-	outer = std::max(outer, inner + 4.0);
+	const double f = std::clamp(cone, 0, 100) / 100.0;
+	return f <= 0.5 ? 0.3 + 1.4 * f : 1.0 + (f - 0.5) * 1.4;
+}
+
+/* Exponent of the beam profile for half-brightness radius `halfRadius` and edge softness `softness`. */
+static double beamExponent(double halfRadius, double softness)
+{
+	return 1.6 + 6.4 * std::exp(-7.4 * softness / std::max(halfRadius, 1.0));
 }
 
 int ZoominatorController::coneRadius(int radius) const
 {
-	double inner = 0.0, outer = 0.0;
-	coneBand(focusRadius, focusSoftness, focusCone, inner, outer);
-	const double ratio = (double)std::clamp(radius, 40, 2000) / (double)std::clamp(focusRadius, 40, 2000);
-	return (int)std::lround(std::clamp(0.5 * (inner + outer) * ratio, 8.0, 6000.0));
+	const double r = (double)std::clamp(radius, 40, 2000) * coneFactor(focusCone);
+	return (int)std::lround(std::clamp(r, 12.0, 2800.0));
 }
 
 int ZoominatorController::coneSoftness() const
 {
-	double inner = 0.0, outer = 0.0;
-	coneBand(focusRadius, focusSoftness, focusCone, inner, outer);
-	return (int)std::lround(std::clamp(outer - inner, 0.0, 4000.0));
+	const double s = (double)std::clamp(focusSoftness, 0, 600) * coneFactor(focusCone);
+	return (int)std::lround(std::clamp(s, 0.0, 840.0));
 }
 
 double ZoominatorController::focusIdleScale() const
@@ -485,8 +476,7 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 	const double radius = (double)coneRadius(focusRadius) / kFocusImageScale;
 	const double soft = (double)coneSoftness() / kFocusImageScale;
 	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
-	const double inner = std::max(0.0, radius - soft * 0.5);
-	const double outer = radius + soft * 0.5;
+	const double expo = beamExponent(radius, soft);
 	const double cx = (double)w * 0.5;
 	const double cy = (double)h * 0.5;
 
@@ -497,13 +487,10 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 		for (int x = 0; x < w; ++x) {
 			const double dx = ((double)x + 0.5) - cx;
 			const double d = std::sqrt(dx * dx + dy * dy);
-			double t = 0.0;
-			if (outer > inner)
-				t = clampd((d - inner) / (outer - inner), 0.0, 1.0);
-			else
-				t = d >= radius ? 1.0 : 0.0;
+			/* Light left at this distance; the dimming is what the light does not reach. */
+			const double light = std::exp(-0.6931471805599453 * std::pow(d / std::max(radius, 1.0), expo));
 			/* Black, so premultiplied and straight alpha are the same value. */
-			line[x] = qRgba(0, 0, 0, (int)std::lround(smoothstep(t) * dimAlpha));
+			line[x] = qRgba(0, 0, 0, (int)std::lround((1.0 - light) * dimAlpha));
 		}
 	}
 	img.save(path, "PNG");

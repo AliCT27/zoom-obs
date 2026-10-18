@@ -11,8 +11,8 @@ uniform texture2d image;
 
 uniform float2 texel_size;  // 1 / source size
 uniform float2 center_px;   // cursor position inside the source
-uniform float radius_px;    // radius of the sharp area
-uniform float soft_px;      // width of the sharp -> blurred transition
+uniform float radius_px;    // radius at which the sharp area has faded to half (flashlight beam)
+uniform float soft_px;      // edge softness: with radius_px sets how hard the beam's edge is
 uniform float blur_px;      // maximum blur radius
 uniform float strength;     // 0 = off, 1 = full (animated while zooming)
 
@@ -45,10 +45,10 @@ float4 PSFocusBlur(VertInOut vert_in) : TARGET
 	float2 p = vert_in.uv / texel_size;
 	float d = length(p - center_px);
 
-	float inner = max(0.0, radius_px - soft_px * 0.5);
-	float outer = radius_px + soft_px * 0.5;
-	float t = saturate((d - inner) / max(outer - inner, 0.001));
-	t = t * t * (3.0 - 2.0 * t);
+	// Same beam profile as the dim image: light = exp(-ln2 * (d / R)^p), blur where the light is missing.
+	float expo = 1.6 + 6.4 * exp(-7.4 * soft_px / max(radius_px, 1.0));
+	float light = exp(-0.6931471805599453 * pow(d / max(radius_px, 1.0), expo));
+	float t = 1.0 - light;
 
 	float r = blur_px * t * strength;
 	if (r < 0.5)
