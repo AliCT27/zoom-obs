@@ -109,11 +109,16 @@ bool getPose(Pose &out)
 	out.height = h;
 
 	/* Not zoomed: shrink so the edge swinging towards the camera stays on the canvas. Zoomed: the sheet runs past
-	 * the canvas, so instead grow it a little so the edge swinging away does not leave a gap. */
+	 * the canvas, so instead grow it just enough that its edges, which may sit exactly on the canvas border, stay
+	 * outside the canvas: the turned sheet is narrower by cos(angle) and the edge swinging away by perspective. */
 	const float swing = 0.5f * longSheet * std::max(sy, sp);
 	const float shrink = std::clamp((out.dist - swing) / out.dist, 0.3f, 1.0f);
-	const float grow = 1.01f + std::max(0.5f * cw * sy, 0.5f * ch * sp) / out.dist;
-	const float zoomT = satf((std::max(w / cw, h / ch) - 1.0f) / 0.25f);
+	const float zx = satf((w / cw - 1.0f) / 0.25f);
+	const float zy = satf((h / ch - 1.0f) / 0.25f);
+	const float needX = 1.02f * (1.0f + 0.5f * cw * sy / out.dist) / std::max(0.5f, std::cos(yaw));
+	const float needY = 1.02f * (1.0f + 0.5f * ch * sp / out.dist) / std::max(0.5f, std::cos(pitch));
+	const float grow = std::max(1.0f + zx * (needX - 1.0f), 1.0f + zy * (needY - 1.0f));
+	const float zoomT = std::max(zx, zy);
 	out.scl = shrink + (grow - shrink) * zoomT;
 	return true;
 }
