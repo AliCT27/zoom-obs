@@ -420,30 +420,43 @@ double ZoominatorController::focusImagePad() const
 }
 
 /* The spotlight not zoomed is the zoomed image scaled by this factor. */
-/* Light cone: 0 = a tight flashlight on a very small circle, 50 = the radius and softness as set, 100 = a wide,
- * gently spread light. */
-static double coneRadiusFactor(int cone)
+/* Light cone shapes the fade between the bright spot and the dimmed area (zoomed size; the not-zoomed spotlight is
+ * this image scaled, see focusIdleScale):
+ *   50    the radius and softness exactly as set.
+ *   lower the light keeps only its centre bright and fades continuously from there, towards a smaller edge:
+ *         a tight flashlight beam, 0 = a very small hot spot.
+ *   higher the bright core stays and the fade stretches over a much wider area: a gentle, wide light. */
+static void coneBand(int radius, int softness, int cone, double &inner, double &outer)
 {
-	const double f = std::clamp(cone, 0, 100) / 100.0;
-	return f <= 0.5 ? 0.3 + 1.4 * f : 1.0 + (f - 0.5) * 1.6;
-}
-
-static double coneSoftFactor(int cone)
-{
-	const double f = std::clamp(cone, 0, 100) / 100.0;
-	return f <= 0.5 ? 0.5 + f : 1.0 + (f - 0.5) * 2.4;
+	const double R = (double)std::clamp(radius, 40, 2000);
+	const double S = (double)std::clamp(softness, 0, 600);
+	inner = std::max(0.0, R - S * 0.5);
+	outer = R + S * 0.5;
+	const double c = (double)std::clamp(cone, 0, 100);
+	if (c < 50.0) {
+		const double u = (50.0 - c) / 50.0;
+		inner *= (1.0 - u);
+		outer *= (1.0 - 0.6 * u);
+	} else {
+		const double v = (c - 50.0) / 50.0;
+		outer += v * 2.0 * R;
+	}
+	outer = std::max(outer, inner + 4.0);
 }
 
 int ZoominatorController::coneRadius(int radius) const
 {
-	const double r = (double)std::clamp(radius, 40, 2000) * coneRadiusFactor(focusCone);
-	return (int)std::lround(std::clamp(r, 16.0, 3600.0));
+	double inner = 0.0, outer = 0.0;
+	coneBand(focusRadius, focusSoftness, focusCone, inner, outer);
+	const double ratio = (double)std::clamp(radius, 40, 2000) / (double)std::clamp(focusRadius, 40, 2000);
+	return (int)std::lround(std::clamp(0.5 * (inner + outer) * ratio, 8.0, 6000.0));
 }
 
 int ZoominatorController::coneSoftness() const
 {
-	const double s = (double)std::clamp(focusSoftness, 0, 600) * coneSoftFactor(focusCone);
-	return (int)std::lround(std::clamp(s, 0.0, 1320.0));
+	double inner = 0.0, outer = 0.0;
+	coneBand(focusRadius, focusSoftness, focusCone, inner, outer);
+	return (int)std::lround(std::clamp(outer - inner, 0.0, 4000.0));
 }
 
 double ZoominatorController::focusIdleScale() const
