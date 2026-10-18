@@ -436,7 +436,7 @@ int ZoominatorController::beamRadiusForCone(int cone)
 int ZoominatorController::beamSoftnessForCone(int cone, int radius)
 {
 	const double c = (double)std::clamp(cone, 0, 100);
-	const double ratio = c <= 50.0 ? 0.15 + (0.27 - 0.15) * (c / 50.0) : 0.27 + (0.6 - 0.27) * ((c - 50.0) / 50.0);
+	const double ratio = c <= 50.0 ? 0.27 * (c / 50.0) : 0.27 + (0.6 - 0.27) * ((c - 50.0) / 50.0);
 	return (int)std::lround(ratio * (double)std::clamp(radius, 40, 2000));
 }
 
@@ -450,7 +450,9 @@ int ZoominatorController::coneForBeamRadius(int radius)
 /* Exponent of the beam profile for half-brightness radius `halfRadius` and edge softness `softness`. */
 static double beamExponent(double halfRadius, double softness)
 {
-	return 1.6 + 6.4 * std::exp(-7.4 * softness / std::max(halfRadius, 1.0));
+	const double x = softness / std::max(halfRadius, 1.0);
+	/* the extra term only bites near x = 0 and makes the beam's edge really crisp (Light cone at 0) */
+	return 1.6 + 6.4 * std::exp(-7.4 * x) + 6.0 * std::clamp(1.0 - x / 0.12, 0.0, 1.0);
 }
 
 int ZoominatorController::coneRadius(int radius) const
