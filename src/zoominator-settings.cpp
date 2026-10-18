@@ -5,8 +5,6 @@
 QString ZoominatorController::zoomAnchorModeToString(ZoomAnchorMode mode)
 {
 	switch (mode) {
-	case ZoomAnchorMode::CanvasCenter:
-		return QStringLiteral("center");
 	case ZoomAnchorMode::CursorStatic:
 		return QStringLiteral("cursor_static");
 	case ZoomAnchorMode::CursorFollow:
@@ -17,9 +15,8 @@ QString ZoominatorController::zoomAnchorModeToString(ZoomAnchorMode mode)
 
 ZoominatorController::ZoomAnchorMode ZoominatorController::zoomAnchorModeFromString(const QString &value)
 {
-	if (value == QLatin1String("center"))
-		return ZoomAnchorMode::CanvasCenter;
-	if (value == QLatin1String("cursor_static"))
+	/* "center" (zoom about the canvas centre) no longer exists; saved settings that have it hold still instead. */
+	if (value == QLatin1String("center") || value == QLatin1String("cursor_static"))
 		return ZoomAnchorMode::CursorStatic;
 	return ZoomAnchorMode::CursorFollow;
 }
@@ -470,13 +467,12 @@ void ZoominatorController::loadSettings()
 
 	/* `zoom_anchor` supersedes the `follow_mouse` boolean. Configs written by
 	 * older builds only have the boolean, so migrate it: following stays
-	 * following, and "off" keeps its old meaning of zooming about the canvas
-	 * centre rather than silently switching to the new static-cursor mode. */
+	 * following, and "off" becomes the hold-still mode. */
 	if (obs_data_has_user_value(data, "zoom_anchor"))
 		zoomAnchor = zoomAnchorModeFromString(getStr("zoom_anchor"));
 	else if (obs_data_has_user_value(data, "follow_mouse"))
 		zoomAnchor = obs_data_get_bool(data, "follow_mouse") ? ZoomAnchorMode::CursorFollow
-								     : ZoomAnchorMode::CanvasCenter;
+								     : ZoomAnchorMode::CursorStatic;
 	followMouseRuntimeEnabled = true;
 	if (obs_data_has_user_value(data, "follow_speed"))
 		followSpeed = obs_data_get_double(data, "follow_speed");

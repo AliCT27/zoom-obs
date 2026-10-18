@@ -465,7 +465,6 @@ void ZoominatorDialog::buildUi()
 		addSection(lay, T("Dialog.Section.MouseFollow"));
 
 		cmbZoomAnchor = new QComboBox(page);
-		cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.Center"), "center");
 		cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorStatic"), "cursor_static");
 		cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorFollow"), "cursor_follow");
 		cmbZoomAnchor->setToolTip(T("Dialog.ZoomAnchorTooltip"));
@@ -1325,7 +1324,7 @@ void ZoominatorDialog::loadFromController()
 		spWheelExit->setEnabled(c.wheelZoomEnabled);
 		const int anchorIdx =
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
-		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 2);
+		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 1);
 		spFollowSpeed->setValue(c.followSpeed);
 		chkCenterFocus->setChecked(c.centerFocus);
 		chkPortraitCover->setChecked(c.portraitCover);
