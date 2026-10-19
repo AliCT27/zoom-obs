@@ -1169,7 +1169,8 @@ void ZoominatorController::onTick()
 
 		/* The engine also runs at 1x (sideways follow), which is not zoomed: there the halo obeys "Show halo
 		 * when not zoomed" and uses the not-zoomed size. */
-		const bool zoomedNow = zoomedView() || animT > 0.001;
+		const bool zoomedNow = zoomedView() || animT > 0.001 || (markerFlashStartedZoomed.load(std::memory_order_relaxed) &&
+					   isMarkerFlashActive(QDateTime::currentMSecsSinceEpoch()));
 		if (showCursorMarker && markerVisible && (zoomedNow || showMarkerWhenNotZoomed)) {
 			const int opacity = currentMarkerOpacity(QDateTime::currentMSecsSinceEpoch());
 			if (opacity > 0)

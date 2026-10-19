@@ -303,6 +303,7 @@ bool ZoominatorController::captureMarkerClickPosition()
 		markerClickX = mx;
 		markerClickY = my;
 		markerClickHasPos = true;
+		markerFlashStartedZoomed.store(zoomedView() || animT > 0.001, std::memory_order_relaxed);
 		markerClickFlashStartMs = nowMs;
 		markerClickFlashHoldUntilMs = nowMs + kMarkerFadeInMs + kMarkerHoldMs;
 		markerClickFlashFadeOutEndMs = markerClickFlashHoldUntilMs + kMarkerFadeOutMs;
