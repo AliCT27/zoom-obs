@@ -396,8 +396,8 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 		if (!targets.empty() && targets.front()) {
 			vec2 isc{};
 			obs_sceneitem_get_scale(targets.front(), &isc);
-			x += 6.0 * (double)isc.x;
-			y += 10.0 * (double)isc.y;
+			x += (double)markerOffsetX * (double)isc.x;
+			y += (double)markerOffsetY * (double)isc.y;
 		}
 	}
 

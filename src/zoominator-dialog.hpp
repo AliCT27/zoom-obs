@@ -102,6 +102,9 @@ private:
 	QSpinBox *spMarkerSize = nullptr;
 	QSpinBox *spMarkerIdleSize = nullptr;
 	QCheckBox *chkMarkerFollowZoom = nullptr;
+	QSpinBox *spMarkerOffX = nullptr;
+	QSpinBox *spMarkerOffY = nullptr;
+	QPushButton *btnMarkerOffReset = nullptr;
 	QCheckBox *chkWheelZoom = nullptr;
 	QCheckBox *chkIdleFollowX = nullptr;
 	QCheckBox *chkTilt3d = nullptr;

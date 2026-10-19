@@ -188,6 +188,8 @@ void ZoominatorController::loadSettings()
 	showCursorMarker = false;
 	showMarkerWhenNotZoomed = false;
 	markerFollowZoom = true;
+	markerOffsetX = 6;
+	markerOffsetY = 10;
 	markerOnlyOnClick = true;
 	markerColor = 0xFFFF0000;
 	markerSize = 26;
@@ -513,6 +515,10 @@ void ZoominatorController::loadSettings()
 		showMarkerWhenNotZoomed = obs_data_get_bool(data, "show_marker_when_not_zoomed");
 	if (obs_data_has_user_value(data, "marker_follow_zoom"))
 		markerFollowZoom = obs_data_get_bool(data, "marker_follow_zoom");
+	if (obs_data_has_user_value(data, "marker_offset_x"))
+		markerOffsetX = std::clamp((int)obs_data_get_int(data, "marker_offset_x"), -100, 100);
+	if (obs_data_has_user_value(data, "marker_offset_y"))
+		markerOffsetY = std::clamp((int)obs_data_get_int(data, "marker_offset_y"), -100, 100);
 	// Continuous cursor tracking was inaccurate on captures whose aspect ratio
 	// differs from the OBS canvas. The marker is intentionally click-only.
 	markerOnlyOnClick = true;
@@ -1043,6 +1049,8 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "show_cursor_marker", showCursorMarker);
 	obs_data_set_bool(data, "show_marker_when_not_zoomed", showMarkerWhenNotZoomed);
 	obs_data_set_bool(data, "marker_follow_zoom", markerFollowZoom);
+	obs_data_set_int(data, "marker_offset_x", markerOffsetX);
+	obs_data_set_int(data, "marker_offset_y", markerOffsetY);
 	obs_data_set_bool(data, "marker_only_on_click", true);
 	obs_data_set_int(data, "marker_color", (long long)markerColor);
 	obs_data_set_int(data, "marker_size", markerSize);
