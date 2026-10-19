@@ -389,15 +389,15 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	}
 
 	/* The cursor arrow is drawn by the capture and grows with the zoom, but its hot spot is the tip: centre the
-	 * halo on the arrow's middle instead (measured from a recording: about 8 px right and 13 px below the reported position at 1x, in capture pixels). */
+	 * halo on the arrow's middle instead (about 6 px right and 10 px below the tip at 1x, in capture pixels). */
 	if (markerFollowZoom) {
 		std::vector<obs_sceneitem_t *> targets;
 		enumerateTargetItemsInCurrentScene(targets);
 		if (!targets.empty() && targets.front()) {
 			vec2 isc{};
 			obs_sceneitem_get_scale(targets.front(), &isc);
-			x += 8.0 * (double)isc.x;
-			y += 13.0 * (double)isc.y;
+			x += 6.0 * (double)isc.x;
+			y += 10.0 * (double)isc.y;
 		}
 	}
 
