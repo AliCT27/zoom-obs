@@ -80,11 +80,18 @@ static void normalize_marker_scene_item(obs_sceneitem_t *item)
 	obs_sceneitem_set_order(item, OBS_ORDER_MOVE_TOP);
 }
 
+/* Drawn larger when the halo grows with the zoom, so it stays sharp. */
+int ZoominatorController::markerImageSize() const
+{
+	const int base = std::max(markerSize, markerIdleSize);
+	return std::clamp(markerFollowZoom ? base * 3 : base, 6, 512);
+}
+
 void ZoominatorController::rebuildMarkerImage()
 {
 	/* The image is drawn for the larger of the zoomed and not-zoomed sizes and the
 	 * scene item is scaled down to the one in use, so neither looks soft. */
-	const int size = std::clamp(std::max(markerSize, markerIdleSize), 6, 512);
+	const int size = markerImageSize();
 	const double f = (double)size / (double)std::clamp(markerSize, 6, 512);
 	const QString path = markerImagePath();
 	if (path.isEmpty())
@@ -262,7 +269,8 @@ void ZoominatorController::updateMarkerAppearance()
 {
 	const uint32_t appearanceHash = ((uint32_t)std::clamp(markerSize, 6, 512) * 73856093u) ^
 					((uint32_t)std::clamp(markerThickness, 1, 64) * 19349663u) ^
-					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u);
+					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u) ^
+					(markerFollowZoom ? 0x5bd1e995u : 0u);
 
 	if (markerSource && markerAppearanceHash == appearanceHash)
 		return;
@@ -348,7 +356,8 @@ int ZoominatorController::currentMarkerOpacity(qint64 nowMs)
 	return (int)std::round((1.0 - smoothstep(tOut)) * 255.0);
 }
 
-void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle)
+void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle,
+						double zoomK)
 {
 	if (!showCursorMarker)
 		return;
@@ -371,11 +380,25 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 
 	normalize_marker_scene_item(item);
 	{
-		const double imgSize = (double)std::clamp(std::max(markerSize, markerIdleSize), 6, 512);
-		const double wanted = (double)std::clamp(idle ? markerIdleSize : markerSize, 6, 512);
+		const double imgSize = (double)markerImageSize();
+		const double grow = markerFollowZoom ? std::max(1.0, zoomK) : 1.0;
+		const double wanted = (double)std::clamp(idle ? markerIdleSize : markerSize, 6, 512) * grow;
 		vec2 sc{};
 		sc.x = sc.y = (float)(wanted / imgSize);
 		obs_sceneitem_set_scale(item, &sc);
+	}
+
+	/* The cursor arrow is drawn by the capture and grows with the zoom, but its hot spot is the tip: centre the
+	 * halo on the arrow's middle instead (about 6 px right and 10 px below the tip at 1x, in capture pixels). */
+	if (markerFollowZoom) {
+		std::vector<obs_sceneitem_t *> targets;
+		enumerateTargetItemsInCurrentScene(targets);
+		if (!targets.empty() && targets.front()) {
+			vec2 isc{};
+			obs_sceneitem_get_scale(targets.front(), &isc);
+			x += 6.0 * (double)isc.x;
+			y += 10.0 * (double)isc.y;
+		}
 	}
 
 	vec2 pos{};
