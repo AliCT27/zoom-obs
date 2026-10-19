@@ -594,9 +594,6 @@ void ZoominatorDialog::buildUi()
 		haloIdleRow->addStretch(2);
 		lay->addLayout(haloIdleRow);
 		lay->addSpacing(6);
-		chkMarkerFollowZoom = new QCheckBox(T("Dialog.HaloFollowZoom"), page);
-		chkMarkerFollowZoom->setToolTip(T("Dialog.HaloFollowZoomTooltip"));
-		lay->addWidget(chkMarkerFollowZoom);
 		lay->addSpacing(4);
 		spMarkerOffX = new QSpinBox(page);
 		spMarkerOffX->setRange(-100, 100);
@@ -1118,15 +1115,13 @@ void ZoominatorDialog::buildUi()
 			spMarkerThickness->setEnabled(on);
 			btnMarkerColor->setEnabled(on);
 			chkShowMarkerWhenNotZoomed->setEnabled(on);
-			chkMarkerFollowZoom->setEnabled(on);
-			spMarkerOffX->setEnabled(on && chkMarkerFollowZoom->isChecked());
-			spMarkerOffY->setEnabled(on && chkMarkerFollowZoom->isChecked());
-			btnMarkerOffReset->setEnabled(on && chkMarkerFollowZoom->isChecked());
+			spMarkerOffX->setEnabled(on);
+			spMarkerOffY->setEnabled(on);
+			btnMarkerOffReset->setEnabled(on);
 			spMarkerIdleSize->setEnabled(on && chkShowMarkerWhenNotZoomed->isChecked());
 		};
 		connect(chkShowCursorMarker, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
 		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
-		connect(chkMarkerFollowZoom, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
 		syncHaloFields();
 	}
 }
@@ -1386,13 +1381,11 @@ void ZoominatorDialog::loadFromController()
 		spMarkerIdleSize->setEnabled(c.showCursorMarker && c.showMarkerWhenNotZoomed);
 		spMarkerSize->setValue(c.markerSize);
 		spMarkerIdleSize->setValue(c.markerIdleSize);
-		chkMarkerFollowZoom->setChecked(c.markerFollowZoom);
-		chkMarkerFollowZoom->setEnabled(c.showCursorMarker);
 		spMarkerOffX->setValue(c.markerOffsetX);
 		spMarkerOffY->setValue(c.markerOffsetY);
-		spMarkerOffX->setEnabled(c.showCursorMarker && c.markerFollowZoom);
-		spMarkerOffY->setEnabled(c.showCursorMarker && c.markerFollowZoom);
-		btnMarkerOffReset->setEnabled(c.showCursorMarker && c.markerFollowZoom);
+		spMarkerOffX->setEnabled(c.showCursorMarker);
+		spMarkerOffY->setEnabled(c.showCursorMarker);
+		btnMarkerOffReset->setEnabled(c.showCursorMarker);
 		spMarkerThickness->setValue(c.markerThickness);
 		updateMarkerColorButton(QColor::fromRgba(c.markerColor));
 		chkFrame->setChecked(c.frameEnabled);
@@ -1525,7 +1518,6 @@ void ZoominatorDialog::applyToController()
 	c.markerOnlyOnClick = true;
 	c.markerSize = spMarkerSize->value();
 	c.markerIdleSize = spMarkerIdleSize->value();
-	c.markerFollowZoom = chkMarkerFollowZoom->isChecked();
 	c.markerOffsetX = spMarkerOffX->value();
 	c.markerOffsetY = spMarkerOffY->value();
 	c.markerThickness = spMarkerThickness->value();
