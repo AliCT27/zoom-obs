@@ -491,7 +491,7 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 	const int h = std::max(8, (int)std::ceil((2.0 * canvasH + 2.0 * pad) / minScale / kFocusImageScale) + 2);
 	const double radius = (double)coneRadius(focusRadius) / kFocusImageScale;
 	const double soft = (double)coneSoftness() / kFocusImageScale;
-	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 95) / 100.0 * 255.0;
+	const double dimAlpha = (double)std::clamp(focusDimPct, 0, 100) / 100.0 * 255.0;
 	const double expo = beamExponent(radius, soft);
 	const double cx = (double)w * 0.5;
 	const double cy = (double)h * 0.5;
@@ -596,7 +596,7 @@ void ZoominatorController::updateFocusAppearance()
 	mix((uint64_t)coneRadius(focusRadius));
 	mix((uint64_t)coneRadius(focusIdleRadius));
 	mix((uint64_t)coneSoftness());
-	mix((uint64_t)std::clamp(focusDimPct, 0, 95));
+	mix((uint64_t)std::clamp(focusDimPct, 0, 100));
 
 	if (!focusSource) {
 		ensureFocusSource();

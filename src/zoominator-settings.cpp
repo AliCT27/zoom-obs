@@ -412,7 +412,7 @@ void ZoominatorController::loadSettings()
 		focusStyle = focusStyleFromString(getStr("focus_style"));
 	if (obs_data_has_user_value(data, "focus_blur_px"))
 		focusBlurPx = std::clamp((int)obs_data_get_int(data, "focus_blur_px"), 2, 60);
-	focusDimPct = std::clamp(focusDimPct, 0, 95);
+	focusDimPct = std::clamp(focusDimPct, 0, 100);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
 	focusCone = std::clamp(focusCone, 0, 100);

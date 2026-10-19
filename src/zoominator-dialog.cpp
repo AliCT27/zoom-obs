@@ -815,7 +815,7 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(styleRow);
 
 		spFocusDim = new QSpinBox(page);
-		spFocusDim->setRange(0, 95);
+		spFocusDim->setRange(0, 100);
 		spFocusDim->setSingleStep(5);
 		spFocusDim->setSuffix(QStringLiteral(" %"));
 		spFocusDim->setToolTip(T("Dialog.FocusDimTooltip"));
