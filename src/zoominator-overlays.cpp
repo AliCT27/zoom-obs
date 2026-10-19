@@ -84,7 +84,7 @@ static void normalize_marker_scene_item(obs_sceneitem_t *item)
 int ZoominatorController::markerImageSize() const
 {
 	const int base = std::max(markerSize, markerIdleSize);
-	return std::clamp(markerFollowZoom ? base * 3 : base, 6, 512);
+	return std::clamp(base * 3, 6, 512);
 }
 
 void ZoominatorController::rebuildMarkerImage()
@@ -269,8 +269,7 @@ void ZoominatorController::updateMarkerAppearance()
 {
 	const uint32_t appearanceHash = ((uint32_t)std::clamp(markerSize, 6, 512) * 73856093u) ^
 					((uint32_t)std::clamp(markerThickness, 1, 64) * 19349663u) ^
-					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u) ^
-					(markerFollowZoom ? 0x5bd1e995u : 0u);
+					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u);
 
 	if (markerSource && markerAppearanceHash == appearanceHash)
 		return;
@@ -381,7 +380,7 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	normalize_marker_scene_item(item);
 	{
 		const double imgSize = (double)markerImageSize();
-		const double grow = markerFollowZoom ? std::max(1.0, zoomK) : 1.0;
+		const double grow = std::max(1.0, zoomK);
 		const double wanted = (double)std::clamp(idle ? markerIdleSize : markerSize, 6, 512) * grow;
 		vec2 sc{};
 		sc.x = sc.y = (float)(wanted / imgSize);
@@ -390,7 +389,7 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 
 	/* The cursor arrow is drawn by the capture and grows with the zoom, but its hot spot is the tip: centre the
 	 * halo on the arrow's middle instead (about 6 px right and 10 px below the tip at 1x, in capture pixels). */
-	if (markerFollowZoom) {
+	{
 		std::vector<obs_sceneitem_t *> targets;
 		enumerateTargetItemsInCurrentScene(targets);
 		if (!targets.empty() && targets.front()) {
