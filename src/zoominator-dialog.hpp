@@ -101,6 +101,7 @@ private:
 	QCheckBox *chkShowMarkerWhenNotZoomed = nullptr;
 	QSpinBox *spMarkerSize = nullptr;
 	QSpinBox *spMarkerIdleSize = nullptr;
+	QCheckBox *chkMarkerFollowZoom = nullptr;
 	QCheckBox *chkWheelZoom = nullptr;
 	QCheckBox *chkIdleFollowX = nullptr;
 	QCheckBox *chkTilt3d = nullptr;

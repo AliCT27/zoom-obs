@@ -244,6 +244,8 @@ public:
 	bool portraitCover = true;
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
+	/* The halo is centred on the cursor arrow (not its tip) and grows with the zoom, so it stays around the arrow. */
+	bool markerFollowZoom = true;
 	std::atomic<bool> markerFlashStartedZoomed{false}; /* a click halo that began while zoomed finishes as zoomed */
 	bool markerOnlyOnClick = true;
 	uint32_t markerColor = 0xFFFF0000;
@@ -327,7 +329,8 @@ private:
 	void ensureMarkerFilter();
 	void applyMarkerOpacity(int opacity255);
 	void updateMarkerAppearance();
-	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false);
+	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle = false, double zoomK = 1.0);
+	int markerImageSize() const;
 	bool captureMarkerClickPosition();
 	bool isMarkerFlashActive(qint64 nowMs) const;
 	int currentMarkerOpacity(qint64 nowMs);
@@ -393,6 +396,7 @@ private:
 	double pendingFocusY = 0.0;
 	int pendingFocusOpacity = 0;
 	double pendingMarkerX = 0.0;
+	double pendingMarkerZ = 1.0;
 	double pendingMarkerY = 0.0;
 	bool tickCallbackAdded = false;
 	std::atomic<bool> tickingWanted{false};

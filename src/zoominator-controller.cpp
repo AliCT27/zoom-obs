@@ -830,7 +830,9 @@ void ZoominatorController::applyZoomToScene(double t)
 		if (!followMovedEnough && nowApplyMs - lastTransformApplyMs < 16) {
 			std::lock_guard<std::mutex> lock(inputMutex);
 			pendingMarkerVisible = showCursorMarker && markerHasPoint;
-			pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
+			pendingMarkerZ = z;
+			pendingMarkerZ = z;
+		pendingMarkerX = (double)anchorX + ((double)markerSceneX - (double)fx) * z + offsetX;
 			pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
 				pendingFocusVisible = focusEnabled && mapped && snapInside;
 			pendingFocusFresh = true;
@@ -1135,7 +1137,7 @@ void ZoominatorController::onTick()
 	 * the placement the graphics tick published. */
 	if (obs_scene_t *sc = sceneSource ? obs_scene_from_source(sceneSource) : nullptr) {
 		bool markerVisible = false;
-		double markerX = 0.0, markerY = 0.0;
+		double markerX = 0.0, markerY = 0.0, markerZ = 1.0;
 		bool focusVisible = false;
 		double focusX = 0.0, focusY = 0.0;
 		int focusOpacity = 0;
@@ -1145,6 +1147,7 @@ void ZoominatorController::onTick()
 			markerVisible = pendingMarkerVisible;
 			markerX = pendingMarkerX;
 			markerY = pendingMarkerY;
+			markerZ = pendingMarkerZ;
 			focusVisible = pendingFocusVisible;
 			focusX = pendingFocusX;
 			focusY = pendingFocusY;
@@ -1174,7 +1177,7 @@ void ZoominatorController::onTick()
 		if (showCursorMarker && markerVisible && (zoomedNow || showMarkerWhenNotZoomed)) {
 			const int opacity = currentMarkerOpacity(QDateTime::currentMSecsSinceEpoch());
 			if (opacity > 0)
-				updateMarkerPosition(sc, markerX, markerY, opacity, !zoomedNow);
+				updateMarkerPosition(sc, markerX, markerY, opacity, !zoomedNow, zoomedNow ? std::max(1.0, markerZ) : 1.0);
 			else
 				hideMarkerInScene(sc);
 		} else if (showCursorMarker) {

@@ -593,6 +593,10 @@ void ZoominatorDialog::buildUi()
 		haloIdleRow->addWidget(mkField(T("Dialog.HaloIdleSize"), spMarkerIdleSize), 1);
 		haloIdleRow->addStretch(2);
 		lay->addLayout(haloIdleRow);
+		lay->addSpacing(6);
+		chkMarkerFollowZoom = new QCheckBox(T("Dialog.HaloFollowZoom"), page);
+		chkMarkerFollowZoom->setToolTip(T("Dialog.HaloFollowZoomTooltip"));
+		lay->addWidget(chkMarkerFollowZoom);
 
 		addSection(lay, T("Dialog.Section.Frame"));
 
@@ -1093,6 +1097,7 @@ void ZoominatorDialog::buildUi()
 			spMarkerThickness->setEnabled(on);
 			btnMarkerColor->setEnabled(on);
 			chkShowMarkerWhenNotZoomed->setEnabled(on);
+			chkMarkerFollowZoom->setEnabled(on);
 			spMarkerIdleSize->setEnabled(on && chkShowMarkerWhenNotZoomed->isChecked());
 		};
 		connect(chkShowCursorMarker, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
@@ -1356,6 +1361,8 @@ void ZoominatorDialog::loadFromController()
 		spMarkerIdleSize->setEnabled(c.showCursorMarker && c.showMarkerWhenNotZoomed);
 		spMarkerSize->setValue(c.markerSize);
 		spMarkerIdleSize->setValue(c.markerIdleSize);
+		chkMarkerFollowZoom->setChecked(c.markerFollowZoom);
+		chkMarkerFollowZoom->setEnabled(c.showCursorMarker);
 		spMarkerThickness->setValue(c.markerThickness);
 		updateMarkerColorButton(QColor::fromRgba(c.markerColor));
 		chkFrame->setChecked(c.frameEnabled);
@@ -1488,6 +1495,7 @@ void ZoominatorDialog::applyToController()
 	c.markerOnlyOnClick = true;
 	c.markerSize = spMarkerSize->value();
 	c.markerIdleSize = spMarkerIdleSize->value();
+	c.markerFollowZoom = chkMarkerFollowZoom->isChecked();
 	c.markerThickness = spMarkerThickness->value();
 	c.frameEnabled = chkFrame->isChecked();
 	c.frameColor = (uint32_t)btnFrameColor->property("rgba").toUInt();
