@@ -1,4 +1,4 @@
-/* Click halo: image, scene item, fade in/out, size and position. Moved out of zoominator-overlays.cpp
+/* Click halo: image, scene item, fade in/out, size and position. Moved out of zoominator-focus.cpp / zoominator-marker.cpp
  * unchanged. */
 
 #include "zoominator-internal.hpp"

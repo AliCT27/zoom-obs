@@ -28,7 +28,9 @@ over several files so each can be read on its own.
 | `zoominator-recovery.cpp` | Remembers original transforms to undo a crash mid-zoom |
 | `zoominator-sceneitems.cpp` | Read/apply/capture/restore scene item transforms |
 | `zoominator-screen.cpp` | Which monitor/window is captured; maps the cursor to scene pixels (per platform) |
-| `zoominator-overlays.cpp` | Click halo, focus dim, and attaching/detaching the blur filter |
+| `zoominator-marker.cpp` | Click halo |
+| `zoominator-focus.cpp` | Focus dim, idle blur, and attaching/detaching the blur filter |
+| `zoominator-tilt.cpp` | 3D tilt filter and pose |
 | `zoominator-input.cpp` | Global keyboard/mouse hooks (per platform) and install/uninstall |
 | `zoominator-triggers.cpp` | What a trigger does: start/stop zoom, automatic mode, pause, follow toggle |
 | `zoominator-hotkeys.cpp` | Key sequences -> virtual keys; builds trigger state from settings |

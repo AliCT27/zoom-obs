@@ -239,5 +239,5 @@ inline obs_sceneitem_t *find_scene_item_for_source(obs_scene_t *scene, obs_sourc
 
 int qtKeyToVk(int qtKey); /* zoominator-hotkeys.cpp */
 
-/* Defined in zoominator-overlays.cpp. */
+/* Defined in zoominator-marker.cpp. */
 void cleanup_legacy_marker_items_all_scenes(obs_source_t *currentMarkerSource = nullptr);
