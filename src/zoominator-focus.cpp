@@ -128,48 +128,48 @@ void ZoominatorController::rebuildFocusImage(int canvasW, int canvasH)
 
 void ZoominatorController::ensureFocusFilter()
 {
-	if (!focusSource)
+	if (!focusRt.source)
 		return;
 
-	if (focusFilter) {
-		obs_source_t *existing = obs_source_get_filter_by_name(focusSource, "ZoominatorFocusOpacity");
+	if (focusRt.filter) {
+		obs_source_t *existing = obs_source_get_filter_by_name(focusRt.source, "ZoominatorFocusOpacity");
 		if (existing) {
 			obs_source_release(existing);
 			return;
 		}
-		obs_source_release(focusFilter);
-		focusFilter = nullptr;
+		obs_source_release(focusRt.filter);
+		focusRt.filter = nullptr;
 	}
 
 	obs_data_t *fsettings = obs_data_create();
 	obs_data_set_double(fsettings, "opacity", 100.0);
-	focusFilter = obs_source_create_private("color_filter", "ZoominatorFocusOpacity", fsettings);
+	focusRt.filter = obs_source_create_private("color_filter", "ZoominatorFocusOpacity", fsettings);
 	obs_data_release(fsettings);
 
-	if (focusFilter)
-		obs_source_filter_add(focusSource, focusFilter);
+	if (focusRt.filter)
+		obs_source_filter_add(focusRt.source, focusRt.filter);
 }
 
 void ZoominatorController::applyFocusOpacity(int opacity255)
 {
 	ensureFocusFilter();
-	if (!focusFilter)
+	if (!focusRt.filter)
 		return;
 
 	const int clamped = std::clamp(opacity255, 0, 255);
-	if (focusCurrentOpacity == clamped)
+	if (focusRt.currentOpacity == clamped)
 		return;
 
-	focusCurrentOpacity = clamped;
+	focusRt.currentOpacity = clamped;
 	obs_data_t *fsettings = obs_data_create();
 	obs_data_set_double(fsettings, "opacity", clamped / 255.0 * 100.0);
-	obs_source_update(focusFilter, fsettings);
+	obs_source_update(focusRt.filter, fsettings);
 	obs_data_release(fsettings);
 }
 
 void ZoominatorController::ensureFocusSource()
 {
-	if (focusSource)
+	if (focusRt.source)
 		return;
 
 	int cw = 0, ch = 0;
@@ -183,15 +183,15 @@ void ZoominatorController::ensureFocusSource()
 	obs_data_t *settings = obs_data_create();
 	obs_data_set_string(settings, "file", path.toUtf8().constData());
 	obs_data_set_bool(settings, "unload", false);
-	focusSource = obs_source_create_private("image_source", kZoominatorFocusSourceName, settings);
+	focusRt.source = obs_source_create_private("image_source", kZoominatorFocusSourceName, settings);
 	obs_data_release(settings);
 
-	if (focusSource) {
+	if (focusRt.source) {
 		ensureFocusFilter();
 		/* Keeps the dim off the background around the screen (the filter stays on the source). */
-		if (obs_source_t *mask = zoominator_dimmask::attach(focusSource))
+		if (obs_source_t *mask = zoominator_dimmask::attach(focusRt.source))
 			obs_source_release(mask);
-		focusAppearanceHash = 0; /* force the next updateFocusAppearance to record the real hash */
+		focusRt.appearanceHash = 0; /* force the next updateFocusAppearance to record the real hash */
 	}
 }
 
@@ -212,14 +212,14 @@ void ZoominatorController::updateFocusAppearance()
 	mix((uint64_t)coneSoftness());
 	mix((uint64_t)std::clamp(focusDimPct, 0, 100));
 
-	if (!focusSource) {
+	if (!focusRt.source) {
 		ensureFocusSource();
-		if (!focusSource)
+		if (!focusRt.source)
 			return;
-		focusAppearanceHash = hash;
+		focusRt.appearanceHash = hash;
 		return;
 	}
-	if (focusAppearanceHash == hash)
+	if (focusRt.appearanceHash == hash)
 		return;
 
 	rebuildFocusImage(cw, ch);
@@ -227,10 +227,10 @@ void ZoominatorController::updateFocusAppearance()
 	obs_data_t *settings = obs_data_create();
 	obs_data_set_string(settings, "file", path.toUtf8().constData());
 	obs_data_set_bool(settings, "unload", false);
-	obs_source_update(focusSource, settings);
+	obs_source_update(focusRt.source, settings);
 	obs_data_release(settings);
-	focusAppearanceHash = hash;
-	focusCurrentOpacity = -1;
+	focusRt.appearanceHash = hash;
+	focusRt.currentOpacity = -1;
 }
 
 static void normalize_focus_scene_item(obs_sceneitem_t *item)
@@ -253,14 +253,14 @@ static void normalize_focus_scene_item(obs_sceneitem_t *item)
 obs_sceneitem_t *ZoominatorController::ensureFocusItem(obs_scene_t *scene, bool &created)
 {
 	created = false;
-	if (!scene || !focusSource)
+	if (!scene || !focusRt.source)
 		return nullptr;
 
-	obs_sceneitem_t *item = find_scene_item_for_source(scene, focusSource);
+	obs_sceneitem_t *item = find_scene_item_for_source(scene, focusRt.source);
 	if (item)
 		return item;
 
-	item = obs_scene_add(scene, focusSource);
+	item = obs_scene_add(scene, focusRt.source);
 	if (!item)
 		return nullptr;
 	created = true;
@@ -332,7 +332,7 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 	}
 
 	updateFocusAppearance();
-	if (!focusSource)
+	if (!focusRt.source)
 		return;
 
 	bool created = false;
@@ -381,7 +381,7 @@ void ZoominatorController::updateFocus(obs_scene_t *scene, double x, double y, i
 		placeFocusBelowOverlays(scene, item);
 		obs_sceneitem_set_visible(item, true);
 	}
-	focusShown = true;
+	focusRt.shown = true;
 }
 
 /* Focus while the view is not zoomed: the spotlight follows the cursor at the
@@ -472,12 +472,12 @@ void ZoominatorController::updateIdleFocus(bool on)
 				double dx = (double)sx, dy = (double)sy;
 				applyTiltToIdlePoint(dx, dy);
 				updateFocus(scene, dx, dy, 255, true);
-				shown = focusShown;
+				shown = focusRt.shown;
 			}
 		}
-		if (!shown && focusShown) {
+		if (!shown && focusRt.shown) {
 			hideFocusInScene(scene);
-			focusShown = false;
+			focusRt.shown = false;
 		}
 		updateIdleBlur(on, cursorOk, sx, sy);
 	}
@@ -493,9 +493,9 @@ void ZoominatorController::refreshIdleFocusTicking()
 
 void ZoominatorController::hideFocusInScene(obs_scene_t *scene)
 {
-	if (!scene || !focusSource)
+	if (!scene || !focusRt.source)
 		return;
-	if (obs_sceneitem_t *item = find_scene_item_for_source(scene, focusSource)) {
+	if (obs_sceneitem_t *item = find_scene_item_for_source(scene, focusRt.source)) {
 		if (obs_sceneitem_visible(item))
 			obs_sceneitem_set_visible(item, false);
 	}
@@ -503,8 +503,8 @@ void ZoominatorController::hideFocusInScene(obs_scene_t *scene)
 
 void ZoominatorController::hideFocusInAllScenes()
 {
-	focusShown = false;
-	if (!focusSource)
+	focusRt.shown = false;
+	if (!focusRt.source)
 		return;
 
 	obs_frontend_source_list scenes{};
