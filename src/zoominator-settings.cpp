@@ -101,7 +101,8 @@ struct ScalarSetting {
 	const char *key;
 	bool ZoominatorController::*boolMember;
 	int ZoominatorController::*intMember;
-	int def;
+	uint32_t ZoominatorController::*uintMember;
+	long long def;
 	int lo;
 	int hi;
 };
@@ -110,12 +111,28 @@ constexpr int kNoMin = std::numeric_limits<int>::min();
 constexpr int kNoMax = std::numeric_limits<int>::max();
 
 constexpr ScalarSetting kScalarSettings[] = {
-	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, 0, 0, 1},
-	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, 0, 0, 1},
-	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, 6, -100, 100},
-	{"marker_offset_y", nullptr, &ZoominatorController::markerOffsetY, 10, -100, 100},
-	{"marker_size", nullptr, &ZoominatorController::markerSize, 26, kNoMin, kNoMax},
-	{"marker_thickness", nullptr, &ZoominatorController::markerThickness, 4, kNoMin, kNoMax},
+	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, 0, 0, 1},
+	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, 0, 0, 1},
+	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, nullptr, 6, -100, 100},
+	{"marker_offset_y", nullptr, &ZoominatorController::markerOffsetY, nullptr, 10, -100, 100},
+	{"marker_size", nullptr, &ZoominatorController::markerSize, nullptr, 26, kNoMin, kNoMax},
+	{"marker_thickness", nullptr, &ZoominatorController::markerThickness, nullptr, 4, kNoMin, kNoMax},
+	{"frame_enabled", &ZoominatorController::frameEnabled, nullptr, nullptr, 0, 0, 1},
+	{"frame_color", nullptr, nullptr, &ZoominatorController::frameColor, 0xFF2ECC40, 0, 0},
+	{"frame_bg_color", nullptr, nullptr, &ZoominatorController::frameBgColor, 0xFF000000, 0, 0},
+	{"frame_bg_color2", nullptr, nullptr, &ZoominatorController::frameBgColor2, 0xFF0B3A52, 0, 0},
+	{"frame_bg_mode", nullptr, &ZoominatorController::frameBgMode, nullptr, 0, 0, 2},
+	{"frame_bg_angle", nullptr, &ZoominatorController::frameBgAngle, nullptr, 90, 0, 360},
+	{"frame_border_px", nullptr, &ZoominatorController::frameBorderPx, nullptr, 4, 0, 80},
+	{"frame_radius_px", nullptr, &ZoominatorController::frameRadiusPx, nullptr, 24, 0, 400},
+	{"frame_glow_px", nullptr, &ZoominatorController::frameGlowPx, nullptr, 80, 0, 200},
+	{"frame_glow_pct", nullptr, &ZoominatorController::frameGlowPct, nullptr, 70, 0, 100},
+	{"cam_ring_enabled", &ZoominatorController::camRingEnabled, nullptr, nullptr, 0, 0, 1},
+	{"cam_ring_color", nullptr, nullptr, &ZoominatorController::camRingColor, 0xFF2EA8DC, 0, 0},
+	{"cam_ring_px", nullptr, &ZoominatorController::camRingPx, nullptr, 6, 0, 60},
+	{"cam_glow_px", nullptr, &ZoominatorController::camGlowPx, nullptr, 28, 0, 150},
+	{"cam_glow_pct", nullptr, &ZoominatorController::camGlowPct, nullptr, 80, 0, 100},
+	{"cam_zoom_pct", nullptr, &ZoominatorController::camZoomPct, nullptr, 125, 30, 300},
 };
 
 void reset_scalar_settings(ZoominatorController &c)
@@ -123,8 +140,10 @@ void reset_scalar_settings(ZoominatorController &c)
 	for (const ScalarSetting &d : kScalarSettings) {
 		if (d.boolMember)
 			c.*d.boolMember = d.def != 0;
+		else if (d.intMember)
+			c.*d.intMember = (int)d.def;
 		else
-			c.*d.intMember = d.def;
+			c.*d.uintMember = (uint32_t)d.def;
 	}
 }
 
@@ -135,8 +154,10 @@ void load_scalar_settings(ZoominatorController &c, obs_data_t *data)
 			continue;
 		if (d.boolMember)
 			c.*d.boolMember = obs_data_get_bool(data, d.key);
-		else
+		else if (d.intMember)
 			c.*d.intMember = std::clamp((int)obs_data_get_int(data, d.key), d.lo, d.hi);
+		else
+			c.*d.uintMember = (uint32_t)obs_data_get_int(data, d.key);
 	}
 }
 
@@ -145,8 +166,10 @@ void save_scalar_settings(const ZoominatorController &c, obs_data_t *data)
 	for (const ScalarSetting &d : kScalarSettings) {
 		if (d.boolMember)
 			obs_data_set_bool(data, d.key, c.*d.boolMember);
-		else
+		else if (d.intMember)
 			obs_data_set_int(data, d.key, c.*d.intMember);
+		else
+			obs_data_set_int(data, d.key, (long long)(c.*d.uintMember));
 	}
 }
 } // namespace
@@ -205,23 +228,7 @@ void ZoominatorController::loadSettings()
 	focusCone = 50;
 	focusStyle = FocusStyle::Dim;
 	focusBlurPx = 16;
-	frameEnabled = false;
-	frameColor = 0xFF2ECC40;
-	frameBgColor = 0xFF000000;
-	frameBgColor2 = 0xFF0B3A52;
-	frameBgMode = 0;
-	frameBgAngle = 90;
-	camRingEnabled = false;
 	camSourceName.clear();
-	camRingColor = 0xFF2EA8DC;
-	camRingPx = 6;
-	camGlowPx = 28;
-	camGlowPct = 80;
-	camZoomPct = 125;
-	frameBorderPx = 4;
-	frameRadiusPx = 24;
-	frameGlowPx = 80;
-	frameGlowPct = 70;
 	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
@@ -475,39 +482,7 @@ void ZoominatorController::loadSettings()
 	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
 	focusCone = std::clamp(focusCone, 0, 100);
 	focusSoftness = beamSoftnessForCone(focusCone, focusRadius);
-	if (obs_data_has_user_value(data, "cam_ring_enabled"))
-		camRingEnabled = obs_data_get_bool(data, "cam_ring_enabled");
 	camSourceName = getStr("cam_source");
-	if (obs_data_has_user_value(data, "cam_ring_color"))
-		camRingColor = (uint32_t)obs_data_get_int(data, "cam_ring_color");
-	if (obs_data_has_user_value(data, "cam_ring_px"))
-		camRingPx = std::clamp((int)obs_data_get_int(data, "cam_ring_px"), 0, 60);
-	if (obs_data_has_user_value(data, "cam_glow_px"))
-		camGlowPx = std::clamp((int)obs_data_get_int(data, "cam_glow_px"), 0, 150);
-	if (obs_data_has_user_value(data, "cam_glow_pct"))
-		camGlowPct = std::clamp((int)obs_data_get_int(data, "cam_glow_pct"), 0, 100);
-	if (obs_data_has_user_value(data, "cam_zoom_pct"))
-		camZoomPct = std::clamp((int)obs_data_get_int(data, "cam_zoom_pct"), 30, 300);
-	if (obs_data_has_user_value(data, "frame_enabled"))
-		frameEnabled = obs_data_get_bool(data, "frame_enabled");
-	if (obs_data_has_user_value(data, "frame_color"))
-		frameColor = (uint32_t)obs_data_get_int(data, "frame_color");
-	if (obs_data_has_user_value(data, "frame_bg_color"))
-		frameBgColor = (uint32_t)obs_data_get_int(data, "frame_bg_color");
-	if (obs_data_has_user_value(data, "frame_bg_color2"))
-		frameBgColor2 = (uint32_t)obs_data_get_int(data, "frame_bg_color2");
-	if (obs_data_has_user_value(data, "frame_bg_mode"))
-		frameBgMode = std::clamp((int)obs_data_get_int(data, "frame_bg_mode"), 0, 2);
-	if (obs_data_has_user_value(data, "frame_bg_angle"))
-		frameBgAngle = std::clamp((int)obs_data_get_int(data, "frame_bg_angle"), 0, 360);
-	if (obs_data_has_user_value(data, "frame_border_px"))
-		frameBorderPx = std::clamp((int)obs_data_get_int(data, "frame_border_px"), 0, 80);
-	if (obs_data_has_user_value(data, "frame_radius_px"))
-		frameRadiusPx = std::clamp((int)obs_data_get_int(data, "frame_radius_px"), 0, 400);
-	if (obs_data_has_user_value(data, "frame_glow_px"))
-		frameGlowPx = std::clamp((int)obs_data_get_int(data, "frame_glow_px"), 0, 200);
-	if (obs_data_has_user_value(data, "frame_glow_pct"))
-		frameGlowPct = std::clamp((int)obs_data_get_int(data, "frame_glow_pct"), 0, 100);
 	if (obs_data_has_user_value(data, "auto_zoom_out_enabled"))
 		autoZoomOutEnabled = obs_data_get_bool(data, "auto_zoom_out_enabled");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
@@ -1041,23 +1016,7 @@ void ZoominatorController::saveSettings()
 	obs_data_set_int(data, "focus_beam", focusCone);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
-	obs_data_set_bool(data, "cam_ring_enabled", camRingEnabled);
 	obs_data_set_string(data, "cam_source", camSourceName.toUtf8().constData());
-	obs_data_set_int(data, "cam_ring_color", (long long)camRingColor);
-	obs_data_set_int(data, "cam_ring_px", camRingPx);
-	obs_data_set_int(data, "cam_glow_px", camGlowPx);
-	obs_data_set_int(data, "cam_glow_pct", camGlowPct);
-	obs_data_set_int(data, "cam_zoom_pct", camZoomPct);
-	obs_data_set_bool(data, "frame_enabled", frameEnabled);
-	obs_data_set_int(data, "frame_color", (long long)frameColor);
-	obs_data_set_int(data, "frame_bg_color", (long long)frameBgColor);
-	obs_data_set_int(data, "frame_bg_color2", (long long)frameBgColor2);
-	obs_data_set_int(data, "frame_bg_mode", frameBgMode);
-	obs_data_set_int(data, "frame_bg_angle", frameBgAngle);
-	obs_data_set_int(data, "frame_border_px", frameBorderPx);
-	obs_data_set_int(data, "frame_radius_px", frameRadiusPx);
-	obs_data_set_int(data, "frame_glow_px", frameGlowPx);
-	obs_data_set_int(data, "frame_glow_pct", frameGlowPct);
 	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
