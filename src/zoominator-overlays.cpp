@@ -303,6 +303,8 @@ bool ZoominatorController::captureMarkerClickPosition()
 		return false;
 
 	const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+	/* A halo that is still showing hands its opacity to the new one, so back-to-back clicks do not blink. */
+	const int carryOpacity = currentMarkerOpacity(nowMs);
 	static constexpr qint64 kMarkerFadeInMs = 110;
 	static constexpr qint64 kMarkerHoldMs = 420;
 	static constexpr qint64 kMarkerFadeOutMs = 220;
@@ -311,6 +313,7 @@ bool ZoominatorController::captureMarkerClickPosition()
 		markerClickX = mx;
 		markerClickY = my;
 		markerClickHasPos = true;
+		markerFadeInFrom = std::clamp(carryOpacity, 0, 255);
 		markerFlashStartedZoomed.store(zoomedView() || animT > 0.001, std::memory_order_relaxed);
 		markerClickFlashStartMs = nowMs;
 		markerClickFlashHoldUntilMs = nowMs + kMarkerFadeInMs + kMarkerHoldMs;
@@ -345,7 +348,8 @@ int ZoominatorController::currentMarkerOpacity(qint64 nowMs)
 		const double tIn =
 			clampd((double)(nowMs - markerClickFlashStartMs) / (double)std::max<qint64>(1, kMarkerFadeInMs),
 			       0.0, 1.0);
-		return (int)std::round(smoothstep(tIn) * 255.0);
+		const double from = (double)markerFadeInFrom;
+		return (int)std::round(from + (255.0 - from) * smoothstep(tIn));
 	}
 
 	if (nowMs < markerClickFlashHoldUntilMs)

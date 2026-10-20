@@ -456,6 +456,7 @@ private:
 	int markerCurrentOpacity = -1;
 	obs_source_t *markerFilter = nullptr;
 	qint64 markerClickFlashStartMs = 0;
+	int markerFadeInFrom = 0; /* opacity the new click's fade-in starts from (a halo still showing carries over) */
 	qint64 markerClickFlashHoldUntilMs = 0;
 	qint64 markerClickFlashFadeOutEndMs = 0;
 
