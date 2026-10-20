@@ -133,40 +133,40 @@ void ZoominatorController::ensureMarkerFilter()
 	if (!markerSource)
 		return;
 
-	if (markerFilter) {
+	if (mk.filter) {
 		obs_source_t *existing = obs_source_get_filter_by_name(markerSource, "ZoominatorOpacity");
 		if (existing) {
 			obs_source_release(existing);
 			return;
 		}
-		obs_source_release(markerFilter);
-		markerFilter = nullptr;
+		obs_source_release(mk.filter);
+		mk.filter = nullptr;
 	}
 
 	obs_data_t *fsettings = obs_data_create();
 	obs_data_set_double(fsettings, "opacity", 100.0);
-	markerFilter = obs_source_create_private("color_filter", "ZoominatorOpacity", fsettings);
+	mk.filter = obs_source_create_private("color_filter", "ZoominatorOpacity", fsettings);
 	obs_data_release(fsettings);
 
-	if (markerFilter)
-		obs_source_filter_add(markerSource, markerFilter);
+	if (mk.filter)
+		obs_source_filter_add(markerSource, mk.filter);
 }
 
 void ZoominatorController::applyMarkerOpacity(int opacity255)
 {
 	ensureMarkerFilter();
-	if (!markerFilter)
+	if (!mk.filter)
 		return;
 
 	const int clamped = std::clamp(opacity255, 0, 255);
-	if (markerCurrentOpacity == clamped)
+	if (mk.currentOpacity == clamped)
 		return;
 
-	markerCurrentOpacity = clamped;
+	mk.currentOpacity = clamped;
 	const double opacityPct = clamped / 255.0 * 100.0;
 	obs_data_t *fsettings = obs_data_create();
 	obs_data_set_double(fsettings, "opacity", opacityPct);
-	obs_source_update(markerFilter, fsettings);
+	obs_source_update(mk.filter, fsettings);
 	obs_data_release(fsettings);
 }
 
@@ -237,7 +237,7 @@ obs_sceneitem_t *ZoominatorController::ensureMarkerItem(obs_scene_t *scene)
 
 void ZoominatorController::hideMarkerInScene(obs_scene_t *scene)
 {
-	markerZCount = 0; /* the next halo starts with fresh zoom readings */
+	mk.zCount = 0; /* the next halo starts with fresh zoom readings */
 	if (!scene || !markerSource)
 		return;
 
@@ -273,7 +273,7 @@ void ZoominatorController::updateMarkerAppearance()
 					((uint32_t)std::clamp(markerThickness, 1, 64) * 19349663u) ^
 					((uint32_t)std::clamp(markerIdleSize, 6, 256) * 83492791u) ^ (markerColor * 2654435761u);
 
-	if (markerSource && markerAppearanceHash == appearanceHash)
+	if (markerSource && mk.appearanceHash == appearanceHash)
 		return;
 
 	rebuildMarkerImage();
@@ -287,8 +287,8 @@ void ZoominatorController::updateMarkerAppearance()
 	obs_data_set_bool(settings, "unload", false);
 	obs_source_update(markerSource, settings);
 	obs_data_release(settings);
-	markerAppearanceHash = appearanceHash;
-	markerCurrentOpacity = -1;
+	mk.appearanceHash = appearanceHash;
+	mk.currentOpacity = -1;
 }
 
 bool ZoominatorController::captureMarkerClickPosition()
@@ -311,14 +311,14 @@ bool ZoominatorController::captureMarkerClickPosition()
 	static constexpr qint64 kMarkerFadeOutMs = 220;
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
-		markerClickX = mx;
-		markerClickY = my;
-		markerClickHasPos = true;
-		markerFadeInFrom = std::clamp(carryOpacity, 0, 255);
-		markerFlashStartedZoomed.store(zoomedView() || animT > 0.001, std::memory_order_relaxed);
-		markerClickFlashStartMs = nowMs;
-		markerClickFlashHoldUntilMs = nowMs + kMarkerFadeInMs + kMarkerHoldMs;
-		markerClickFlashFadeOutEndMs = markerClickFlashHoldUntilMs + kMarkerFadeOutMs;
+		mk.clickX = mx;
+		mk.clickY = my;
+		mk.clickHasPos = true;
+		mk.fadeInFrom = std::clamp(carryOpacity, 0, 255);
+		mk.flashStartedZoomed.store(zoomedView() || animT > 0.001, std::memory_order_relaxed);
+		mk.flashStartMs = nowMs;
+		mk.flashHoldUntilMs = nowMs + kMarkerFadeInMs + kMarkerHoldMs;
+		mk.flashFadeOutEndMs = mk.flashHoldUntilMs + kMarkerFadeOutMs;
 	}
 	ensureTicking(true);
 	return true;
@@ -326,38 +326,38 @@ bool ZoominatorController::captureMarkerClickPosition()
 
 bool ZoominatorController::isMarkerFlashActive(qint64 nowMs) const
 {
-	return showCursorMarker && markerOnlyOnClick && markerClickHasPos && markerClickFlashFadeOutEndMs > 0 &&
-	       nowMs < markerClickFlashFadeOutEndMs;
+	return showCursorMarker && markerOnlyOnClick && mk.clickHasPos && mk.flashFadeOutEndMs > 0 &&
+	       nowMs < mk.flashFadeOutEndMs;
 }
 
 int ZoominatorController::currentMarkerOpacity(qint64 nowMs)
 {
-	if (!showCursorMarker || !markerOnlyOnClick || !markerClickHasPos)
+	if (!showCursorMarker || !markerOnlyOnClick || !mk.clickHasPos)
 		return 0;
 
 	static constexpr qint64 kMarkerFadeInMs = 110;
-	if (markerClickFlashFadeOutEndMs <= 0 || nowMs >= markerClickFlashFadeOutEndMs) {
+	if (mk.flashFadeOutEndMs <= 0 || nowMs >= mk.flashFadeOutEndMs) {
 		std::lock_guard<std::mutex> lock(inputMutex);
-		markerClickHasPos = false;
-		markerClickFlashStartMs = 0;
-		markerClickFlashHoldUntilMs = 0;
-		markerClickFlashFadeOutEndMs = 0;
+		mk.clickHasPos = false;
+		mk.flashStartMs = 0;
+		mk.flashHoldUntilMs = 0;
+		mk.flashFadeOutEndMs = 0;
 		return 0;
 	}
 
-	if (nowMs < markerClickFlashStartMs + kMarkerFadeInMs) {
+	if (nowMs < mk.flashStartMs + kMarkerFadeInMs) {
 		const double tIn =
-			clampd((double)(nowMs - markerClickFlashStartMs) / (double)std::max<qint64>(1, kMarkerFadeInMs),
+			clampd((double)(nowMs - mk.flashStartMs) / (double)std::max<qint64>(1, kMarkerFadeInMs),
 			       0.0, 1.0);
-		const double from = (double)markerFadeInFrom;
+		const double from = (double)mk.fadeInFrom;
 		return (int)std::round(from + (255.0 - from) * smoothstep(tIn));
 	}
 
-	if (nowMs < markerClickFlashHoldUntilMs)
+	if (nowMs < mk.flashHoldUntilMs)
 		return 255;
 
-	const qint64 fadeOutMs = std::max<qint64>(1, markerClickFlashFadeOutEndMs - markerClickFlashHoldUntilMs);
-	const double tOut = clampd((double)(nowMs - markerClickFlashHoldUntilMs) / (double)fadeOutMs, 0.0, 1.0);
+	const qint64 fadeOutMs = std::max<qint64>(1, mk.flashFadeOutEndMs - mk.flashHoldUntilMs);
+	const double tOut = clampd((double)(nowMs - mk.flashHoldUntilMs) / (double)fadeOutMs, 0.0, 1.0);
 	return (int)std::round((1.0 - smoothstep(tOut)) * 255.0);
 }
 
@@ -408,17 +408,17 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	}
 	(void)zoomK;
 	/* A one-frame glitch in a reading must not show: take the middle of the last three readings. */
-	if (markerZCount == 0) {
-		markerZHist[0] = markerZHist[1] = markerZHist[2] = zNow;
+	if (mk.zCount == 0) {
+		mk.zHist[0] = mk.zHist[1] = mk.zHist[2] = zNow;
 	} else {
-		markerZHist[0] = markerZHist[1];
-		markerZHist[1] = markerZHist[2];
-		markerZHist[2] = zNow;
+		mk.zHist[0] = mk.zHist[1];
+		mk.zHist[1] = mk.zHist[2];
+		mk.zHist[2] = zNow;
 	}
-	if (markerZCount < 3)
-		++markerZCount;
+	if (mk.zCount < 3)
+		++mk.zCount;
 	{
-		const double a = markerZHist[0], b = markerZHist[1], c = markerZHist[2];
+		const double a = mk.zHist[0], b = mk.zHist[1], c = mk.zHist[2];
 		zNow = std::max(std::min(a, b), std::min(std::max(a, b), c));
 	}
 	{

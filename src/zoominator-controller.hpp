@@ -244,12 +244,26 @@ public:
 	bool portraitCover = true;
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
+	/* Click-halo runtime state (not user settings). Used by zoominator-marker.cpp and the tick in
+	 * zoominator-controller.cpp. */
+	struct MarkerRuntime {
+		double zHist[3] = {1.0, 1.0, 1.0}; /* last zoom readings for the halo size (median of three) */
+		int zCount = 0;
+		std::atomic<bool> flashStartedZoomed{false}; /* a click halo that began while zoomed finishes as zoomed */
+		bool clickHasPos = false;
+		float clickX = 0.0f;
+		float clickY = 0.0f;
+		uint32_t appearanceHash = 0;
+		int currentOpacity = -1;
+		obs_source_t *filter = nullptr;
+		qint64 flashStartMs = 0;
+		int fadeInFrom = 0; /* opacity the new click's fade-in starts from (a halo still showing carries over) */
+		qint64 flashHoldUntilMs = 0;
+		qint64 flashFadeOutEndMs = 0;
+	} mk;
 	/* The halo is centred on the cursor arrow (not its tip) and grows with the zoom, so it stays around the arrow. */
-	double markerZHist[3] = {1.0, 1.0, 1.0}; /* last zoom readings for the halo size (median of three) */
-	int markerZCount = 0;
 	int markerOffsetX = 6;  /* where the arrow's middle is, from the reported cursor position, in capture pixels at 1x */
 	int markerOffsetY = 10;
-	std::atomic<bool> markerFlashStartedZoomed{false}; /* a click halo that began while zoomed finishes as zoomed */
 	bool markerOnlyOnClick = true;
 	uint32_t markerColor = 0xFFFF0000;
 	int markerSize = 26;
@@ -449,16 +463,6 @@ private:
 	float targetX = 0.0f;
 	float targetY = 0.0f;
 
-	bool markerClickHasPos = false;
-	float markerClickX = 0.0f;
-	float markerClickY = 0.0f;
-	uint32_t markerAppearanceHash = 0;
-	int markerCurrentOpacity = -1;
-	obs_source_t *markerFilter = nullptr;
-	qint64 markerClickFlashStartMs = 0;
-	int markerFadeInFrom = 0; /* opacity the new click's fade-in starts from (a halo still showing carries over) */
-	qint64 markerClickFlashHoldUntilMs = 0;
-	qint64 markerClickFlashFadeOutEndMs = 0;
 
 	struct OrigState {
 		bool valid = false;

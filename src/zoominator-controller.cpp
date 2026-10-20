@@ -499,10 +499,10 @@ void ZoominatorController::startZoomOut()
 	tickingWanted.store(true, std::memory_order_release);
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
-		markerClickFlashStartMs = 0;
-		markerClickFlashHoldUntilMs = 0;
-		markerClickFlashFadeOutEndMs = 0;
-		markerClickHasPos = false;
+		mk.flashStartMs = 0;
+		mk.flashHoldUntilMs = 0;
+		mk.flashFadeOutEndMs = 0;
+		mk.clickHasPos = false;
 	}
 	ensureTicking(true);
 }
@@ -538,13 +538,13 @@ void ZoominatorController::resetState()
 	sceneContentBoundsValid = false;
 	sceneContentMin = {};
 	sceneContentMax = {};
-	markerCurrentOpacity = -1;
+	mk.currentOpacity = -1;
 	{
 		std::lock_guard<std::mutex> lock(inputMutex);
-		markerClickFlashStartMs = 0;
-		markerClickFlashHoldUntilMs = 0;
-		markerClickFlashFadeOutEndMs = 0;
-		markerClickHasPos = false;
+		mk.flashStartMs = 0;
+		mk.flashHoldUntilMs = 0;
+		mk.flashFadeOutEndMs = 0;
+		mk.clickHasPos = false;
 	}
 	obs_source_t *sceneSource = obs_frontend_get_current_scene();
 	if (sceneSource) {
@@ -739,9 +739,9 @@ void ZoominatorController::applyZoomToScene(double t)
 
 	if (showCursorMarker) {
 		std::lock_guard<std::mutex> lock(inputMutex);
-		if (markerClickHasPos) {
-			markerSceneX = markerClickX;
-			markerSceneY = markerClickY;
+		if (mk.clickHasPos) {
+			markerSceneX = mk.clickX;
+			markerSceneY = mk.clickY;
 			markerHasPoint = true;
 		}
 	}
@@ -1007,17 +1007,17 @@ void ZoominatorController::onTick()
 	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
 	if (idleFocus || (!zoomTickWanted && (focusShown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
-	if (!zoomTickWanted && !markerClickHasPos) {
+	if (!zoomTickWanted && !mk.clickHasPos) {
 		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 			ensureTicking(false);
 		return;
 	}
 	if (!zoomTickWanted && !showMarkerWhenNotZoomed) {
 		std::lock_guard<std::mutex> lock(inputMutex);
-		markerClickHasPos = false;
-		markerClickFlashStartMs = 0;
-		markerClickFlashHoldUntilMs = 0;
-		markerClickFlashFadeOutEndMs = 0;
+		mk.clickHasPos = false;
+		mk.flashStartMs = 0;
+		mk.flashHoldUntilMs = 0;
+		mk.flashFadeOutEndMs = 0;
 		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 			ensureTicking(false);
 		return;
@@ -1034,7 +1034,7 @@ void ZoominatorController::onTick()
 			const int opacity = currentMarkerOpacity(nowMs);
 			if (showCursorMarker && opacity > 0)
 				{
-				double hx = markerClickX, hy = markerClickY;
+				double hx = mk.clickX, hy = mk.clickY;
 				applyTiltToIdlePoint(hx, hy);
 				updateMarkerPosition(scene, hx, hy, opacity, 1.0);
 			}
@@ -1045,10 +1045,10 @@ void ZoominatorController::onTick()
 			obs_source_release(sceneSource);
 
 		if (!isMarkerFlashActive(nowMs)) {
-			markerClickHasPos = false;
-			markerClickFlashStartMs = 0;
-			markerClickFlashHoldUntilMs = 0;
-			markerClickFlashFadeOutEndMs = 0;
+			mk.clickHasPos = false;
+			mk.flashStartMs = 0;
+			mk.flashHoldUntilMs = 0;
+			mk.flashFadeOutEndMs = 0;
 			if (!idleFocus && !idleFollowX && !tilt3dEnabled)
 				ensureTicking(false);
 		}
@@ -1172,7 +1172,7 @@ void ZoominatorController::onTick()
 
 		/* The engine also runs at 1x (sideways follow), which is not zoomed: there the halo obeys "Show halo
 		 * when not zoomed" and uses the not-zoomed size. */
-		const bool zoomedNow = zoomedView() || animT > 0.001 || (markerFlashStartedZoomed.load(std::memory_order_relaxed) &&
+		const bool zoomedNow = zoomedView() || animT > 0.001 || (mk.flashStartedZoomed.load(std::memory_order_relaxed) &&
 					   isMarkerFlashActive(QDateTime::currentMSecsSinceEpoch()));
 		if (showCursorMarker && markerVisible && (zoomedNow || showMarkerWhenNotZoomed)) {
 			const int opacity = currentMarkerOpacity(QDateTime::currentMSecsSinceEpoch());
