@@ -355,8 +355,8 @@ int ZoominatorController::currentMarkerOpacity(qint64 nowMs)
 	return (int)std::round((1.0 - smoothstep(tOut)) * 255.0);
 }
 
-void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, bool idle,
-						double zoomK)
+void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255,
+						double zoomBlend, double zoomK)
 {
 	if (!showCursorMarker)
 		return;
@@ -380,8 +380,12 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	normalize_marker_scene_item(item);
 	{
 		const double imgSize = (double)markerImageSize();
-		const double grow = std::max(1.0, zoomK);
-		const double wanted = (double)std::clamp(idle ? markerIdleSize : markerSize, 6, 512) * grow;
+		/* The size moves smoothly from the not-zoomed size (blend 0) to the zoomed size times the zoom (blend 1)
+		 * along with the zoom animation, so it never jumps. */
+		const double idleW = (double)std::clamp(markerIdleSize, 6, 512);
+		const double zoomW = (double)std::clamp(markerSize, 6, 512) * std::max(1.0, zoomK);
+		const double blend = std::clamp(zoomBlend, 0.0, 1.0);
+		const double wanted = idleW + (zoomW - idleW) * blend;
 		vec2 sc{};
 		sc.x = sc.y = (float)(wanted / imgSize);
 		obs_sceneitem_set_scale(item, &sc);
