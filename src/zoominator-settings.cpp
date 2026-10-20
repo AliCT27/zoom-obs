@@ -2,6 +2,8 @@
 
 #include "zoominator-internal.hpp"
 
+#include <limits>
+
 QString ZoominatorController::zoomAnchorModeToString(ZoomAnchorMode mode)
 {
 	switch (mode) {
@@ -90,6 +92,64 @@ QString ZoominatorController::markerImagePath() const
 	return p;
 }
 
+
+/* Simple settings that are just "a number or a switch saved under a key". One line per setting here replaces three
+ * copies (default, load, save). Settings that need special handling stay written out by hand in loadSettings /
+ * saveSettings. */
+namespace {
+struct ScalarSetting {
+	const char *key;
+	bool ZoominatorController::*boolMember;
+	int ZoominatorController::*intMember;
+	int def;
+	int lo;
+	int hi;
+};
+
+constexpr int kNoMin = std::numeric_limits<int>::min();
+constexpr int kNoMax = std::numeric_limits<int>::max();
+
+constexpr ScalarSetting kScalarSettings[] = {
+	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, 0, 0, 1},
+	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, 0, 0, 1},
+	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, 6, -100, 100},
+	{"marker_offset_y", nullptr, &ZoominatorController::markerOffsetY, 10, -100, 100},
+	{"marker_size", nullptr, &ZoominatorController::markerSize, 26, kNoMin, kNoMax},
+	{"marker_thickness", nullptr, &ZoominatorController::markerThickness, 4, kNoMin, kNoMax},
+};
+
+void reset_scalar_settings(ZoominatorController &c)
+{
+	for (const ScalarSetting &d : kScalarSettings) {
+		if (d.boolMember)
+			c.*d.boolMember = d.def != 0;
+		else
+			c.*d.intMember = d.def;
+	}
+}
+
+void load_scalar_settings(ZoominatorController &c, obs_data_t *data)
+{
+	for (const ScalarSetting &d : kScalarSettings) {
+		if (!obs_data_has_user_value(data, d.key))
+			continue;
+		if (d.boolMember)
+			c.*d.boolMember = obs_data_get_bool(data, d.key);
+		else
+			c.*d.intMember = std::clamp((int)obs_data_get_int(data, d.key), d.lo, d.hi);
+	}
+}
+
+void save_scalar_settings(const ZoominatorController &c, obs_data_t *data)
+{
+	for (const ScalarSetting &d : kScalarSettings) {
+		if (d.boolMember)
+			obs_data_set_bool(data, d.key, c.*d.boolMember);
+		else
+			obs_data_set_int(data, d.key, c.*d.intMember);
+	}
+}
+} // namespace
 
 void ZoominatorController::loadSettings()
 {
@@ -185,15 +245,11 @@ void ZoominatorController::loadSettings()
 	centerFocus = false;
 	mouseIdleTimeoutMs = 0;
 	portraitCover = true;
-	showCursorMarker = false;
-	showMarkerWhenNotZoomed = false;
-	markerOffsetX = 6;
-	markerOffsetY = 10;
+
+	reset_scalar_settings(*this);
 	markerOnlyOnClick = true;
 	markerColor = 0xFFFF0000;
-	markerSize = 26;
 	markerIdleSize = 26;
-	markerThickness = 4;
 	debug = false;
 
 	const QString p = configPath();
@@ -508,23 +564,12 @@ void ZoominatorController::loadSettings()
 
 	if (obs_data_has_user_value(data, "portrait_cover"))
 		portraitCover = obs_data_get_bool(data, "portrait_cover");
-	if (obs_data_has_user_value(data, "show_cursor_marker"))
-		showCursorMarker = obs_data_get_bool(data, "show_cursor_marker");
-	if (obs_data_has_user_value(data, "show_marker_when_not_zoomed"))
-		showMarkerWhenNotZoomed = obs_data_get_bool(data, "show_marker_when_not_zoomed");
-	if (obs_data_has_user_value(data, "marker_offset_x"))
-		markerOffsetX = std::clamp((int)obs_data_get_int(data, "marker_offset_x"), -100, 100);
-	if (obs_data_has_user_value(data, "marker_offset_y"))
-		markerOffsetY = std::clamp((int)obs_data_get_int(data, "marker_offset_y"), -100, 100);
 	// Continuous cursor tracking was inaccurate on captures whose aspect ratio
 	// differs from the OBS canvas. The marker is intentionally click-only.
 	markerOnlyOnClick = true;
 	if (obs_data_has_user_value(data, "marker_color"))
 		markerColor = (uint32_t)obs_data_get_int(data, "marker_color");
-	if (obs_data_has_user_value(data, "marker_size"))
-		markerSize = (int)obs_data_get_int(data, "marker_size");
-	if (obs_data_has_user_value(data, "marker_thickness"))
-		markerThickness = (int)obs_data_get_int(data, "marker_thickness");
+	load_scalar_settings(*this, data); /* marker_size is read here, before the idle size falls back to it */
 	markerIdleSize = markerSize;
 	if (obs_data_has_user_value(data, "marker_idle_size"))
 		markerIdleSize = (int)obs_data_get_int(data, "marker_idle_size");
@@ -1043,15 +1088,10 @@ void ZoominatorController::saveSettings()
 	obs_data_set_bool(data, "allow_canvas_overflow", edgeOverflowMarginPct > 0);
 	obs_data_set_int(data, "mouse_idle_timeout_ms", mouseIdleTimeoutMs);
 	obs_data_set_bool(data, "portrait_cover", portraitCover);
-	obs_data_set_bool(data, "show_cursor_marker", showCursorMarker);
-	obs_data_set_bool(data, "show_marker_when_not_zoomed", showMarkerWhenNotZoomed);
-	obs_data_set_int(data, "marker_offset_x", markerOffsetX);
-	obs_data_set_int(data, "marker_offset_y", markerOffsetY);
+	save_scalar_settings(*this, data);
 	obs_data_set_bool(data, "marker_only_on_click", true);
 	obs_data_set_int(data, "marker_color", (long long)markerColor);
-	obs_data_set_int(data, "marker_size", markerSize);
 	obs_data_set_int(data, "marker_idle_size", markerIdleSize);
-	obs_data_set_int(data, "marker_thickness", markerThickness);
 	obs_data_set_bool(data, "debug", debug);
 	obs_data_set_bool(data, "recovery_active", recoveryActive);
 	saveRecoveryMap(data);
