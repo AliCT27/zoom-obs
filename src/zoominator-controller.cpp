@@ -1036,7 +1036,7 @@ void ZoominatorController::onTick()
 				{
 				double hx = markerClickX, hy = markerClickY;
 				applyTiltToIdlePoint(hx, hy);
-				updateMarkerPosition(scene, hx, hy, opacity, 0.0, 1.0);
+				updateMarkerPosition(scene, hx, hy, opacity, 1.0);
 			}
 			else
 				hideMarkerInScene(scene);
@@ -1177,9 +1177,7 @@ void ZoominatorController::onTick()
 		if (showCursorMarker && markerVisible && (zoomedNow || showMarkerWhenNotZoomed)) {
 			const int opacity = currentMarkerOpacity(QDateTime::currentMSecsSinceEpoch());
 			if (opacity > 0)
-				updateMarkerPosition(sc, markerX, markerY, opacity,
-						     zoomActive.load(std::memory_order_acquire) ? clampd(animT, 0.0, 1.0) : 0.0,
-						     std::max(1.0, markerZ));
+				updateMarkerPosition(sc, markerX, markerY, opacity, std::max(1.0, markerZ));
 			else
 				hideMarkerInScene(sc);
 		} else if (showCursorMarker) {
