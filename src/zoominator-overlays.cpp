@@ -378,14 +378,35 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 		return;
 
 	normalize_marker_scene_item(item);
+
+	/* The zoom that is really on screen, read from the captured screen's own transform (the one that scales the
+	 * picture and the cursor arrow). The zoom value published by the graphics thread can be stale for a frame
+	 * when a new zoom starts, which made the halo flash large for one frame. */
+	double zNow = 1.0;
+	double arrowScaleX = 1.0, arrowScaleY = 1.0;
+	{
+		std::vector<obs_sceneitem_t *> targets;
+		enumerateTargetItemsInCurrentScene(targets);
+		if (!targets.empty() && targets.front()) {
+			vec2 isc{};
+			obs_sceneitem_get_scale(targets.front(), &isc);
+			arrowScaleX = (double)isc.x;
+			arrowScaleY = (double)isc.y;
+			for (const auto &state : sceneItems) {
+				if (state.item == targets.front() && state.orig.valid && state.orig.effectiveScale.x > 0.0001f) {
+					zNow = std::max(1.0, (double)isc.x / (double)state.orig.effectiveScale.x);
+					break;
+				}
+			}
+		}
+	}
+	(void)zoomK;
 	{
 		const double imgSize = (double)markerImageSize();
-		/* The size follows the zoom that is really on screen (the same value that scales the picture and the
-		 * cursor arrow), so it can never run ahead of or behind them: the not-zoomed size at 1x, the zoomed
-		 * size times the zoom from 1.5x up, blended in between. */
+		/* The not-zoomed size at 1x, the zoomed size times the zoom from 1.5x up, blended in between. */
 		const double idleW = (double)std::clamp(markerIdleSize, 6, 512);
-		const double zoomW = (double)std::clamp(markerSize, 6, 512) * std::max(1.0, zoomK);
-		const double blend = std::clamp((std::max(1.0, zoomK) - 1.0) / 0.5, 0.0, 1.0);
+		const double zoomW = (double)std::clamp(markerSize, 6, 512) * zNow;
+		const double blend = std::clamp((zNow - 1.0) / 0.5, 0.0, 1.0);
 		const double wanted = idleW + (zoomW - idleW) * blend;
 		vec2 sc{};
 		sc.x = sc.y = (float)(wanted / imgSize);
@@ -393,17 +414,9 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 	}
 
 	/* The cursor arrow is drawn by the capture and grows with the zoom, but its hot spot is the tip: centre the
-	 * halo on the arrow's middle instead (about 6 px right and 10 px below the tip at 1x, in capture pixels). */
-	{
-		std::vector<obs_sceneitem_t *> targets;
-		enumerateTargetItemsInCurrentScene(targets);
-		if (!targets.empty() && targets.front()) {
-			vec2 isc{};
-			obs_sceneitem_get_scale(targets.front(), &isc);
-			x += (double)markerOffsetX * (double)isc.x;
-			y += (double)markerOffsetY * (double)isc.y;
-		}
-	}
+	 * halo on the arrow's middle instead (offsets in capture pixels at 1x). */
+	x += (double)markerOffsetX * arrowScaleX;
+	y += (double)markerOffsetY * arrowScaleY;
 
 	vec2 pos{};
 	pos.x = (float)x;
