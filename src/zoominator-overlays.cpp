@@ -236,6 +236,7 @@ obs_sceneitem_t *ZoominatorController::ensureMarkerItem(obs_scene_t *scene)
 
 void ZoominatorController::hideMarkerInScene(obs_scene_t *scene)
 {
+	markerZCount = 0; /* the next halo starts with fresh zoom readings */
 	if (!scene || !markerSource)
 		return;
 
@@ -401,6 +402,20 @@ void ZoominatorController::updateMarkerPosition(obs_scene_t *scene, double x, do
 		}
 	}
 	(void)zoomK;
+	/* A one-frame glitch in a reading must not show: take the middle of the last three readings. */
+	if (markerZCount == 0) {
+		markerZHist[0] = markerZHist[1] = markerZHist[2] = zNow;
+	} else {
+		markerZHist[0] = markerZHist[1];
+		markerZHist[1] = markerZHist[2];
+		markerZHist[2] = zNow;
+	}
+	if (markerZCount < 3)
+		++markerZCount;
+	{
+		const double a = markerZHist[0], b = markerZHist[1], c = markerZHist[2];
+		zNow = std::max(std::min(a, b), std::min(std::max(a, b), c));
+	}
 	{
 		const double imgSize = (double)markerImageSize();
 		/* The not-zoomed size at 1x, the zoomed size times the zoom from 1.5x up, blended in between. */
