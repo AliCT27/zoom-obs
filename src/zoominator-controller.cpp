@@ -1005,7 +1005,7 @@ void ZoominatorController::onTick()
 
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
 	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
-	if (idleFocus || (!zoomTickWanted && (focusShown || !idleBlurs.empty())))
+	if (idleFocus || (!zoomTickWanted && (focusRt.shown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !mk.clickHasPos) {
 		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
@@ -1165,9 +1165,9 @@ void ZoominatorController::onTick()
 		} else if (keepIdle && !focusFresh) {
 			/* The zoom just started and has not produced a sample yet: leave the
 			 * spotlight where it is instead of blinking it off. */
-		} else if (focusShown) {
+		} else if (focusRt.shown) {
 			hideFocusInScene(sc);
-			focusShown = false;
+			focusRt.shown = false;
 		}
 
 		/* The engine also runs at 1x (sideways follow), which is not zoomed: there the halo obeys "Show halo

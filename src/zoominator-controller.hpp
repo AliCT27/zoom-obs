@@ -557,12 +557,15 @@ private:
 
 	QPointer<ZoominatorDialog> dialog;
 	obs_source_t *markerSource = nullptr;
-	obs_source_t *focusSource = nullptr;
-	obs_source_t *focusFilter = nullptr;
+	/* Focus spotlight runtime state (not user settings). Main thread only. */
+	struct FocusRuntime {
+		obs_source_t *source = nullptr;
+		obs_source_t *filter = nullptr;
+		int currentOpacity = -1;
+		uint64_t appearanceHash = 0;
+		bool shown = false;
+	} focusRt;
 	void publishDimSheet(); /* main thread, not zoomed: the screen's resting rectangle for the dim mask */
-	int focusCurrentOpacity = -1;
-	uint64_t focusAppearanceHash = 0;
-	bool focusShown = false;
 	obs_source_t *frameSource = nullptr;
 	obs_source_t *camFilter = nullptr;
 	obs_source_t *camFilterTarget = nullptr;
