@@ -245,6 +245,8 @@ public:
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
 	/* The halo is centred on the cursor arrow (not its tip) and grows with the zoom, so it stays around the arrow. */
+	double markerZHist[3] = {1.0, 1.0, 1.0}; /* last zoom readings for the halo size (median of three) */
+	int markerZCount = 0;
 	int markerOffsetX = 6;  /* where the arrow's middle is, from the reported cursor position, in capture pixels at 1x */
 	int markerOffsetY = 10;
 	std::atomic<bool> markerFlashStartedZoomed{false}; /* a click halo that began while zoomed finishes as zoomed */
