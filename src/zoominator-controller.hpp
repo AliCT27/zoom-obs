@@ -330,8 +330,7 @@ private:
 	void ensureMarkerFilter();
 	void applyMarkerOpacity(int opacity255);
 	void updateMarkerAppearance();
-	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, double zoomBlend = 0.0,
-				  double zoomK = 1.0);
+	void updateMarkerPosition(obs_scene_t *scene, double x, double y, int opacity255, double zoomK = 1.0);
 	int markerImageSize() const;
 	bool captureMarkerClickPosition();
 	bool isMarkerFlashActive(qint64 nowMs) const;
