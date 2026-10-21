@@ -146,6 +146,8 @@ private:
 	QSpinBox *spFocusDim = nullptr;
 	QSpinBox *spFocusCone = nullptr;
 	QCheckBox *chkDebug = nullptr;
+	QCheckBox *chkStatusHud = nullptr;
+	QComboBox *cmbStatusHudCorner = nullptr;
 	QCheckBox *chkSoundEnabled = nullptr;
 	QCheckBox *chkSoundOn[3] = {nullptr, nullptr, nullptr};
 	QLineEdit *editSoundName[3] = {nullptr, nullptr, nullptr};

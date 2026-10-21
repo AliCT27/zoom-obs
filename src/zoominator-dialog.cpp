@@ -964,6 +964,24 @@ void ZoominatorDialog::buildUi()
 		syncSoundFields();
 		lay->addSpacing(10);
 
+		addSection(lay, T("Dialog.Section.StatusHud"));
+
+		auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
+		hudHelp->setWordWrap(true);
+		lay->addWidget(hudHelp);
+		chkStatusHud = new QCheckBox(T("Dialog.StatusHud"), page);
+		chkStatusHud->setToolTip(T("Dialog.StatusHudTooltip"));
+		lay->addWidget(chkStatusHud);
+		cmbStatusHudCorner = new QComboBox(page);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopLeft"), 0);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
+		lay->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner));
+		connect(chkStatusHud, &QCheckBox::toggled, this,
+			[this](bool on) { cmbStatusHudCorner->setEnabled(on); });
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.Developer"));
 
 		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
@@ -1421,6 +1439,9 @@ void ZoominatorDialog::loadFromController()
 		spCamGlowPct->setEnabled(c.camRingEnabled);
 		spCamZoom->setEnabled(c.camRingEnabled);
 		chkDebug->setChecked(c.debug);
+		chkStatusHud->setChecked(c.showStatusHud);
+		cmbStatusHudCorner->setCurrentIndex(std::clamp(c.statusHudCorner, 0, 3));
+		cmbStatusHudCorner->setEnabled(c.showStatusHud);
 		chkSoundEnabled->setChecked(c.soundEnabled);
 		for (int i = 0; i < 3; ++i) {
 			chkSoundOn[i]->setChecked(c.soundOn[i]);
@@ -1541,6 +1562,8 @@ void ZoominatorDialog::applyToController()
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
+	c.showStatusHud = chkStatusHud->isChecked();
+	c.statusHudCorner = cmbStatusHudCorner->currentData().toInt();
 	c.soundEnabled = chkSoundEnabled->isChecked();
 	for (int i = 0; i < 3; ++i) {
 		c.soundVolume[i] = spSoundVolume[i]->value();

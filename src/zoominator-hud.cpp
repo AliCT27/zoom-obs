@@ -1,0 +1,153 @@
+/* Status badge on the user's monitor. See zoominator-hud.hpp. */
+
+#include "zoominator-hud.hpp"
+
+#include <util/base.h>
+
+
+#include <QFont>
+#include <QFontMetrics>
+#include <QGuiApplication>
+#include <QPainter>
+#include <QScreen>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#ifndef WDA_EXCLUDEFROMCAPTURE
+#define WDA_EXCLUDEFROMCAPTURE 0x00000011
+#endif
+#endif
+
+ZoominatorHud::ZoominatorHud(QWidget *parent) : QWidget(parent)
+{
+	setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus |
+		       Qt::WindowTransparentForInput);
+	setAttribute(Qt::WA_TranslucentBackground, true);
+	setAttribute(Qt::WA_ShowWithoutActivating, true);
+	setAttribute(Qt::WA_TransparentForMouseEvents, true);
+	setFocusPolicy(Qt::NoFocus);
+}
+
+bool ZoominatorHud::excludeFromCapture()
+{
+#ifdef _WIN32
+	if (excluded)
+		return true;
+	const HWND hwnd = reinterpret_cast<HWND>(winId());
+	if (hwnd && SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)) {
+		excluded = true;
+		return true;
+	}
+	blog(LOG_WARNING, "[Zoominator] Status badge cannot be hidden from capture on this system; not shown.");
+	return false;
+#else
+	return false; /* no way to keep it out of the recording here */
+#endif
+}
+
+void ZoominatorHud::place()
+{
+	QScreen *scr = QGuiApplication::primaryScreen();
+	if (!scr)
+		return;
+	const QRect r = scr->availableGeometry();
+	const int margin = 16;
+	const int x = (cornerIdx == 1 || cornerIdx == 3) ? r.right() - width() - margin + 1 : r.left() + margin;
+	const int y = (cornerIdx == 2 || cornerIdx == 3) ? r.bottom() - height() - margin + 1 : r.top() + margin;
+	move(x, y);
+}
+
+bool ZoominatorHud::showInCorner(int corner)
+{
+	cornerIdx = corner < 0 || corner > 3 ? 0 : corner;
+	/* The native window must exist before its capture affinity can be set. Hidden until it is excluded. */
+	winId();
+	if (!excludeFromCapture()) {
+		hide();
+		return false;
+	}
+	resize(sizeHint());
+	place();
+	if (!isVisible())
+		show();
+	return true;
+}
+
+void ZoominatorHud::hideBadge()
+{
+	hide();
+}
+
+void ZoominatorHud::setState(const State &state)
+{
+	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes &&
+	    qAbs(state.level - st.level) < 0.005)
+		return;
+	st = state;
+	resize(sizeHint());
+	place();
+	update();
+}
+
+QSize ZoominatorHud::sizeHint() const
+{
+	QFont fontBig = font();
+	fontBig.setBold(true);
+	fontBig.setPointSizeF(12.0);
+	QFont fontSmall = font();
+	fontSmall.setPointSizeF(9.0);
+	const QFontMetrics fb(fontBig), fs(fontSmall);
+	const int pad = 12;
+	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
+	const int line2 = fs.horizontalAdvance(st.modes);
+	int h = pad * 2 + fb.height();
+	if (!st.modes.isEmpty())
+		h += 4 + fs.height();
+	return QSize(qMax(line1, line2) + pad * 2, h);
+}
+
+void ZoominatorHud::paintEvent(QPaintEvent *)
+{
+	QPainter p(this);
+	p.setRenderHint(QPainter::Antialiasing, true);
+	p.setPen(Qt::NoPen);
+	p.setBrush(QColor(15, 15, 18, 215));
+	p.drawRoundedRect(rect(), 10, 10);
+
+	QColor dot(130, 130, 140);
+	QString word = QStringLiteral("NOT ZOOMED");
+	if (st.direction > 0) {
+		dot = QColor(255, 190, 40);
+		word = QStringLiteral("ZOOMING IN");
+	} else if (st.direction < 0) {
+		dot = QColor(255, 190, 40);
+		word = QStringLiteral("ZOOMING OUT");
+	} else if (st.zoomed) {
+		dot = QColor(60, 220, 110);
+		word = QStringLiteral("ZOOMED");
+	}
+
+	QFont fontBig = font();
+	fontBig.setBold(true);
+	fontBig.setPointSizeF(12.0);
+	QFont fontSmall = font();
+	fontSmall.setPointSizeF(9.0);
+
+	const int pad = 12;
+	p.setBrush(dot);
+	p.drawEllipse(QPoint(pad + 6, pad + QFontMetrics(fontBig).height() / 2), 6, 6);
+
+	p.setPen(QColor(240, 240, 245));
+	p.setFont(fontBig);
+	p.drawText(QPoint(pad + 20, pad + QFontMetrics(fontBig).ascent()), word);
+	const QString lvl = QStringLiteral("%1x").arg(st.level, 0, 'f', 2);
+	p.drawText(QPoint(width() - pad - QFontMetrics(fontBig).horizontalAdvance(lvl), pad + QFontMetrics(fontBig).ascent()),
+		   lvl);
+
+	if (!st.modes.isEmpty()) {
+		p.setPen(QColor(170, 170, 180));
+		p.setFont(fontSmall);
+		p.drawText(QPoint(pad, pad + QFontMetrics(fontBig).height() + 4 + QFontMetrics(fontSmall).ascent()), st.modes);
+	}
+}
