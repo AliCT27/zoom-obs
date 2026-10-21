@@ -1,6 +1,6 @@
 #pragma once
 
-/* A small always-on-top status badge on the user's own monitor (zoomed or not, how much, which modes are on).
+/* A small always-on-top status badge on the user's own monitor (zoomed or not, how much, Focus on or off, recording state).
  * It is click-through, never takes focus, and on Windows is excluded from screen capture so it does not show
  * up in the recording. If it cannot be excluded from capture it is not shown at all. */
 
@@ -15,7 +15,6 @@ public:
 		bool zoomed = false;
 		int direction = 0; /* 1 zooming in, -1 zooming out, 0 steady */
 		double level = 1.0;
-		QString modes;                      /* trigger mode, e.g. "Auto" */
 		QList<QPair<QString, bool>> flags; /* feature name, on or off (green or red light) */
 		int recording = 0;                 /* 0 not recording, 1 recording, 2 recording paused */
 	};
