@@ -1355,14 +1355,6 @@ void ZoominatorController::refreshHud()
 	if (st.level < 1.0)
 		st.level = 1.0;
 
-	QStringList parts;
-	if (triggerType == QLatin1String("auto"))
-		parts << QStringLiteral("Auto");
-	else if (triggerType == QLatin1String("mouse"))
-		parts << QStringLiteral("Mouse");
-	else
-		parts << (hotkeyMode == QLatin1String("toggle") ? QStringLiteral("Toggle") : QStringLiteral("Hold"));
-	st.modes = parts.join(QStringLiteral("  "));
 	st.flags << qMakePair(QStringLiteral("Focus"), focusEnabled);
 	st.recording = obs_frontend_recording_active() ? (obs_frontend_recording_paused() ? 2 : 1) : 0;
 

@@ -111,7 +111,7 @@ void ZoominatorHud::hideBadge()
 
 void ZoominatorHud::setState(const State &state)
 {
-	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes && state.flags == st.flags && state.recording == st.recording &&
+	if (state.zoomed == st.zoomed && state.direction == st.direction && state.flags == st.flags && state.recording == st.recording &&
 	    qAbs(state.level - st.level) < 0.005)
 		return;
 	st = state;
@@ -130,12 +130,12 @@ QSize ZoominatorHud::sizeHint() const
 	const QFontMetrics fb(fontBig), fs(fontSmall);
 	const int pad = 12;
 	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
-	int line2 = fs.horizontalAdvance(st.modes);
+	int line2 = 0;
 	for (const auto &f : st.flags)
-		line2 += 14 + 12 + fs.horizontalAdvance(f.first);
+		line2 += (line2 ? 14 : 0) + 12 + fs.horizontalAdvance(f.first);
 	const int line3 = 12 + 8 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
 	int h = pad * 2 + fb.height();
-	if (!st.modes.isEmpty() || !st.flags.isEmpty())
+	if (!st.flags.isEmpty())
 		h += 4 + fs.height();
 	h += 4 + fs.height();
 	return QSize(qMax(qMax(line1, line2), line3) + pad * 2, h);
@@ -179,16 +179,16 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 	p.drawText(QPoint(width() - pad - QFontMetrics(fontBig).horizontalAdvance(lvl), pad + QFontMetrics(fontBig).ascent()),
 		   lvl);
 
-	if (!st.modes.isEmpty() || !st.flags.isEmpty()) {
+	if (!st.flags.isEmpty()) {
 		const QFontMetrics fs(fontSmall);
 		const int base = pad + QFontMetrics(fontBig).height() + 4 + fs.ascent();
 		int x = pad;
 		p.setFont(fontSmall);
-		p.setPen(QColor(170, 170, 180));
-		p.drawText(QPoint(x, base), st.modes);
-		x += fs.horizontalAdvance(st.modes);
+		bool first = true;
 		for (const auto &f : st.flags) {
-			x += 14;
+			if (!first)
+				x += 14;
+			first = false;
 			p.setPen(Qt::NoPen);
 			p.setBrush(f.second ? QColor(60, 220, 110) : QColor(230, 70, 70));
 			p.drawEllipse(QPoint(x + 4, base - fs.ascent() / 2 + 1), 4, 4);
@@ -200,7 +200,7 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 	}
 	{
 		const QFontMetrics fs(fontSmall);
-		const bool hasRow2 = !st.modes.isEmpty() || !st.flags.isEmpty();
+		const bool hasRow2 = !st.flags.isEmpty();
 		const int row2 = hasRow2 ? 4 + fs.height() : 0;
 		const int base = pad + QFontMetrics(fontBig).height() + row2 + 4 + fs.ascent();
 		QColor c(120, 120, 130);
