@@ -17,6 +17,8 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QColor>
+#include <cmath>
+
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -1872,23 +1874,33 @@ void ZoominatorDialog::setColorButton(QPushButton *button, uint32_t rgba)
 		return;
 	const QColor c = QColor::fromRgba(rgba);
 	button->setProperty("rgba", c.rgba());
-	button->setText(c.name(QColor::HexRgb).toUpper());
-	button->setStyleSheet(QStringLiteral("QPushButton { background:%1; color:%2;"
+	QString text = c.name(QColor::HexRgb).toUpper();
+	if (c.alpha() < 255)
+		text += QStringLiteral("  %1%").arg((int)std::lround(c.alpha() * 100.0 / 255.0));
+	button->setText(text);
+	button->setStyleSheet(QStringLiteral("QPushButton { background:rgba(%1,%2,%3,%4); color:%5;"
 					     " border:1px solid palette(mid); padding:4px 8px; }")
-				      .arg(c.name(QColor::HexRgb))
-				      .arg(c.lightness() < 128 ? "#ffffff" : "#000000"));
+				      .arg(c.red())
+				      .arg(c.green())
+				      .arg(c.blue())
+				      .arg(c.alpha())
+				      .arg(c.lightness() < 128 && c.alpha() > 110 ? "#ffffff" : "#000000"));
 }
 
 void ZoominatorDialog::chooseFrameColor(QPushButton *button)
 {
 	if (!button)
 		return;
+	/* Only the background colours can be see-through; the border and the camera ring stay solid. */
+	const bool allowAlpha = button == btnFrameBg || button == btnFrameBg2;
 	const QColor picked = QColorDialog::getColor(QColor::fromRgba(button->property("rgba").toUInt()), this,
-						     T("Dialog.PickFrameColor"));
+						     T("Dialog.PickFrameColor"),
+						     allowAlpha ? QColorDialog::ShowAlphaChannel : QColorDialog::ColorDialogOptions());
 	if (picked.isValid()) {
-		QColor opaque = picked;
-		opaque.setAlpha(255);
-		setColorButton(button, opaque.rgba());
+		QColor c = picked;
+		if (!allowAlpha)
+			c.setAlpha(255);
+		setColorButton(button, c.rgba());
 	}
 }
 

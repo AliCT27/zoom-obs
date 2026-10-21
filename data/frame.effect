@@ -73,7 +73,9 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float2 q = abs(pl - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
+	// Background colour and opacity (alpha 0 = see-through, 1 = solid).
 	float3 col = bg_color.rgb;
+	float alpha = bg_color.a;
 	if (bg_mode > 0.5) {
 		float2 cc = canvas_px * 0.5;
 		float t;
@@ -85,24 +87,30 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 			t = saturate(length(p - cc) / max(0.5 * length(canvas_px), 1.0));
 		}
 		col = lerp(bg_color.rgb, bg_color2.rgb, t);
+		alpha = lerp(bg_color.a, bg_color2.a, t);
 	}
 
-	// Glow: fades out quadratically from the outer edge of the border.
+	// Glow: fades out quadratically from the outer edge of the border. Drawn over the background, so it stays
+	// visible even when the background is see-through.
 	if (glow_px > 0.5) {
 		float g = saturate(1.0 - (d - border_px) / glow_px);
 		float ga = glow_strength * g * g * saturate(d - border_px + 0.5);
-		col = lerp(col, border_color.rgb, ga);
+		float na = ga + alpha * (1.0 - ga);
+		col = (border_color.rgb * ga + col * alpha * (1.0 - ga)) / max(na, 0.0001);
+		alpha = na;
 	}
 
-	// Border ring.
+	// Border ring, drawn over everything else.
 	if (border_px > 0.5) {
 		float bm = saturate(border_px - d + 0.5);
-		col = lerp(col, border_color.rgb, bm);
+		float na = bm + alpha * (1.0 - bm);
+		col = (border_color.rgb * bm + col * alpha * (1.0 - bm)) / max(na, 0.0001);
+		alpha = na;
 	}
 
 	// The window itself is transparent, with a one pixel soft edge.
 	float inside = saturate(0.5 - d);
-	return float4(col, 1.0 - inside);
+	return float4(col, alpha * (1.0 - inside));
 }
 
 technique Draw
