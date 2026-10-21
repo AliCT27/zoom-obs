@@ -42,7 +42,8 @@ over several files so each can be read on its own.
 ## Adding a feature
 
 1. **Setting:** add the field in `zoominator-controller.hpp`, its default and
-   load/save in `zoominator-settings.cpp`, the control in `zoominator-dialog.cpp`
+   load/save in `zoominator-settings.cpp` (a row in the `kScalarSettings` table for a plain switch or
+   number; by hand in `loadSettings`/`saveSettings` if it needs special rules), the control in `zoominator-dialog.cpp`
    (apply and load sections), and text in `data/locale/en-US.ini` and `fa-IR.ini`.
 2. **Behavior that changes the view:** `applyZoomToScene` (graphics thread). If it
    needs scene graph changes, publish a `pending*` value and act on it in `onTick`.
