@@ -1355,7 +1355,7 @@ void ZoominatorController::refreshHud()
 	if (st.level < 1.0)
 		st.level = 1.0;
 
-	st.flags << qMakePair(QStringLiteral("Focus"), focusEnabled);
+	st.flags << qMakePair(QStringLiteral("FOCUS"), focusEnabled);
 	st.recording = obs_frontend_recording_active() ? (obs_frontend_recording_paused() ? 2 : 1) : 0;
 
 	hud->setState(st);
