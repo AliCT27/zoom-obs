@@ -4,6 +4,8 @@
  * It is click-through, never takes focus, and on Windows is excluded from screen capture so it does not show
  * up in the recording. If it cannot be excluded from capture it is not shown at all. */
 
+#include <QList>
+#include <QPair>
 #include <QString>
 #include <QWidget>
 
@@ -13,7 +15,8 @@ public:
 		bool zoomed = false;
 		int direction = 0; /* 1 zooming in, -1 zooming out, 0 steady */
 		double level = 1.0;
-		QString modes; /* e.g. "Auto  3D  Focus" */
+		QString modes;                      /* trigger mode, e.g. "Auto" */
+		QList<QPair<QString, bool>> flags; /* feature name, on or off (green or red light) */
 	};
 
 	explicit ZoominatorHud(QWidget *parent = nullptr);
