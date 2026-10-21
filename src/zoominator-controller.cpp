@@ -1,6 +1,7 @@
 /* Core: lifecycle, zoom state machine, per-frame tick and the zoom transform. */
 
 #include "zoominator-internal.hpp"
+#include "zoominator-hud.hpp"
 
 bool ZoominatorController::usesWheelZoomGesture() const
 {
@@ -369,6 +370,9 @@ ZoominatorController::ZoominatorController()
 	tickTimer.setInterval(16);
 	tickTimer.setTimerType(Qt::PreciseTimer);
 	connect(&tickTimer, &QTimer::timeout, this, &ZoominatorController::onTick);
+	hudTimer.setInterval(100);
+	connect(&hudTimer, &QTimer::timeout, this, [this]() { refreshHud(); });
+	hudTimer.start();
 	frameTimer.setInterval(500);
 	connect(&frameTimer, &QTimer::timeout, this, [this]() {
 		refreshFrame();
@@ -410,6 +414,11 @@ void ZoominatorController::shutdown()
 	tickingWanted.store(false, std::memory_order_release);
 	obs_frontend_remove_event_callback(frontendEventCallback, this);
 	frameTimer.stop();
+	hudTimer.stop();
+	if (hud) {
+		delete hud;
+		hud = nullptr;
+	}
 	uninstallHooks();
 	zoominator_caret::stop();
 	ensureTicking(false);
@@ -519,6 +528,7 @@ void ZoominatorController::resetState()
 	pendingFinish.store(false, std::memory_order_release);
 	animT = 0.0;
 	renderedZoomFactor = 1.0;
+	hudZoom.store(1.0f, std::memory_order_relaxed);
 	if (wheelBaseZoom > 1.0) {
 		zoomFactor = wheelBaseZoom;
 		wheelBaseZoom = 0.0;
@@ -624,6 +634,7 @@ void ZoominatorController::applyZoomToScene(double t)
 
 	const double zBase = (renderedZoomFactor <= 1.0) ? 1.0 : renderedZoomFactor;
 	const double zTarget = zBase * coverBase;
+	hudZoom.store((float)(1.0 + (zBase - 1.0) * tt), std::memory_order_relaxed);
 	const double z = 1.0 + (zTarget - 1.0) * tt;
 	const double centerX = cw * 0.5;
 	const double centerY = ch * 0.5;
@@ -1324,3 +1335,44 @@ void ZoominatorController::finishZoomOnMainThread()
 		obs_source_release(staleRef);
 }
 
+
+void ZoominatorController::refreshHud()
+{
+	if (shuttingDown)
+		return;
+	if (!showStatusHud) {
+		if (hud)
+			hud->hideBadge();
+		return;
+	}
+	if (!hud)
+		hud = new ZoominatorHud();
+
+	ZoominatorHud::State st;
+	st.zoomed = zoomedView();
+	st.direction = zoomActive.load(std::memory_order_acquire) ? animDir.load(std::memory_order_relaxed) : 0;
+	st.level = st.zoomed ? (double)hudZoom.load(std::memory_order_relaxed) : 1.0;
+	if (st.level < 1.0)
+		st.level = 1.0;
+
+	QStringList parts;
+	if (triggerType == QLatin1String("auto"))
+		parts << QStringLiteral("Auto");
+	else if (triggerType == QLatin1String("mouse"))
+		parts << QStringLiteral("Mouse");
+	else
+		parts << (hotkeyMode == QLatin1String("toggle") ? QStringLiteral("Toggle") : QStringLiteral("Hold"));
+	if (tilt3dEnabled)
+		parts << QStringLiteral("3D");
+	if (focusEnabled)
+		parts << QStringLiteral("Focus");
+	if (showCursorMarker)
+		parts << QStringLiteral("Halo");
+	if (frameEnabled)
+		parts << QStringLiteral("Frame");
+	st.modes = parts.join(QStringLiteral("  "));
+
+	hud->setState(st);
+	if (!hud->isVisible())
+		hud->showInCorner(statusHudCorner);
+}

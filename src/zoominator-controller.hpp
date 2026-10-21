@@ -32,6 +32,7 @@ struct _XDisplay;
 #endif
 
 class ZoominatorDialog;
+class ZoominatorHud;
 
 class ZoominatorController final : public QObject {
 	Q_OBJECT
@@ -242,6 +243,8 @@ public:
 	int edgeOverflowMarginPct = 0;
 	int mouseIdleTimeoutMs = 0;
 	bool portraitCover = true;
+	bool showStatusHud = false; /* status badge on the user's own monitor, hidden from the recording */
+	int statusHudCorner = 1;    /* 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
 	/* Click-halo runtime state (not user settings). Used by zoominator-marker.cpp and the tick in
@@ -420,6 +423,10 @@ private:
 	std::atomic<bool> pendingFinish{false};
 
 	QTimer tickTimer;
+	QTimer hudTimer;
+	ZoominatorHud *hud = nullptr;
+	std::atomic<float> hudZoom{1.0f}; /* the zoom you asked for, as currently shown (1 = not zoomed) */
+	void refreshHud();
 	QTimer frameTimer;
 	bool zoomPressed = false;
 	bool zoomLatched = false;

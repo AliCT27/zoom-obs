@@ -69,6 +69,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/cam-ring-filter.cpp
   src/zoominator-camring.cpp
   src/zoominator-hotkeys.cpp
+  src/zoominator-hud.cpp
+  src/zoominator-hud.hpp
   src/zoominator-input.cpp
   src/zoominator-marker.cpp
   src/zoominator-internal.hpp
