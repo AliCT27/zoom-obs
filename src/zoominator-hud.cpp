@@ -39,7 +39,11 @@ bool ZoominatorHud::excludeFromCapture()
 		excluded = true;
 		return true;
 	}
-	blog(LOG_WARNING, "[Zoominator] Status badge cannot be hidden from capture on this system; not shown.");
+	static bool warned = false;
+	if (!warned) {
+		warned = true;
+		blog(LOG_WARNING, "[Zoominator] Status badge cannot be hidden from capture on this system; not shown.");
+	}
 	return false;
 #else
 	return false; /* no way to keep it out of the recording here */
