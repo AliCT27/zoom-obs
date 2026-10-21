@@ -1,0 +1,42 @@
+# Zoominator: notes for Claude
+
+OBS Studio plugin (C++17, Qt6, libobs) that records attractive vertical Reels: zoom, 3D tilt, click halo,
+focus spotlight, frame and camera ring. Canvas is usually 1080x1920 (also 1920x1080). Read `ARCHITECTURE.md`
+first for threads, files and where things go.
+
+## Working with the owner
+
+- The owner speaks Persian and is a programmer. Reply in Persian; keep code, commit messages and PR text in English.
+- Explain first when he asks "why" or "tell me first", and build only after he agrees.
+- Say plainly that a change is untested in real OBS unless he reports he tested it. Never claim a visual result
+  you have not seen.
+- Windows only for him. He records videos of the output; analyzing his mp4 (ffmpeg + numpy, frame by frame) is the
+  best way to diagnose visual bugs.
+
+## Workflow
+
+- Work on a branch from `origin/main`, never on `main`. One small change per PR; refactors must not change behavior.
+- Build: run the `Dispatch` workflow on the branch (`gh workflow run Dispatch --ref <branch> -f job=build`).
+  The build is the only compile check (no local Windows toolchain). If the run fails before any step starts, it is
+  a billing/quota problem on the GitHub account, not the code.
+- Open the PR with the REST API (`gh api repos/AliCT27/zoominator-custom/pulls ...`); GraphQL (`gh pr create`) is
+  blocked. Then tell him which PR to merge.
+- After merging he runs Dispatch on `main` and copies `obs-plugins` (and `data` when shaders or locale changed) into
+  `C:\Program Files\obs-studio\`. Say whether `data` is needed.
+- The repo is `AliCT27/zoominator-custom` (it was renamed from `zoominator-private`; old names redirect for git
+  but the API proxy refuses the redirect, so always use the new name).
+- Never push to or open PRs against the upstream (mmlTools) repo. Only this repo. No tokens or secrets in chat or
+  files; the repo is public.
+- A stop-hook may warn about "unpushed commits" right after a push; check `git ls-remote origin <branch>` first.
+
+## Code rules that matter
+
+- Never change the scene graph from the graphics thread (`videoTick`). Publish a `pending*` value; the main thread
+  (`onTick`) applies it.
+- Simple settings (a switch or a number) go in the table at the top of `zoominator-settings.cpp`; settings with
+  special rules are written by hand in `loadSettings`/`saveSettings`. Every new setting also needs its dialog
+  control and both locale files (`en-US.ini`, `fa-IR.ini`).
+- Shader math (`data/*.effect`) must match its CPU twin (for example the focus beam profile in `beamExponent`).
+- Halo size and position are read from the scene item's own transform, not from values published by another thread
+  (that caused one-frame glitches).
+- Per-platform code stays behind `#ifdef` inside `zoominator-screen.cpp` and `zoominator-input.cpp`.

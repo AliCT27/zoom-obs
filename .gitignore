@@ -16,6 +16,8 @@
 !LICENSE
 !README.md
 !ARCHITECTURE.md
+!CLAUDE.md
+!REVIEW.md
 
 # Exclude lock files
 *.lock.json
