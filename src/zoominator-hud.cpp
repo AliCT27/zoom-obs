@@ -132,8 +132,8 @@ QSize ZoominatorHud::sizeHint() const
 	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
 	int line2 = 0;
 	for (const auto &f : st.flags)
-		line2 += (line2 ? 14 : 0) + 12 + fs.horizontalAdvance(f.first);
-	const int line3 = 12 + 8 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
+		line2 += (line2 ? 14 : 0) + 16 + fs.horizontalAdvance(f.first);
+	const int line3 = 16 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
 	int h = pad * 2 + fb.height();
 	if (!st.flags.isEmpty())
 		h += 4 + fs.height();
@@ -192,7 +192,7 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 			p.setPen(Qt::NoPen);
 			p.setBrush(f.second ? QColor(60, 220, 110) : QColor(230, 70, 70));
 			p.drawEllipse(QPoint(x + 4, base - fs.ascent() / 2 + 1), 4, 4);
-			x += 12;
+			x += 16;
 			p.setPen(QColor(210, 210, 218));
 			p.drawText(QPoint(x, base), f.first);
 			x += fs.horizontalAdvance(f.first);
