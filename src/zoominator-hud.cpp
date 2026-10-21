@@ -111,7 +111,7 @@ void ZoominatorHud::hideBadge()
 
 void ZoominatorHud::setState(const State &state)
 {
-	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes && state.flags == st.flags &&
+	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes && state.flags == st.flags && state.recording == st.recording &&
 	    qAbs(state.level - st.level) < 0.005)
 		return;
 	st = state;
@@ -133,10 +133,12 @@ QSize ZoominatorHud::sizeHint() const
 	int line2 = fs.horizontalAdvance(st.modes);
 	for (const auto &f : st.flags)
 		line2 += 14 + 12 + fs.horizontalAdvance(f.first);
+	const int line3 = 12 + 8 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
 	int h = pad * 2 + fb.height();
 	if (!st.modes.isEmpty() || !st.flags.isEmpty())
 		h += 4 + fs.height();
-	return QSize(qMax(line1, line2) + pad * 2, h);
+	h += 4 + fs.height();
+	return QSize(qMax(qMax(line1, line2), line3) + pad * 2, h);
 }
 
 void ZoominatorHud::paintEvent(QPaintEvent *)
@@ -195,5 +197,26 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 			p.drawText(QPoint(x, base), f.first);
 			x += fs.horizontalAdvance(f.first);
 		}
+	}
+	{
+		const QFontMetrics fs(fontSmall);
+		const bool hasRow2 = !st.modes.isEmpty() || !st.flags.isEmpty();
+		const int row2 = hasRow2 ? 4 + fs.height() : 0;
+		const int base = pad + QFontMetrics(fontBig).height() + row2 + 4 + fs.ascent();
+		QColor c(120, 120, 130);
+		QString label = QStringLiteral("NOT RECORDING");
+		if (st.recording == 1) {
+			c = QColor(235, 60, 60);
+			label = QStringLiteral("RECORDING");
+		} else if (st.recording == 2) {
+			c = QColor(255, 190, 40);
+			label = QStringLiteral("PAUSED");
+		}
+		p.setFont(fontSmall);
+		p.setPen(Qt::NoPen);
+		p.setBrush(c);
+		p.drawEllipse(QPoint(pad + 4, base - fs.ascent() / 2 + 1), 4, 4);
+		p.setPen(QColor(210, 210, 218));
+		p.drawText(QPoint(pad + 16, base), label);
 	}
 }

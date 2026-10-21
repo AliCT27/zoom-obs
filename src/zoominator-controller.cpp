@@ -1363,8 +1363,8 @@ void ZoominatorController::refreshHud()
 	else
 		parts << (hotkeyMode == QLatin1String("toggle") ? QStringLiteral("Toggle") : QStringLiteral("Hold"));
 	st.modes = parts.join(QStringLiteral("  "));
-	st.flags << qMakePair(QStringLiteral("3D"), tilt3dEnabled) << qMakePair(QStringLiteral("Focus"), focusEnabled)
-		 << qMakePair(QStringLiteral("Halo"), showCursorMarker) << qMakePair(QStringLiteral("Frame"), frameEnabled);
+	st.flags << qMakePair(QStringLiteral("Focus"), focusEnabled);
+	st.recording = obs_frontend_recording_active() ? (obs_frontend_recording_paused() ? 2 : 1) : 0;
 
 	hud->setState(st);
 	if (!hud->isVisible() || hud->corner() != statusHudCorner)
