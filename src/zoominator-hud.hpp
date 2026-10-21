@@ -17,6 +17,7 @@ public:
 		double level = 1.0;
 		QString modes;                      /* trigger mode, e.g. "Auto" */
 		QList<QPair<QString, bool>> flags; /* feature name, on or off (green or red light) */
+		int recording = 0;                 /* 0 not recording, 1 recording, 2 recording paused */
 	};
 
 	explicit ZoominatorHud(QWidget *parent = nullptr);
