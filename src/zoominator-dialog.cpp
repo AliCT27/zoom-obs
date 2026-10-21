@@ -825,7 +825,7 @@ void ZoominatorDialog::buildUi()
 		cmbFocusStyle->setToolTip(T("Dialog.FocusStyleTooltip"));
 
 		spFocusBlur = new QSpinBox(page);
-		spFocusBlur->setRange(2, 60);
+		spFocusBlur->setRange(0, 60);
 		spFocusBlur->setSingleStep(2);
 		spFocusBlur->setSuffix(T("Unit.Pixels"));
 		spFocusBlur->setToolTip(T("Dialog.FocusBlurTooltip"));

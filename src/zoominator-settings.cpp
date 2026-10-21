@@ -149,7 +149,7 @@ constexpr ScalarSetting kScalarSettings[] = {
 	{"focus_enabled", &ZoominatorController::focusEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"show_focus_when_not_zoomed", &ZoominatorController::showFocusWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"focus_dim_pct", nullptr, &ZoominatorController::focusDimPct, nullptr, nullptr, 55, 0, 100},
-	{"focus_blur_px", nullptr, &ZoominatorController::focusBlurPx, nullptr, nullptr, 16, 2, 60},
+	{"focus_blur_px", nullptr, &ZoominatorController::focusBlurPx, nullptr, nullptr, 16, 0, 60},
 	{"center_focus", &ZoominatorController::centerFocus, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"portrait_cover", &ZoominatorController::portraitCover, nullptr, nullptr, nullptr, 1, 0, 1},
 	{"debug", &ZoominatorController::debug, nullptr, nullptr, nullptr, 0, 0, 1},
