@@ -1375,4 +1375,6 @@ void ZoominatorController::refreshHud()
 	hud->setState(st);
 	if (!hud->isVisible() || hud->corner() != statusHudCorner)
 		hud->showInCorner(statusHudCorner);
+	else
+		hud->ensureExcluded();
 }

@@ -23,6 +23,8 @@ public:
 	bool showInCorner(int corner);
 	void hideBadge();
 	int corner() const { return cornerIdx; }
+	/* Re-checks (and if needed re-applies) the capture exclusion; hides the badge when it cannot be guaranteed. */
+	bool ensureExcluded();
 	void setState(const State &state);
 	QSize sizeHint() const override;
 
@@ -35,5 +37,5 @@ private:
 
 	State st;
 	int cornerIdx = 0;
-	bool excluded = false;
+	quintptr excludedWinId = 0; /* the native window the exclusion was verified on */
 };

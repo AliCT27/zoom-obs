@@ -32,22 +32,47 @@ ZoominatorHud::ZoominatorHud(QWidget *parent) : QWidget(parent)
 bool ZoominatorHud::excludeFromCapture()
 {
 #ifdef _WIN32
-	if (excluded)
-		return true;
 	const HWND hwnd = reinterpret_cast<HWND>(winId());
-	if (hwnd && SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)) {
-		excluded = true;
+	if (!hwnd)
+		return false;
+	/* Qt can recreate the native window, which drops the setting, so it is checked against the current one. */
+	if (excludedWinId == (quintptr)hwnd) {
+		DWORD now = 0;
+		if (GetWindowDisplayAffinity(hwnd, &now) && now == WDA_EXCLUDEFROMCAPTURE)
+			return true;
+	}
+	excludedWinId = 0;
+	DWORD affinity = 0;
+	const bool set = SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE) != 0;
+	const bool verified = set && GetWindowDisplayAffinity(hwnd, &affinity) && affinity == WDA_EXCLUDEFROMCAPTURE;
+	if (verified) {
+		excludedWinId = (quintptr)hwnd;
+		static bool told = false;
+		if (!told) {
+			told = true;
+			blog(LOG_INFO, "[Zoominator] Status badge hidden from capture (display affinity verified).");
+		}
 		return true;
 	}
 	static bool warned = false;
 	if (!warned) {
 		warned = true;
-		blog(LOG_WARNING, "[Zoominator] Status badge cannot be hidden from capture on this system; not shown.");
+		blog(LOG_WARNING, "[Zoominator] Status badge cannot be hidden from capture on this system (error %lu); not shown.",
+		     set ? 0ul : (unsigned long)GetLastError());
 	}
 	return false;
 #else
 	return false; /* no way to keep it out of the recording here */
 #endif
+}
+
+bool ZoominatorHud::ensureExcluded()
+{
+	if (!excludeFromCapture()) {
+		hide();
+		return false;
+	}
+	return true;
 }
 
 void ZoominatorHud::place()
@@ -75,7 +100,8 @@ bool ZoominatorHud::showInCorner(int corner)
 	place();
 	if (!isVisible())
 		show();
-	return true;
+	/* Check again on the shown window: if showing created a new native window, the exclusion is redone. */
+	return ensureExcluded();
 }
 
 void ZoominatorHud::hideBadge()
