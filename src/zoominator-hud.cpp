@@ -132,8 +132,8 @@ QSize ZoominatorHud::sizeHint() const
 	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
 	int line2 = 0;
 	for (const auto &f : st.flags)
-		line2 += (line2 ? 14 : 0) + 16 + fs.horizontalAdvance(f.first);
-	const int line3 = 16 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
+		line2 += (line2 ? 14 : 0) + 20 + fs.horizontalAdvance(f.first);
+	const int line3 = 20 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
 	int h = pad * 2 + fb.height();
 	if (!st.flags.isEmpty())
 		h += 4 + fs.height();
@@ -191,8 +191,8 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 			first = false;
 			p.setPen(Qt::NoPen);
 			p.setBrush(f.second ? QColor(60, 220, 110) : QColor(230, 70, 70));
-			p.drawEllipse(QPoint(x + 4, base - fs.ascent() / 2 + 1), 4, 4);
-			x += 16;
+			p.drawEllipse(QPoint(x + 6, base - fs.ascent() / 2 + 1), 4, 4);
+			x += 20;
 			p.setPen(QColor(210, 210, 218));
 			p.drawText(QPoint(x, base), f.first);
 			x += fs.horizontalAdvance(f.first);
@@ -215,8 +215,8 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 		p.setFont(fontSmall);
 		p.setPen(Qt::NoPen);
 		p.setBrush(c);
-		p.drawEllipse(QPoint(pad + 4, base - fs.ascent() / 2 + 1), 4, 4);
+		p.drawEllipse(QPoint(pad + 6, base - fs.ascent() / 2 + 1), 4, 4);
 		p.setPen(QColor(210, 210, 218));
-		p.drawText(QPoint(pad + 16, base), label);
+		p.drawText(QPoint(pad + 20, base), label);
 	}
 }
