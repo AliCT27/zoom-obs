@@ -22,6 +22,7 @@ public:
 	 * kept out of the recording (then it stays hidden). */
 	bool showInCorner(int corner);
 	void hideBadge();
+	int corner() const { return cornerIdx; }
 	void setState(const State &state);
 	QSize sizeHint() const override;
 

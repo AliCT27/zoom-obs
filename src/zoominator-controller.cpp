@@ -1373,6 +1373,6 @@ void ZoominatorController::refreshHud()
 	st.modes = parts.join(QStringLiteral("  "));
 
 	hud->setState(st);
-	if (!hud->isVisible())
+	if (!hud->isVisible() || hud->corner() != statusHudCorner)
 		hud->showInCorner(statusHudCorner);
 }
