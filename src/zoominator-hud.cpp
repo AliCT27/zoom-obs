@@ -2,10 +2,8 @@
 
 #include "zoominator-hud.hpp"
 
-#include <obs-module.h>
 #include <util/base.h>
 
-#include <algorithm>
 
 #include <QFont>
 #include <QFontMetrics>
@@ -14,6 +12,7 @@
 #include <QScreen>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #ifndef WDA_EXCLUDEFROMCAPTURE
 #define WDA_EXCLUDEFROMCAPTURE 0x00000011
@@ -93,19 +92,19 @@ void ZoominatorHud::setState(const State &state)
 
 QSize ZoominatorHud::sizeHint() const
 {
-	QFont big = font();
-	big.setBold(true);
-	big.setPointSizeF(12.0);
-	QFont small = font();
-	small.setPointSizeF(9.0);
-	const QFontMetrics fb(big), fs(small);
+	QFont fontBig = font();
+	fontBig.setBold(true);
+	fontBig.setPointSizeF(12.0);
+	QFont fontSmall = font();
+	fontSmall.setPointSizeF(9.0);
+	const QFontMetrics fb(fontBig), fs(fontSmall);
 	const int pad = 12;
 	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
 	const int line2 = fs.horizontalAdvance(st.modes);
 	int h = pad * 2 + fb.height();
 	if (!st.modes.isEmpty())
 		h += 4 + fs.height();
-	return QSize(std::max(line1, line2) + pad * 2, h);
+	return QSize(qMax(line1, line2) + pad * 2, h);
 }
 
 void ZoominatorHud::paintEvent(QPaintEvent *)
@@ -129,26 +128,26 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 		word = QStringLiteral("ZOOMED");
 	}
 
-	QFont big = font();
-	big.setBold(true);
-	big.setPointSizeF(12.0);
-	QFont small = font();
-	small.setPointSizeF(9.0);
+	QFont fontBig = font();
+	fontBig.setBold(true);
+	fontBig.setPointSizeF(12.0);
+	QFont fontSmall = font();
+	fontSmall.setPointSizeF(9.0);
 
 	const int pad = 12;
 	p.setBrush(dot);
-	p.drawEllipse(QPoint(pad + 6, pad + QFontMetrics(big).height() / 2), 6, 6);
+	p.drawEllipse(QPoint(pad + 6, pad + QFontMetrics(fontBig).height() / 2), 6, 6);
 
 	p.setPen(QColor(240, 240, 245));
-	p.setFont(big);
-	p.drawText(QPoint(pad + 20, pad + QFontMetrics(big).ascent()), word);
+	p.setFont(fontBig);
+	p.drawText(QPoint(pad + 20, pad + QFontMetrics(fontBig).ascent()), word);
 	const QString lvl = QStringLiteral("%1x").arg(st.level, 0, 'f', 2);
-	p.drawText(QPoint(width() - pad - QFontMetrics(big).horizontalAdvance(lvl), pad + QFontMetrics(big).ascent()),
+	p.drawText(QPoint(width() - pad - QFontMetrics(fontBig).horizontalAdvance(lvl), pad + QFontMetrics(fontBig).ascent()),
 		   lvl);
 
 	if (!st.modes.isEmpty()) {
 		p.setPen(QColor(170, 170, 180));
-		p.setFont(small);
-		p.drawText(QPoint(pad, pad + QFontMetrics(big).height() + 4 + QFontMetrics(small).ascent()), st.modes);
+		p.setFont(fontSmall);
+		p.drawText(QPoint(pad, pad + QFontMetrics(fontBig).height() + 4 + QFontMetrics(fontSmall).ascent()), st.modes);
 	}
 }
