@@ -1362,15 +1362,9 @@ void ZoominatorController::refreshHud()
 		parts << QStringLiteral("Mouse");
 	else
 		parts << (hotkeyMode == QLatin1String("toggle") ? QStringLiteral("Toggle") : QStringLiteral("Hold"));
-	if (tilt3dEnabled)
-		parts << QStringLiteral("3D");
-	if (focusEnabled)
-		parts << QStringLiteral("Focus");
-	if (showCursorMarker)
-		parts << QStringLiteral("Halo");
-	if (frameEnabled)
-		parts << QStringLiteral("Frame");
 	st.modes = parts.join(QStringLiteral("  "));
+	st.flags << qMakePair(QStringLiteral("3D"), tilt3dEnabled) << qMakePair(QStringLiteral("Focus"), focusEnabled)
+		 << qMakePair(QStringLiteral("Halo"), showCursorMarker) << qMakePair(QStringLiteral("Frame"), frameEnabled);
 
 	hud->setState(st);
 	if (!hud->isVisible() || hud->corner() != statusHudCorner)

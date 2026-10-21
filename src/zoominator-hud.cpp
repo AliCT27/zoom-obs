@@ -111,7 +111,7 @@ void ZoominatorHud::hideBadge()
 
 void ZoominatorHud::setState(const State &state)
 {
-	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes &&
+	if (state.zoomed == st.zoomed && state.direction == st.direction && state.modes == st.modes && state.flags == st.flags &&
 	    qAbs(state.level - st.level) < 0.005)
 		return;
 	st = state;
@@ -130,9 +130,11 @@ QSize ZoominatorHud::sizeHint() const
 	const QFontMetrics fb(fontBig), fs(fontSmall);
 	const int pad = 12;
 	const int line1 = 20 + fb.horizontalAdvance(QStringLiteral("ZOOMING OUT")) + 24 + fb.horizontalAdvance(QStringLiteral("8.00x"));
-	const int line2 = fs.horizontalAdvance(st.modes);
+	int line2 = fs.horizontalAdvance(st.modes);
+	for (const auto &f : st.flags)
+		line2 += 14 + 12 + fs.horizontalAdvance(f.first);
 	int h = pad * 2 + fb.height();
-	if (!st.modes.isEmpty())
+	if (!st.modes.isEmpty() || !st.flags.isEmpty())
 		h += 4 + fs.height();
 	return QSize(qMax(line1, line2) + pad * 2, h);
 }
@@ -175,9 +177,23 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 	p.drawText(QPoint(width() - pad - QFontMetrics(fontBig).horizontalAdvance(lvl), pad + QFontMetrics(fontBig).ascent()),
 		   lvl);
 
-	if (!st.modes.isEmpty()) {
-		p.setPen(QColor(170, 170, 180));
+	if (!st.modes.isEmpty() || !st.flags.isEmpty()) {
+		const QFontMetrics fs(fontSmall);
+		const int base = pad + QFontMetrics(fontBig).height() + 4 + fs.ascent();
+		int x = pad;
 		p.setFont(fontSmall);
-		p.drawText(QPoint(pad, pad + QFontMetrics(fontBig).height() + 4 + QFontMetrics(fontSmall).ascent()), st.modes);
+		p.setPen(QColor(170, 170, 180));
+		p.drawText(QPoint(x, base), st.modes);
+		x += fs.horizontalAdvance(st.modes);
+		for (const auto &f : st.flags) {
+			x += 14;
+			p.setPen(Qt::NoPen);
+			p.setBrush(f.second ? QColor(60, 220, 110) : QColor(230, 70, 70));
+			p.drawEllipse(QPoint(x + 4, base - fs.ascent() / 2 + 1), 4, 4);
+			x += 12;
+			p.setPen(QColor(210, 210, 218));
+			p.drawText(QPoint(x, base), f.first);
+			x += fs.horizontalAdvance(f.first);
+		}
 	}
 }
