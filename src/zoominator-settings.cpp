@@ -102,37 +102,57 @@ struct ScalarSetting {
 	bool ZoominatorController::*boolMember;
 	int ZoominatorController::*intMember;
 	uint32_t ZoominatorController::*uintMember;
-	long long def;
-	int lo;
-	int hi;
+	double ZoominatorController::*dblMember;
+	double def;
+	double lo;
+	double hi;
 };
 
-constexpr int kNoMin = std::numeric_limits<int>::min();
-constexpr int kNoMax = std::numeric_limits<int>::max();
+constexpr double kNoMin = (double)std::numeric_limits<int>::min();
+constexpr double kNoMax = (double)std::numeric_limits<int>::max();
 
 constexpr ScalarSetting kScalarSettings[] = {
-	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, 0, 0, 1},
-	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, 0, 0, 1},
-	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, nullptr, 6, -100, 100},
-	{"marker_offset_y", nullptr, &ZoominatorController::markerOffsetY, nullptr, 10, -100, 100},
-	{"marker_size", nullptr, &ZoominatorController::markerSize, nullptr, 26, kNoMin, kNoMax},
-	{"marker_thickness", nullptr, &ZoominatorController::markerThickness, nullptr, 4, kNoMin, kNoMax},
-	{"frame_enabled", &ZoominatorController::frameEnabled, nullptr, nullptr, 0, 0, 1},
-	{"frame_color", nullptr, nullptr, &ZoominatorController::frameColor, 0xFF2ECC40, 0, 0},
-	{"frame_bg_color", nullptr, nullptr, &ZoominatorController::frameBgColor, 0xFF000000, 0, 0},
-	{"frame_bg_color2", nullptr, nullptr, &ZoominatorController::frameBgColor2, 0xFF0B3A52, 0, 0},
-	{"frame_bg_mode", nullptr, &ZoominatorController::frameBgMode, nullptr, 0, 0, 2},
-	{"frame_bg_angle", nullptr, &ZoominatorController::frameBgAngle, nullptr, 90, 0, 360},
-	{"frame_border_px", nullptr, &ZoominatorController::frameBorderPx, nullptr, 4, 0, 80},
-	{"frame_radius_px", nullptr, &ZoominatorController::frameRadiusPx, nullptr, 24, 0, 400},
-	{"frame_glow_px", nullptr, &ZoominatorController::frameGlowPx, nullptr, 80, 0, 200},
-	{"frame_glow_pct", nullptr, &ZoominatorController::frameGlowPct, nullptr, 70, 0, 100},
-	{"cam_ring_enabled", &ZoominatorController::camRingEnabled, nullptr, nullptr, 0, 0, 1},
-	{"cam_ring_color", nullptr, nullptr, &ZoominatorController::camRingColor, 0xFF2EA8DC, 0, 0},
-	{"cam_ring_px", nullptr, &ZoominatorController::camRingPx, nullptr, 6, 0, 60},
-	{"cam_glow_px", nullptr, &ZoominatorController::camGlowPx, nullptr, 28, 0, 150},
-	{"cam_glow_pct", nullptr, &ZoominatorController::camGlowPct, nullptr, 80, 0, 100},
-	{"cam_zoom_pct", nullptr, &ZoominatorController::camZoomPct, nullptr, 125, 30, 300},
+	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, nullptr, nullptr, 6, -100, 100},
+	{"marker_offset_y", nullptr, &ZoominatorController::markerOffsetY, nullptr, nullptr, 10, -100, 100},
+	{"marker_size", nullptr, &ZoominatorController::markerSize, nullptr, nullptr, 26, kNoMin, kNoMax},
+	{"marker_thickness", nullptr, &ZoominatorController::markerThickness, nullptr, nullptr, 4, kNoMin, kNoMax},
+	{"frame_enabled", &ZoominatorController::frameEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"frame_color", nullptr, nullptr, &ZoominatorController::frameColor, nullptr, 0xFF2ECC40, 0, 0},
+	{"frame_bg_color", nullptr, nullptr, &ZoominatorController::frameBgColor, nullptr, 0xFF000000, 0, 0},
+	{"frame_bg_color2", nullptr, nullptr, &ZoominatorController::frameBgColor2, nullptr, 0xFF0B3A52, 0, 0},
+	{"frame_bg_mode", nullptr, &ZoominatorController::frameBgMode, nullptr, nullptr, 0, 0, 2},
+	{"frame_bg_angle", nullptr, &ZoominatorController::frameBgAngle, nullptr, nullptr, 90, 0, 360},
+	{"frame_border_px", nullptr, &ZoominatorController::frameBorderPx, nullptr, nullptr, 4, 0, 80},
+	{"frame_radius_px", nullptr, &ZoominatorController::frameRadiusPx, nullptr, nullptr, 24, 0, 400},
+	{"frame_glow_px", nullptr, &ZoominatorController::frameGlowPx, nullptr, nullptr, 80, 0, 200},
+	{"frame_glow_pct", nullptr, &ZoominatorController::frameGlowPct, nullptr, nullptr, 70, 0, 100},
+	{"cam_ring_enabled", &ZoominatorController::camRingEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"cam_ring_color", nullptr, nullptr, &ZoominatorController::camRingColor, nullptr, 0xFF2EA8DC, 0, 0},
+	{"cam_ring_px", nullptr, &ZoominatorController::camRingPx, nullptr, nullptr, 6, 0, 60},
+	{"cam_glow_px", nullptr, &ZoominatorController::camGlowPx, nullptr, nullptr, 28, 0, 150},
+	{"cam_glow_pct", nullptr, &ZoominatorController::camGlowPct, nullptr, nullptr, 80, 0, 100},
+	{"cam_zoom_pct", nullptr, &ZoominatorController::camZoomPct, nullptr, nullptr, 125, 30, 300},
+	{"idle_follow_x", &ZoominatorController::idleFollowX, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"tilt3d_enabled", &ZoominatorController::tilt3dEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"tilt3d_max_x", nullptr, nullptr, nullptr, &ZoominatorController::tilt3dMaxX, 12.0, 0.0, 45.0},
+	{"tilt3d_max_y", nullptr, nullptr, nullptr, &ZoominatorController::tilt3dMaxY, 8.0, 0.0, 45.0},
+	{"tilt3d_perspective", nullptr, nullptr, nullptr, &ZoominatorController::tilt3dPerspective, 2.0, 0.8, 8.0},
+	{"tilt3d_invert", &ZoominatorController::tilt3dInvert, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"tilt3d_in_zoom", &ZoominatorController::tilt3dInZoom, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"auto_on_click", &ZoominatorController::autoOnClick, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"auto_on_typing", &ZoominatorController::autoOnTyping, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"caret_follow", &ZoominatorController::caretFollow, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"auto_hold_ms", nullptr, &ZoominatorController::autoHoldMs, nullptr, nullptr, 2500, 300, 60000},
+	{"auto_zoom_out_enabled", &ZoominatorController::autoZoomOutEnabled, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"focus_enabled", &ZoominatorController::focusEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"show_focus_when_not_zoomed", &ZoominatorController::showFocusWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"focus_dim_pct", nullptr, &ZoominatorController::focusDimPct, nullptr, nullptr, 55, 0, 100},
+	{"focus_blur_px", nullptr, &ZoominatorController::focusBlurPx, nullptr, nullptr, 16, 2, 60},
+	{"center_focus", &ZoominatorController::centerFocus, nullptr, nullptr, nullptr, 0, 0, 1},
+	{"portrait_cover", &ZoominatorController::portraitCover, nullptr, nullptr, nullptr, 1, 0, 1},
+	{"debug", &ZoominatorController::debug, nullptr, nullptr, nullptr, 0, 0, 1},
 };
 
 void reset_scalar_settings(ZoominatorController &c)
@@ -142,6 +162,8 @@ void reset_scalar_settings(ZoominatorController &c)
 			c.*d.boolMember = d.def != 0;
 		else if (d.intMember)
 			c.*d.intMember = (int)d.def;
+		else if (d.dblMember)
+			c.*d.dblMember = d.def;
 		else
 			c.*d.uintMember = (uint32_t)d.def;
 	}
@@ -155,7 +177,9 @@ void load_scalar_settings(ZoominatorController &c, obs_data_t *data)
 		if (d.boolMember)
 			c.*d.boolMember = obs_data_get_bool(data, d.key);
 		else if (d.intMember)
-			c.*d.intMember = std::clamp((int)obs_data_get_int(data, d.key), d.lo, d.hi);
+			c.*d.intMember = std::clamp((int)obs_data_get_int(data, d.key), (int)d.lo, (int)d.hi);
+		else if (d.dblMember)
+			c.*d.dblMember = clampd(obs_data_get_double(data, d.key), d.lo, d.hi);
 		else
 			c.*d.uintMember = (uint32_t)obs_data_get_int(data, d.key);
 	}
@@ -168,6 +192,8 @@ void save_scalar_settings(const ZoominatorController &c, obs_data_t *data)
 			obs_data_set_bool(data, d.key, c.*d.boolMember);
 		else if (d.intMember)
 			obs_data_set_int(data, d.key, c.*d.intMember);
+		else if (d.dblMember)
+			obs_data_set_double(data, d.key, c.*d.dblMember);
 		else
 			obs_data_set_int(data, d.key, (long long)(c.*d.uintMember));
 	}
@@ -203,33 +229,17 @@ void ZoominatorController::loadSettings()
 	wheelZoomMaximum = 5.0;
 	wheelZoomExit = 0.0;
 	wheelZoomEnabled = false;
-	idleFollowX = false;
-	tilt3dEnabled = false;
-	tilt3dMaxX = 12.0;
-	tilt3dMaxY = 8.0;
-	tilt3dPerspective = 2.0;
-	tilt3dInvert = false;
-	tilt3dInZoom = true;
 	wheelZoomModifier = QStringLiteral("alt");
 	animInMs = 180;
 	animOutMs = 320;
 	zoomAnchor = ZoomAnchorMode::CursorFollow;
 	easing = ZoomEasing::Smooth;
-	autoOnClick = true;
-	autoOnTyping = true;
-	autoHoldMs = 2500;
-	caretFollow = true;
-	focusEnabled = false;
-	showFocusWhenNotZoomed = false;
-	focusDimPct = 55;
 	focusRadius = 300;
 	focusIdleRadius = 300;
 	focusSoftness = 80;
 	focusCone = 50;
 	focusStyle = FocusStyle::Dim;
-	focusBlurPx = 16;
 	camSourceName.clear();
-	autoZoomOutEnabled = true;
 	manualZoomInSequence.clear();
 	manualZoomOutSequence.clear();
 	focusToggleSequence.clear();
@@ -249,15 +259,12 @@ void ZoominatorController::loadSettings()
 	followSpeed = 8.0;
 	centerCursorUntilEdge = true;
 	edgeOverflowMarginPct = 0;
-	centerFocus = false;
 	mouseIdleTimeoutMs = 0;
-	portraitCover = true;
 
 	reset_scalar_settings(*this);
 	markerOnlyOnClick = true;
 	markerColor = 0xFFFF0000;
 	markerIdleSize = 26;
-	debug = false;
 
 	const QString p = configPath();
 	if (p.isEmpty())
@@ -405,23 +412,6 @@ void ZoominatorController::loadSettings()
 	wheelZoomInStep = clampd(wheelZoomInStep, 0.01, 2.0);
 	wheelZoomOutStep = wheelZoomInStep;
 	wheelZoomMinimum = 1.0;
-	if (obs_data_has_user_value(data, "idle_follow_x"))
-		idleFollowX = obs_data_get_bool(data, "idle_follow_x");
-	if (obs_data_has_user_value(data, "tilt3d_enabled"))
-		tilt3dEnabled = obs_data_get_bool(data, "tilt3d_enabled");
-	if (obs_data_has_user_value(data, "tilt3d_max_x"))
-		tilt3dMaxX = obs_data_get_double(data, "tilt3d_max_x");
-	if (obs_data_has_user_value(data, "tilt3d_max_y"))
-		tilt3dMaxY = obs_data_get_double(data, "tilt3d_max_y");
-	if (obs_data_has_user_value(data, "tilt3d_perspective"))
-		tilt3dPerspective = obs_data_get_double(data, "tilt3d_perspective");
-	if (obs_data_has_user_value(data, "tilt3d_invert"))
-		tilt3dInvert = obs_data_get_bool(data, "tilt3d_invert");
-	if (obs_data_has_user_value(data, "tilt3d_in_zoom"))
-		tilt3dInZoom = obs_data_get_bool(data, "tilt3d_in_zoom");
-	tilt3dMaxX = clampd(tilt3dMaxX, 0.0, 45.0);
-	tilt3dMaxY = clampd(tilt3dMaxY, 0.0, 45.0);
-	tilt3dPerspective = clampd(tilt3dPerspective, 0.8, 8.0);
 	if (obs_data_has_user_value(data, "wheel_zoom_enabled"))
 		wheelZoomEnabled = obs_data_get_bool(data, "wheel_zoom_enabled");
 	if (obs_data_has_user_value(data, "wheel_zoom_modifier"))
@@ -443,22 +433,7 @@ void ZoominatorController::loadSettings()
 
 	if (obs_data_has_user_value(data, "easing"))
 		easing = zoomEasingFromString(getStr("easing"));
-	if (obs_data_has_user_value(data, "auto_on_click"))
-		autoOnClick = obs_data_get_bool(data, "auto_on_click");
-	if (obs_data_has_user_value(data, "auto_on_typing"))
-		autoOnTyping = obs_data_get_bool(data, "auto_on_typing");
-	if (obs_data_has_user_value(data, "caret_follow"))
-		caretFollow = obs_data_get_bool(data, "caret_follow");
-	if (obs_data_has_user_value(data, "auto_hold_ms"))
-		autoHoldMs = (int)obs_data_get_int(data, "auto_hold_ms");
-	autoHoldMs = std::clamp(autoHoldMs, 300, 60000);
 
-	if (obs_data_has_user_value(data, "show_focus_when_not_zoomed"))
-		showFocusWhenNotZoomed = obs_data_get_bool(data, "show_focus_when_not_zoomed");
-	if (obs_data_has_user_value(data, "focus_enabled"))
-		focusEnabled = obs_data_get_bool(data, "focus_enabled");
-	if (obs_data_has_user_value(data, "focus_dim_pct"))
-		focusDimPct = (int)obs_data_get_int(data, "focus_dim_pct");
 	if (obs_data_has_user_value(data, "focus_radius"))
 		focusRadius = (int)obs_data_get_int(data, "focus_radius");
 	focusIdleRadius = focusRadius;
@@ -475,16 +450,11 @@ void ZoominatorController::loadSettings()
 	}
 	if (obs_data_has_user_value(data, "focus_style"))
 		focusStyle = focusStyleFromString(getStr("focus_style"));
-	if (obs_data_has_user_value(data, "focus_blur_px"))
-		focusBlurPx = std::clamp((int)obs_data_get_int(data, "focus_blur_px"), 2, 60);
-	focusDimPct = std::clamp(focusDimPct, 0, 100);
 	focusRadius = std::clamp(focusRadius, 40, 2000);
 	focusIdleRadius = std::clamp(focusIdleRadius, 40, 2000);
 	focusCone = std::clamp(focusCone, 0, 100);
 	focusSoftness = beamSoftnessForCone(focusCone, focusRadius);
 	camSourceName = getStr("cam_source");
-	if (obs_data_has_user_value(data, "auto_zoom_out_enabled"))
-		autoZoomOutEnabled = obs_data_get_bool(data, "auto_zoom_out_enabled");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
 	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
 	focusToggleSequence = getStr("focus_toggle_hotkey");
@@ -530,15 +500,11 @@ void ZoominatorController::loadSettings()
 	else if (obs_data_has_user_value(data, "allow_canvas_overflow"))
 		edgeOverflowMarginPct = obs_data_get_bool(data, "allow_canvas_overflow") ? 50 : 0;
 	edgeOverflowMarginPct = 0; /* not offered any more */
-	if (obs_data_has_user_value(data, "center_focus"))
-		centerFocus = obs_data_get_bool(data, "center_focus");
 	if (obs_data_has_user_value(data, "mouse_idle_timeout_ms"))
 		mouseIdleTimeoutMs = (int)obs_data_get_int(data, "mouse_idle_timeout_ms");
 	mouseIdleTimeoutMs = 0; /* not offered any more */
 	centerCursorUntilEdge = true;
 
-	if (obs_data_has_user_value(data, "portrait_cover"))
-		portraitCover = obs_data_get_bool(data, "portrait_cover");
 	// Continuous cursor tracking was inaccurate on captures whose aspect ratio
 	// differs from the OBS canvas. The marker is intentionally click-only.
 	markerOnlyOnClick = true;
@@ -550,8 +516,6 @@ void ZoominatorController::loadSettings()
 		markerIdleSize = (int)obs_data_get_int(data, "marker_idle_size");
 	markerIdleSize = std::clamp(markerIdleSize, 6, 256);
 
-	if (obs_data_has_user_value(data, "debug"))
-		debug = obs_data_get_bool(data, "debug");
 
 	savedLayouts.clear();
 	if (obs_data_array_t *layArr = obs_data_get_array(data, "unzoomed_layouts")) {
@@ -992,32 +956,16 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "wheel_zoom_maximum", wheelZoomMaximum);
 	obs_data_set_double(data, "wheel_zoom_exit", wheelZoomExit);
 	obs_data_set_bool(data, "wheel_zoom_enabled", wheelZoomEnabled);
-	obs_data_set_bool(data, "idle_follow_x", idleFollowX);
-	obs_data_set_bool(data, "tilt3d_enabled", tilt3dEnabled);
-	obs_data_set_double(data, "tilt3d_max_x", tilt3dMaxX);
-	obs_data_set_double(data, "tilt3d_max_y", tilt3dMaxY);
-	obs_data_set_double(data, "tilt3d_perspective", tilt3dPerspective);
-	obs_data_set_bool(data, "tilt3d_invert", tilt3dInvert);
-	obs_data_set_bool(data, "tilt3d_in_zoom", tilt3dInZoom);
 	obs_data_set_string(data, "wheel_zoom_modifier", wheelZoomModifier.toUtf8().constData());
 	obs_data_set_int(data, "anim_in_ms", animInMs);
 	obs_data_set_int(data, "anim_out_ms", animOutMs);
 	obs_data_set_string(data, "zoom_anchor", zoomAnchorModeToString(zoomAnchor).toUtf8().constData());
 	obs_data_set_string(data, "easing", zoomEasingToString(easing).toUtf8().constData());
-	obs_data_set_bool(data, "auto_on_click", autoOnClick);
-	obs_data_set_bool(data, "auto_on_typing", autoOnTyping);
-	obs_data_set_bool(data, "caret_follow", caretFollow);
-	obs_data_set_int(data, "auto_hold_ms", autoHoldMs);
-	obs_data_set_bool(data, "focus_enabled", focusEnabled);
-	obs_data_set_bool(data, "show_focus_when_not_zoomed", showFocusWhenNotZoomed);
-	obs_data_set_int(data, "focus_dim_pct", focusDimPct);
 	obs_data_set_int(data, "focus_radius", focusRadius);
 	obs_data_set_int(data, "focus_idle_radius", focusIdleRadius);
 	obs_data_set_int(data, "focus_beam", focusCone);
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
-	obs_data_set_int(data, "focus_blur_px", focusBlurPx);
 	obs_data_set_string(data, "cam_source", camSourceName.toUtf8().constData());
-	obs_data_set_bool(data, "auto_zoom_out_enabled", autoZoomOutEnabled);
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
 	obs_data_set_string(data, "focus_toggle_hotkey", focusToggleSequence.toUtf8().constData());
@@ -1043,15 +991,12 @@ void ZoominatorController::saveSettings()
 	obs_data_set_double(data, "follow_speed", followSpeed);
 	obs_data_set_bool(data, "center_cursor_until_edge", centerCursorUntilEdge);
 	obs_data_set_int(data, "edge_overflow_margin_pct", edgeOverflowMarginPct);
-	obs_data_set_bool(data, "center_focus", centerFocus);
 	obs_data_set_bool(data, "allow_canvas_overflow", edgeOverflowMarginPct > 0);
 	obs_data_set_int(data, "mouse_idle_timeout_ms", mouseIdleTimeoutMs);
-	obs_data_set_bool(data, "portrait_cover", portraitCover);
 	save_scalar_settings(*this, data);
 	obs_data_set_bool(data, "marker_only_on_click", true);
 	obs_data_set_int(data, "marker_color", (long long)markerColor);
 	obs_data_set_int(data, "marker_idle_size", markerIdleSize);
-	obs_data_set_bool(data, "debug", debug);
 	obs_data_set_bool(data, "recovery_active", recoveryActive);
 	saveRecoveryMap(data);
 
