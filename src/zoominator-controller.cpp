@@ -30,7 +30,7 @@ void ZoominatorController::wheelZoom(int direction, int steps)
 		if (!zoomedNow) {
 			zoomFactor = clampd(1.0 + step * steps, 1.05, maxZoom);
 			renderedZoomFactor = zoomFactor;
-			captureMarkerClickPosition();
+			/* A wheel notch is not a click, so it must not flash the halo. */
 			zoomLatched = false;
 			manualZoomIn();
 			return;
