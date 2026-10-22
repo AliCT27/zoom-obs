@@ -21,8 +21,9 @@ first for threads, files and where things go.
   a billing/quota problem on the GitHub account, not the code.
 - Open the PR with the REST API (`gh api repos/AliCT27/zoominator-custom/pulls ...`); GraphQL (`gh pr create`) is
   blocked. Then tell him which PR to merge.
-- After merging he runs Dispatch on `main` and copies `obs-plugins` (and `data` when shaders or locale changed) into
-  `C:\Program Files\obs-studio\`. Say whether `data` is needed.
+- After merging he runs Dispatch on `main` and copies `obs-plugins` and `data` into `C:\Program Files\obs-studio\`.
+  He knows this: after a finished change just say which PR to merge. Do not repeat the Dispatch/copy steps, and do not
+  say whether `data` is needed. Mention only something unusual (for example a log line he must send back).
 - The repo is `AliCT27/zoominator-custom` (it was renamed from `zoominator-private`; old names redirect for git
   but the API proxy refuses the redirect, so always use the new name).
 - Never push to or open PRs against the upstream (mmlTools) repo. Only this repo. No tokens or secrets in chat or
