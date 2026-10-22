@@ -684,6 +684,21 @@ void ZoominatorDialog::buildUi()
 		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlow"), spFrameGlow), 1);
 		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlowStrength"), spFrameGlowPct), 1);
 		lay->addLayout(frameShapeRow);
+
+		chkFrameBgRainbow = new QCheckBox(T("Dialog.FrameBgRainbow"), page);
+		chkFrameBgRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+		chkFrameBorderRainbow = new QCheckBox(T("Dialog.FrameBorderRainbow"), page);
+		chkFrameBorderRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+		spFrameRainbowSec = new QSpinBox(page);
+		spFrameRainbowSec->setRange(2, 120);
+		spFrameRainbowSec->setSuffix(QStringLiteral(" s"));
+		spFrameRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+		auto *frameRainbowRow = new QHBoxLayout;
+		frameRainbowRow->setSpacing(12);
+		frameRainbowRow->addWidget(chkFrameBgRainbow, 1);
+		frameRainbowRow->addWidget(chkFrameBorderRainbow, 1);
+		frameRainbowRow->addWidget(mkField(T("Dialog.FrameRainbowSec"), spFrameRainbowSec), 1);
+		lay->addLayout(frameRainbowRow);
 		lay->addSpacing(10);
 
 		auto syncFrameFields = [this]() {
@@ -697,8 +712,13 @@ void ZoominatorDialog::buildUi()
 			spFrameRadius->setEnabled(on);
 			spFrameGlow->setEnabled(on);
 			spFrameGlowPct->setEnabled(on);
+			chkFrameBgRainbow->setEnabled(on);
+			chkFrameBorderRainbow->setEnabled(on);
+			spFrameRainbowSec->setEnabled(on && (chkFrameBgRainbow->isChecked() || chkFrameBorderRainbow->isChecked()));
 		};
 		connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+		connect(chkFrameBgRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+		connect(chkFrameBorderRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
 		connect(cmbFrameBgMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
 			[syncFrameFields](int) { syncFrameFields(); });
 		syncFrameFields();
@@ -1425,6 +1445,12 @@ void ZoominatorDialog::loadFromController()
 		spFrameRadius->setEnabled(c.frameEnabled);
 		spFrameGlow->setEnabled(c.frameEnabled);
 		spFrameGlowPct->setEnabled(c.frameEnabled);
+		chkFrameBgRainbow->setChecked(c.frameBgRainbow);
+		chkFrameBorderRainbow->setChecked(c.frameBorderRainbow);
+		spFrameRainbowSec->setValue(c.frameRainbowSec);
+		chkFrameBgRainbow->setEnabled(c.frameEnabled);
+		chkFrameBorderRainbow->setEnabled(c.frameEnabled);
+		spFrameRainbowSec->setEnabled(c.frameEnabled && (c.frameBgRainbow || c.frameBorderRainbow));
 		chkCamRing->setChecked(c.camRingEnabled);
 		setColorButton(btnCamColor, c.camRingColor);
 		spCamRing->setValue(c.camRingPx);
@@ -1552,6 +1578,9 @@ void ZoominatorDialog::applyToController()
 	c.frameRadiusPx = spFrameRadius->value();
 	c.frameGlowPx = spFrameGlow->value();
 	c.frameGlowPct = spFrameGlowPct->value();
+	c.frameBgRainbow = chkFrameBgRainbow->isChecked();
+	c.frameBorderRainbow = chkFrameBorderRainbow->isChecked();
+	c.frameRainbowSec = spFrameRainbowSec->value();
 	c.camRingEnabled = chkCamRing->isChecked();
 	c.camSourceName = cmbCamSource->currentData().toString();
 	c.camRingColor = (uint32_t)btnCamColor->property("rgba").toUInt();

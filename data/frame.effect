@@ -25,6 +25,8 @@ uniform float4 bg_color;
 uniform float4 bg_color2;
 uniform float bg_mode;   // 0 solid, 1 linear, 2 radial
 uniform float bg_angle;  // radians, linear only: 0 = left to right, pi/2 = top to bottom
+uniform float hue_bg;     // radians the background colours are turned around the colour wheel (0 = as chosen)
+uniform float hue_border; // same for the border and glow colour
 
 struct VertInOut {
 	float4 pos : POSITION;
@@ -37,6 +39,20 @@ VertInOut VSDefault(VertInOut vert_in)
 	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
 	vert_out.uv  = vert_in.uv;
 	return vert_out;
+}
+
+// Turns a colour around the colour wheel (a rotation in the I/Q plane, which keeps its brightness). Grey, black and
+// white have no colour to turn, so they stay as they are.
+float3 hue_rotate(float3 c, float a)
+{
+	float ca = cos(a);
+	float sa = sin(a);
+	float y = dot(c, float3(0.299, 0.587, 0.114));
+	float i = dot(c, float3(0.596, -0.274, -0.322));
+	float q = dot(c, float3(0.211, -0.523, 0.312));
+	float i2 = i * ca - q * sa;
+	float q2 = i * sa + q * ca;
+	return saturate(float3(y + 0.956 * i2 + 0.621 * q2, y - 0.272 * i2 - 0.647 * q2, y - 1.106 * i2 + 1.703 * q2));
 }
 
 float4 PSFrame(VertInOut vert_in) : TARGET
@@ -84,7 +100,7 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 		} else {
 			t = saturate(length(p - cc) / max(0.5 * length(canvas_px), 1.0));
 		}
-		col = lerp(bg_color.rgb, bg_color2.rgb, t);
+		col = lerp(bg1, bg2, t);
 	}
 
 	// Glow: fades out quadratically from the outer edge of the border.

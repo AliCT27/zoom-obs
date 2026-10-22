@@ -203,6 +203,9 @@ public:
 	int frameRadiusPx = 24;
 	int frameGlowPx = 80;
 	int frameGlowPct = 70;
+	bool frameBgRainbow = false;     /* background colours cycle round the colour wheel */
+	bool frameBorderRainbow = false; /* border and glow colour cycle round the colour wheel */
+	int frameRainbowSec = 10;        /* seconds for one full turn */
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
 	bool showFocusWhenNotZoomed = false;

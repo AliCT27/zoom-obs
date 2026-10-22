@@ -22,6 +22,9 @@ struct Style {
 	float radiusPx = 24.0f;
 	float glowPx = 80.0f;
 	float glowStrength = 0.7f;
+	bool rainbowBg = false;     /* background colours cycle round the colour wheel */
+	bool rainbowBorder = false; /* border and glow colour cycle round the colour wheel */
+	float rainbowSec = 10.0f;   /* seconds for one full turn */
 };
 
 /* Registers the source type. Call once from obs_module_load. */

@@ -136,6 +136,9 @@ private:
 	QSpinBox *spFrameRadius = nullptr;
 	QSpinBox *spFrameGlow = nullptr;
 	QSpinBox *spFrameGlowPct = nullptr;
+	QCheckBox *chkFrameBgRainbow = nullptr;
+	QCheckBox *chkFrameBorderRainbow = nullptr;
+	QSpinBox *spFrameRainbowSec = nullptr;
 	QCheckBox *chkFocus = nullptr;
 	QCheckBox *chkFocusWhenNotZoomed = nullptr;
 	QSpinBox *spFocusRadius = nullptr;
