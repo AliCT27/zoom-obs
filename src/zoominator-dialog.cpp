@@ -1059,10 +1059,6 @@ void ZoominatorDialog::buildUi()
 		for (int i = 0; i < 2; ++i) {
 			const bool horizontal = (i == 1);
 			addSection(lay, T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"), i == 0);
-			auto *help = new QLabel(T(horizontal ? "Dialog.Presets.HorizontalHelp" : "Dialog.Presets.VerticalHelp"), page);
-			help->setWordWrap(true);
-			lay->addWidget(help);
-
 			presetListLay[i] = new QVBoxLayout;
 			presetListLay[i]->setSpacing(6);
 			lay->addLayout(presetListLay[i]);
