@@ -18,6 +18,8 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QCloseEvent>
 #include <QColor>
 #include <QColorDialog>
+#include <QPen>
+#include <QPainter>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFrame>
@@ -53,6 +55,39 @@ static QString T(const char *key)
 {
 	return QString::fromUtf8(obs_module_text(key));
 }
+
+namespace {
+/* A colour swatch button. While it is disabled (its owning option is off) it is drawn grey with diagonal hatching,
+ * so it is obvious that it is off because of that option and not simply uncoloured. */
+class ColorButton final : public QPushButton {
+public:
+	explicit ColorButton(QWidget *parent = nullptr) : QPushButton(parent) {}
+
+protected:
+	void paintEvent(QPaintEvent *event) override
+	{
+		if (isEnabled()) {
+			QPushButton::paintEvent(event);
+			return;
+		}
+		QPainter p(this);
+		p.setRenderHint(QPainter::Antialiasing, false);
+		const QRect r = rect().adjusted(0, 0, -1, -1);
+		p.fillRect(r, QColor(58, 58, 64));
+		p.save();
+		p.setClipRect(r);
+		p.setPen(QPen(QColor(112, 112, 122), 1));
+		for (int x = -r.height(); x < r.width(); x += 7)
+			p.drawLine(x, r.height(), x + r.height(), 0);
+		p.restore();
+		p.setPen(QColor(105, 105, 112));
+		p.setBrush(Qt::NoBrush);
+		p.drawRect(r);
+		p.setPen(QColor(150, 150, 158));
+		p.drawText(r, Qt::AlignCenter, text());
+	}
+};
+} // namespace
 
 static QWidget *mkField(const QString &labelText, QWidget *input)
 {
@@ -569,7 +604,7 @@ void ZoominatorDialog::buildUi()
 		spMarkerThickness->setSingleStep(1);
 		spMarkerThickness->setSuffix(T("Unit.Pixels"));
 
-		btnMarkerColor = new QPushButton(page);
+		btnMarkerColor = new ColorButton(page);
 		btnMarkerColor->setMinimumHeight(28);
 
 		auto *haloRow = new QHBoxLayout;
@@ -623,10 +658,10 @@ void ZoominatorDialog::buildUi()
 		lay->addWidget(chkFrame);
 		lay->addSpacing(6);
 
-		btnFrameColor = new QPushButton(page);
+		btnFrameColor = new ColorButton(page);
 		btnFrameColor->setMinimumHeight(28);
 		btnFrameColor->setToolTip(T("Dialog.FrameColorTooltip"));
-		btnFrameBg = new QPushButton(page);
+		btnFrameBg = new ColorButton(page);
 		btnFrameBg->setMinimumHeight(28);
 		btnFrameBg->setToolTip(T("Dialog.FrameBgTooltip"));
 
@@ -641,7 +676,7 @@ void ZoominatorDialog::buildUi()
 		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Linear"), 1);
 		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Radial"), 2);
 		cmbFrameBgMode->setToolTip(T("Dialog.FrameBgModeTooltip"));
-		btnFrameBg2 = new QPushButton(page);
+		btnFrameBg2 = new ColorButton(page);
 		btnFrameBg2->setMinimumHeight(28);
 		btnFrameBg2->setToolTip(T("Dialog.FrameBg2Tooltip"));
 		spFrameBgAngle = new QSpinBox(page);
@@ -732,7 +767,7 @@ void ZoominatorDialog::buildUi()
 
 		cmbCamSource = new QComboBox(page);
 		cmbCamSource->setToolTip(T("Dialog.CamSourceTooltip"));
-		btnCamColor = new QPushButton(page);
+		btnCamColor = new ColorButton(page);
 		btnCamColor->setMinimumHeight(28);
 		btnCamColor->setToolTip(T("Dialog.CamColorTooltip"));
 
