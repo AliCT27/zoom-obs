@@ -57,8 +57,9 @@ static QString T(const char *key)
 }
 
 namespace {
-/* A colour swatch button. While it is disabled (its owning option is off) it is drawn grey with diagonal hatching,
- * so it is obvious that it is off because of that option and not simply uncoloured. */
+/* A colour swatch button. While it is disabled (its owning option is off) it keeps exactly the shape of the enabled
+ * one (the grey look comes from the same style sheet, so size, border and rounded corners are identical) and gets
+ * diagonal hatching on top, so it is obvious that it is off because of that option. */
 class ColorButton final : public QPushButton {
 public:
 	explicit ColorButton(QWidget *parent = nullptr) : QPushButton(parent) {}
@@ -66,25 +67,15 @@ public:
 protected:
 	void paintEvent(QPaintEvent *event) override
 	{
-		if (isEnabled()) {
-			QPushButton::paintEvent(event);
+		QPushButton::paintEvent(event);
+		if (isEnabled())
 			return;
-		}
 		QPainter p(this);
-		p.setRenderHint(QPainter::Antialiasing, false);
-		const QRect r = rect().adjusted(0, 0, -1, -1);
-		p.fillRect(r, QColor(58, 58, 64));
-		p.save();
+		const QRect r = rect().adjusted(3, 3, -4, -4); /* stays inside the rounded border */
 		p.setClipRect(r);
 		p.setPen(QPen(QColor(112, 112, 122), 1));
-		for (int x = -r.height(); x < r.width(); x += 7)
-			p.drawLine(x, r.height(), x + r.height(), 0);
-		p.restore();
-		p.setPen(QColor(105, 105, 112));
-		p.setBrush(Qt::NoBrush);
-		p.drawRect(r);
-		p.setPen(QColor(150, 150, 158));
-		p.drawText(r, Qt::AlignCenter, text());
+		for (int x = r.left() - r.height(); x < r.right(); x += 7)
+			p.drawLine(x, r.bottom(), x + r.height(), r.top());
 	}
 };
 } // namespace
@@ -1934,7 +1925,9 @@ void ZoominatorDialog::setColorButton(QPushButton *button, uint32_t rgba)
 	button->setProperty("rgba", c.rgba());
 	button->setText(c.name(QColor::HexRgb).toUpper());
 	button->setStyleSheet(QStringLiteral("QPushButton { background:%1; color:%2;"
-					     " border:1px solid palette(mid); padding:4px 8px; }")
+					     " border:1px solid palette(mid); padding:4px 8px; }"
+					     "QPushButton:disabled { background:#3a3a40; color:#9a9aa2;"
+					     " border:1px solid #6e6e78; padding:4px 8px; }")
 				      .arg(c.name(QColor::HexRgb))
 				      .arg(c.lightness() < 128 ? "#ffffff" : "#000000"));
 }
