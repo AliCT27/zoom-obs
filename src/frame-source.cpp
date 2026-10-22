@@ -85,7 +85,7 @@ void loadEffect(FrameData *d)
 		d->pHueBg = gs_effect_get_param_by_name(d->effect, "hue_bg");
 		d->pHueBorder = gs_effect_get_param_by_name(d->effect, "hue_border");
 		if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
-		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle || !d->pHueBg || !d->pHueBorder) {
+		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle) {
 			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -196,8 +196,11 @@ void videoRender(void *data, gs_effect_t *)
 		const double sec = std::max(1.0, (double)s.rainbowSec);
 		const double turn = std::fmod((double)os_gettime_ns() / 1e9 / sec, 1.0);
 		const float ang = (float)(turn * 6.283185307179586);
-		gs_effect_set_float(d->pHueBg, s.rainbowBg ? ang : 0.0f);
-		gs_effect_set_float(d->pHueBorder, s.rainbowBorder ? ang : 0.0f);
+		/* Optional: an older shader without these just has no rainbow, the frame still draws. */
+		if (d->pHueBg)
+			gs_effect_set_float(d->pHueBg, s.rainbowBg ? ang : 0.0f);
+		if (d->pHueBorder)
+			gs_effect_set_float(d->pHueBorder, s.rainbowBorder ? ang : 0.0f);
 	}
 
 	while (gs_effect_loop(d->effect, "Draw"))

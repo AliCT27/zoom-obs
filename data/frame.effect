@@ -89,7 +89,10 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float2 q = abs(pl - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
-	float3 col = bg_color.rgb;
+	float3 bg1 = hue_rotate(bg_color.rgb, hue_bg);
+	float3 bg2 = hue_rotate(bg_color2.rgb, hue_bg);
+	float3 bcol = hue_rotate(border_color.rgb, hue_border);
+	float3 col = bg1;
 	if (bg_mode > 0.5) {
 		float2 cc = canvas_px * 0.5;
 		float t;
@@ -107,13 +110,13 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	if (glow_px > 0.5) {
 		float g = saturate(1.0 - (d - border_px) / glow_px);
 		float ga = glow_strength * g * g * saturate(d - border_px + 0.5);
-		col = lerp(col, border_color.rgb, ga);
+		col = lerp(col, bcol, ga);
 	}
 
 	// Border ring.
 	if (border_px > 0.5) {
 		float bm = saturate(border_px - d + 0.5);
-		col = lerp(col, border_color.rgb, bm);
+		col = lerp(col, bcol, bm);
 	}
 
 	// The window itself is transparent, with a one pixel soft edge.
