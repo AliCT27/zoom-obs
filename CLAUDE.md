@@ -37,6 +37,10 @@ first for threads, files and where things go.
   special rules are written by hand in `loadSettings`/`saveSettings`. Every new setting also needs its dialog
   control and both locale files (`en-US.ini`, `fa-IR.ini`).
 - Shader math (`data/*.effect`) must match its CPU twin (for example the focus beam profile in `beamExponent`).
+- Shaders are compiled only when OBS loads them, so the Windows build cannot catch a shader error and a broken one
+  silently removes the feature. After editing a `.effect`, strip the `technique` block, make the uniforms plain
+  globals and run `glslangValidator -D -e <PixelShaderName> -S frag -V file.hlsl -o /dev/null` (apt: glslang-tools).
+  Also assert that every text replacement in a patch script actually matched.
 - Halo size and position are read from the scene item's own transform, not from values published by another thread
   (that caused one-frame glitches).
 - Per-platform code stays behind `#ifdef` inside `zoominator-screen.cpp` and `zoominator-input.cpp`.
