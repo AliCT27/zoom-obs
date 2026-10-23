@@ -199,6 +199,15 @@ public:
 	int camGlowPx = 28;
 	int camGlowPct = 80;
 	int camZoomPct = 125; /* size at full zoom, in percent of normal; 100 = unchanged */
+	/* Webcam placed by numbers: centre and outer diameter in canvas pixels, for
+	 * the resting view and for full zoom. When on, it replaces camZoomPct. */
+	bool camLayoutEnabled = false;
+	int camIdleX = 960;
+	int camIdleY = 540;
+	int camIdleSize = 300;
+	int camZoomX = 960;
+	int camZoomY = 540;
+	int camZoomSize = 375;
 	int frameBorderPx = 4;
 	int frameRadiusPx = 24;
 	int frameGlowPx = 80;
@@ -384,6 +393,12 @@ private:
 	void refreshFrame();
 	void refreshCamRing();
 	void captureCamItem(obs_scene_t *scene);
+	void applyCamLayout(obs_scene_t *scene, double progress, bool force);
+public:
+	/* Reads the webcam's current place in the scene (centre and outer diameter, in
+	 * canvas pixels) for the dialog's "Take from OBS" buttons. Main thread. */
+	bool readCamLayout(int &x, int &y, int &size);
+private:
 	void restoreCamItem();
 	void hideFrameInAllScenes();
 
@@ -586,6 +601,12 @@ private:
 	bool camLastValid = false;
 	vec2 camLastScale{};
 	vec2 camLastPos{};
+	/* Webcam layout: zoom progress last applied (0..1) and what was applied last,
+	 * so the 500 ms refresh only re-applies after a real change and never fights a
+	 * drag in OBS. */
+	double camProgress = 0.0;
+	obs_sceneitem_t *camLayoutItem = nullptr;
+	int camLayoutKey[7] = {};
 	/* A global key and the modifiers it needs, ready for the hook procs. */
 	struct HotkeyBinding {
 		int vk = 0;

@@ -130,6 +130,15 @@ private:
 	QSpinBox *spCamGlow = nullptr;
 	QSpinBox *spCamGlowPct = nullptr;
 	QSpinBox *spCamZoom = nullptr;
+	QCheckBox *chkCamLayout = nullptr;
+	QSpinBox *spCamIdleX = nullptr;
+	QSpinBox *spCamIdleY = nullptr;
+	QSpinBox *spCamIdleSize = nullptr;
+	QSpinBox *spCamZoomX = nullptr;
+	QSpinBox *spCamZoomY = nullptr;
+	QSpinBox *spCamZoomSize = nullptr;
+	QPushButton *btnCamIdleTake = nullptr;
+	QPushButton *btnCamZoomTake = nullptr;
 	QComboBox *cmbFrameBgMode = nullptr;
 	QSpinBox *spFrameBgAngle = nullptr;
 	QSpinBox *spFrameBorder = nullptr;

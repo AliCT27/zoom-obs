@@ -524,6 +524,7 @@ void ZoominatorController::resetState()
 	zoomLatched = false;
 	zoomActive.store(false, std::memory_order_release);
 	restoreCamItem();
+	camProgress = 0.0;
 	tickingWanted.store(false, std::memory_order_release);
 	pendingFinish.store(false, std::memory_order_release);
 	animT = 0.0;
@@ -917,6 +918,10 @@ void ZoominatorController::applyZoomToScene(double t)
 			}
 		}
 	}
+
+	/* Webcam placed by numbers: glides between the resting and the zoomed place. */
+	camProgress = ttA;
+	applyCamLayout(scene, ttA, true);
 
 	/* Webcam: grows or shrinks around its own centre with the zoom. */
 	if (camItem && isLiveItem(camItem)) {
