@@ -726,6 +726,17 @@ void ZoominatorDialog::buildUi()
 		frameRainbowRow->addWidget(chkFrameBorderRainbow, 1);
 		frameRainbowRow->addWidget(mkField(T("Dialog.FrameRainbowSec"), spFrameRainbowSec), 1);
 		lay->addLayout(frameRainbowRow);
+
+		chkFrameFlow = new QCheckBox(T("Dialog.FrameFlow"), page);
+		chkFrameFlow->setToolTip(T("Dialog.FrameFlowTooltip"));
+		spFrameFlowWaves = new QSpinBox(page);
+		spFrameFlowWaves->setRange(1, 4);
+		spFrameFlowWaves->setToolTip(T("Dialog.FrameFlowWavesTooltip"));
+		auto *frameFlowRow = new QHBoxLayout;
+		frameFlowRow->setSpacing(12);
+		frameFlowRow->addWidget(chkFrameFlow, 2);
+		frameFlowRow->addWidget(mkField(T("Dialog.FrameFlowWaves"), spFrameFlowWaves), 1);
+		lay->addLayout(frameFlowRow);
 		lay->addSpacing(10);
 
 		auto syncFrameFields = [this]() {
@@ -741,11 +752,15 @@ void ZoominatorDialog::buildUi()
 			spFrameGlowPct->setEnabled(on);
 			chkFrameBgRainbow->setEnabled(on);
 			chkFrameBorderRainbow->setEnabled(on);
-			spFrameRainbowSec->setEnabled(on && (chkFrameBgRainbow->isChecked() || chkFrameBorderRainbow->isChecked()));
+			const bool anyRainbow = on && (chkFrameBgRainbow->isChecked() || chkFrameBorderRainbow->isChecked());
+			spFrameRainbowSec->setEnabled(anyRainbow);
+			chkFrameFlow->setEnabled(anyRainbow);
+			spFrameFlowWaves->setEnabled(anyRainbow && chkFrameFlow->isChecked());
 		};
 		connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
 		connect(chkFrameBgRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
 		connect(chkFrameBorderRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+		connect(chkFrameFlow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
 		connect(cmbFrameBgMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
 			[syncFrameFields](int) { syncFrameFields(); });
 		syncFrameFields();
@@ -789,6 +804,21 @@ void ZoominatorDialog::buildUi()
 		camShapeRow->addWidget(mkField(T("Dialog.CamGlow"), spCamGlow), 1);
 		camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
 		lay->addLayout(camShapeRow);
+
+		chkCamRainbow = new QCheckBox(T("Dialog.CamRainbow"), page);
+		chkCamRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+		chkCamFlow = new QCheckBox(T("Dialog.CamFlow"), page);
+		chkCamFlow->setToolTip(T("Dialog.CamFlowTooltip"));
+		spCamRainbowSec = new QSpinBox(page);
+		spCamRainbowSec->setRange(2, 120);
+		spCamRainbowSec->setSuffix(QStringLiteral(" s"));
+		spCamRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+		auto *camRainbowRow = new QHBoxLayout;
+		camRainbowRow->setSpacing(12);
+		camRainbowRow->addWidget(chkCamRainbow, 1);
+		camRainbowRow->addWidget(chkCamFlow, 1);
+		camRainbowRow->addWidget(mkField(T("Dialog.FrameRainbowSec"), spCamRainbowSec), 1);
+		lay->addLayout(camRainbowRow);
 		lay->addSpacing(6);
 
 		chkCamLayout = new QCheckBox(T("Dialog.CamLayout"), page);
@@ -898,6 +928,9 @@ void ZoominatorDialog::buildUi()
 			const bool on = chkCamRing->isChecked();
 			const bool lay = on && chkCamLayout->isChecked();
 			chkCamLayout->setEnabled(on);
+			chkCamRainbow->setEnabled(on);
+			chkCamFlow->setEnabled(on && chkCamRainbow->isChecked());
+			spCamRainbowSec->setEnabled(on && chkCamRainbow->isChecked());
 			if (!lay) {
 				btnCamIdleTake->setChecked(false);
 				btnCamZoomTake->setChecked(false);
@@ -914,6 +947,7 @@ void ZoominatorDialog::buildUi()
 		};
 		connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 		connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+		connect(chkCamRainbow, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 		syncCamFields();
 
 		addSection(lay, T("Dialog.Section.Focus"));
@@ -1580,12 +1614,22 @@ void ZoominatorDialog::loadFromController()
 		chkFrameBgRainbow->setEnabled(c.frameEnabled);
 		chkFrameBorderRainbow->setEnabled(c.frameEnabled);
 		spFrameRainbowSec->setEnabled(c.frameEnabled && (c.frameBgRainbow || c.frameBorderRainbow));
+		chkFrameFlow->setChecked(c.frameFlow);
+		spFrameFlowWaves->setValue(c.frameFlowWaves);
+		chkFrameFlow->setEnabled(c.frameEnabled && (c.frameBgRainbow || c.frameBorderRainbow));
+		spFrameFlowWaves->setEnabled(c.frameEnabled && (c.frameBgRainbow || c.frameBorderRainbow) && c.frameFlow);
 		chkCamRing->setChecked(c.camRingEnabled);
 		setColorButton(btnCamColor, c.camRingColor);
 		spCamRing->setValue(c.camRingPx);
 		spCamGlow->setValue(c.camGlowPx);
 		spCamGlowPct->setValue(c.camGlowPct);
 		chkCamLayout->setChecked(c.camLayoutEnabled);
+		chkCamRainbow->setChecked(c.camRainbow);
+		chkCamFlow->setChecked(c.camFlow);
+		spCamRainbowSec->setValue(c.camRainbowSec);
+		chkCamRainbow->setEnabled(c.camRingEnabled);
+		chkCamFlow->setEnabled(c.camRingEnabled && c.camRainbow);
+		spCamRainbowSec->setEnabled(c.camRingEnabled && c.camRainbow);
 		spCamIdleX->setValue(c.camIdleX);
 		spCamIdleY->setValue(c.camIdleY);
 		spCamIdleSize->setValue(c.camIdleSize);
@@ -1720,6 +1764,8 @@ void ZoominatorDialog::applyToController()
 	c.frameBgRainbow = chkFrameBgRainbow->isChecked();
 	c.frameBorderRainbow = chkFrameBorderRainbow->isChecked();
 	c.frameRainbowSec = spFrameRainbowSec->value();
+	c.frameFlow = chkFrameFlow->isChecked();
+	c.frameFlowWaves = spFrameFlowWaves->value();
 	c.camRingEnabled = chkCamRing->isChecked();
 	c.camSourceName = cmbCamSource->currentData().toString();
 	c.camRingColor = (uint32_t)btnCamColor->property("rgba").toUInt();
@@ -1727,6 +1773,9 @@ void ZoominatorDialog::applyToController()
 	c.camGlowPx = spCamGlow->value();
 	c.camGlowPct = spCamGlowPct->value();
 	c.camLayoutEnabled = chkCamLayout->isChecked();
+	c.camRainbow = chkCamRainbow->isChecked();
+	c.camFlow = chkCamFlow->isChecked();
+	c.camRainbowSec = spCamRainbowSec->value();
 	c.camIdleX = spCamIdleX->value();
 	c.camIdleY = spCamIdleY->value();
 	c.camIdleSize = spCamIdleSize->value();

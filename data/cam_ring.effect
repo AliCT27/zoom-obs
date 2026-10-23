@@ -13,6 +13,8 @@ uniform float border_px;
 uniform float glow_px;
 uniform float glow_strength;
 uniform float4 ring_color;
+uniform float hue;  // radians the ring colour is turned around the colour wheel (0 = as chosen)
+uniform float flow; // 1 = the hue also changes with the angle round the ring, like an LED strip
 
 sampler_state textureSampler {
 	Filter    = Linear;
@@ -31,6 +33,20 @@ VertInOut VSDefault(VertInOut vert_in)
 	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
 	vert_out.uv  = vert_in.uv;
 	return vert_out;
+}
+
+// Turns a colour around the colour wheel (a rotation in the I/Q plane, which keeps its brightness). Grey, black and
+// white have no colour to turn, so they stay as they are.
+float3 hue_rotate(float3 c, float a)
+{
+	float ca = cos(a);
+	float sa = sin(a);
+	float y = dot(c, float3(0.299, 0.587, 0.114));
+	float i = dot(c, float3(0.596, -0.274, -0.322));
+	float q = dot(c, float3(0.211, -0.523, 0.312));
+	float i2 = i * ca - q * sa;
+	float q2 = i * sa + q * ca;
+	return saturate(float3(y + 0.956 * i2 + 0.621 * q2, y - 0.272 * i2 - 0.647 * q2, y - 1.106 * i2 + 1.703 * q2));
 }
 
 float4 PSRing(VertInOut vert_in) : TARGET
@@ -60,7 +76,11 @@ float4 PSRing(VertInOut vert_in) : TARGET
 	ringA *= (1.0 - inside);
 
 	float outA = picA + ringA * (1.0 - picA);
-	float3 rgb = (pic.rgb * picA + ring_color.rgb * ringA * (1.0 - picA)) / max(outA, 0.0001);
+	float h = hue;
+	if (flow > 0.5)
+		h += atan2(p.y - c.y, p.x - c.x);
+	float3 rc = hue_rotate(ring_color.rgb, h);
+	float3 rgb = (pic.rgb * picA + rc * ringA * (1.0 - picA)) / max(outA, 0.0001);
 	return float4(rgb, outA);
 }
 
