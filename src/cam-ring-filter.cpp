@@ -6,6 +6,8 @@
 #include <util/bmem.h>
 
 #include <algorithm>
+#include <cmath>
+#include <util/platform.h>
 #include <mutex>
 
 namespace zoominator_camring {
@@ -25,6 +27,8 @@ struct RingData {
 	gs_eparam_t *pGlow = nullptr;
 	gs_eparam_t *pGlowStrength = nullptr;
 	gs_eparam_t *pColor = nullptr;
+	gs_eparam_t *pHue = nullptr;
+	gs_eparam_t *pFlow = nullptr;
 
 	std::mutex mutex;
 	Style style;
@@ -57,6 +61,9 @@ void loadEffect(RingData *d)
 		d->pGlow = gs_effect_get_param_by_name(d->effect, "glow_px");
 		d->pGlowStrength = gs_effect_get_param_by_name(d->effect, "glow_strength");
 		d->pColor = gs_effect_get_param_by_name(d->effect, "ring_color");
+		/* Optional: an older shader without these just has a plain ring. */
+		d->pHue = gs_effect_get_param_by_name(d->effect, "hue");
+		d->pFlow = gs_effect_get_param_by_name(d->effect, "flow");
 		if (!d->pSize || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength || !d->pColor) {
 			blog(LOG_WARNING, "[Zoominator] Webcam ring: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -135,6 +142,15 @@ void videoRender(void *data, gs_effect_t *)
 	vec4 color;
 	vec4_set(&color, s.ringColor[0], s.ringColor[1], s.ringColor[2], s.ringColor[3]);
 	gs_effect_set_vec4(d->pColor, &color);
+	{
+		/* One steady turn around the colour wheel every rainbowSec seconds, from the system clock. */
+		const double sec = std::max(1.0, (double)s.rainbowSec);
+		const double turn = std::fmod((double)os_gettime_ns() / 1e9 / sec, 1.0);
+		if (d->pHue)
+			gs_effect_set_float(d->pHue, s.rainbow ? (float)(turn * 6.283185307179586) : 0.0f);
+		if (d->pFlow)
+			gs_effect_set_float(d->pFlow, (s.rainbow && s.flow) ? 1.0f : 0.0f);
+	}
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }

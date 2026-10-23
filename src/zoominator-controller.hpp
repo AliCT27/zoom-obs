@@ -198,6 +198,9 @@ public:
 	int camRingPx = 6;
 	int camGlowPx = 28;
 	int camGlowPct = 80;
+	bool camRainbow = false; /* ring and glow cycle round the colour wheel */
+	bool camFlow = false;    /* the rainbow runs round the ring like an LED strip */
+	int camRainbowSec = 10;  /* seconds for one full turn */
 	/* Webcam placed by numbers: centre and outer diameter in canvas pixels, for
 	 * the resting view and for full zoom. */
 	bool camLayoutEnabled = false;
@@ -214,6 +217,8 @@ public:
 	bool frameBgRainbow = false;     /* background colours cycle round the colour wheel */
 	bool frameBorderRainbow = false; /* border and glow colour cycle round the colour wheel */
 	int frameRainbowSec = 10;        /* seconds for one full turn */
+	bool frameFlow = false;          /* the rainbow runs along the frame like an LED strip */
+	int frameFlowWaves = 1;          /* whole colour cycles across the background / round the frame */
 	/* Focus: dims everything except a soft spotlight around the cursor while zoomed. */
 	bool focusEnabled = false;
 	bool showFocusWhenNotZoomed = false;

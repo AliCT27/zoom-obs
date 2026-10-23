@@ -127,6 +127,11 @@ private:
 	QComboBox *cmbCamSource = nullptr;
 	QPushButton *btnCamColor = nullptr;
 	QSpinBox *spCamRing = nullptr;
+	QCheckBox *chkCamRainbow = nullptr;
+	QCheckBox *chkCamFlow = nullptr;
+	QSpinBox *spCamRainbowSec = nullptr;
+	QCheckBox *chkFrameFlow = nullptr;
+	QSpinBox *spFrameFlowWaves = nullptr;
 	QSpinBox *spCamGlow = nullptr;
 	QSpinBox *spCamGlowPct = nullptr;
 	QCheckBox *chkCamLayout = nullptr;

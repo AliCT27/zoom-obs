@@ -46,6 +46,9 @@ struct FrameData {
 	gs_eparam_t *pBgAngle = nullptr;
 	gs_eparam_t *pHueBg = nullptr;
 	gs_eparam_t *pHueBorder = nullptr;
+	gs_eparam_t *pFlowBg = nullptr;
+	gs_eparam_t *pFlowBorder = nullptr;
+	gs_eparam_t *pFlowWaves = nullptr;
 };
 
 const char *getName(void *)
@@ -84,6 +87,9 @@ void loadEffect(FrameData *d)
 		d->pBgAngle = gs_effect_get_param_by_name(d->effect, "bg_angle");
 		d->pHueBg = gs_effect_get_param_by_name(d->effect, "hue_bg");
 		d->pHueBorder = gs_effect_get_param_by_name(d->effect, "hue_border");
+		d->pFlowBg = gs_effect_get_param_by_name(d->effect, "flow_bg");
+		d->pFlowBorder = gs_effect_get_param_by_name(d->effect, "flow_border");
+		d->pFlowWaves = gs_effect_get_param_by_name(d->effect, "flow_waves");
 		if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
 		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle) {
 			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing expected parameters", kEffectFile);
@@ -201,6 +207,12 @@ void videoRender(void *data, gs_effect_t *)
 			gs_effect_set_float(d->pHueBg, s.rainbowBg ? ang : 0.0f);
 		if (d->pHueBorder)
 			gs_effect_set_float(d->pHueBorder, s.rainbowBorder ? ang : 0.0f);
+		if (d->pFlowBg)
+			gs_effect_set_float(d->pFlowBg, (s.rainbowBg && s.rainbowFlow) ? 1.0f : 0.0f);
+		if (d->pFlowBorder)
+			gs_effect_set_float(d->pFlowBorder, (s.rainbowBorder && s.rainbowFlow) ? 1.0f : 0.0f);
+		if (d->pFlowWaves)
+			gs_effect_set_float(d->pFlowWaves, (float)std::clamp(s.flowWaves, 1, 4));
 	}
 
 	while (gs_effect_loop(d->effect, "Draw"))
