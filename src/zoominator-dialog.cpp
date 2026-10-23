@@ -731,11 +731,13 @@ void ZoominatorDialog::buildUi()
 
 		auto syncFrameFields = [this]() {
 			const bool on = chkFrame->isChecked();
-			btnFrameColor->setEnabled(on);
-			btnFrameBg->setEnabled(on);
-			cmbFrameBgMode->setEnabled(on);
-			btnFrameBg2->setEnabled(on && cmbFrameBgMode->currentData().toInt() != 0);
-			spFrameBgAngle->setEnabled(on && cmbFrameBgMode->currentData().toInt() == 1);
+			/* A rainbow replaces the colours it covers, so those fields are not used. */
+			const bool bgColours = on && !chkFrameBgRainbow->isChecked();
+			btnFrameColor->setEnabled(on && !chkFrameBorderRainbow->isChecked());
+			btnFrameBg->setEnabled(bgColours);
+			cmbFrameBgMode->setEnabled(bgColours);
+			btnFrameBg2->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() != 0);
+			spFrameBgAngle->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() == 1);
 			spFrameBorder->setEnabled(on);
 			spFrameRadius->setEnabled(on);
 			spFrameGlow->setEnabled(on);
@@ -923,7 +925,7 @@ void ZoominatorDialog::buildUi()
 					   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
 				w->setEnabled(lay);
 			cmbCamSource->setEnabled(on);
-			btnCamColor->setEnabled(on);
+			btnCamColor->setEnabled(on && !chkCamRainbow->isChecked());
 			spCamRing->setEnabled(on);
 			spCamGlow->setEnabled(on);
 			spCamGlowPct->setEnabled(on);
@@ -1582,11 +1584,11 @@ void ZoominatorDialog::loadFromController()
 		spFrameRadius->setValue(c.frameRadiusPx);
 		spFrameGlow->setValue(c.frameGlowPx);
 		spFrameGlowPct->setValue(c.frameGlowPct);
-		btnFrameColor->setEnabled(c.frameEnabled);
-		btnFrameBg->setEnabled(c.frameEnabled);
-		cmbFrameBgMode->setEnabled(c.frameEnabled);
-		btnFrameBg2->setEnabled(c.frameEnabled && c.frameBgMode != 0);
-		spFrameBgAngle->setEnabled(c.frameEnabled && c.frameBgMode == 1);
+		btnFrameColor->setEnabled(c.frameEnabled && !c.frameBorderRainbow);
+		btnFrameBg->setEnabled(c.frameEnabled && !c.frameBgRainbow);
+		cmbFrameBgMode->setEnabled(c.frameEnabled && !c.frameBgRainbow);
+		btnFrameBg2->setEnabled(c.frameEnabled && !c.frameBgRainbow && c.frameBgMode != 0);
+		spFrameBgAngle->setEnabled(c.frameEnabled && !c.frameBgRainbow && c.frameBgMode == 1);
 		spFrameBorder->setEnabled(c.frameEnabled);
 		spFrameRadius->setEnabled(c.frameEnabled);
 		spFrameGlow->setEnabled(c.frameEnabled);
@@ -1615,7 +1617,7 @@ void ZoominatorDialog::loadFromController()
 		spCamZoomSize->setValue(c.camZoomSize);
 		cmbCamSource->setProperty("savedName", c.camSourceName);
 		cmbCamSource->setEnabled(c.camRingEnabled);
-		btnCamColor->setEnabled(c.camRingEnabled);
+		btnCamColor->setEnabled(c.camRingEnabled && !c.camRainbow);
 		spCamRing->setEnabled(c.camRingEnabled);
 		spCamGlow->setEnabled(c.camRingEnabled);
 		spCamGlowPct->setEnabled(c.camRingEnabled);

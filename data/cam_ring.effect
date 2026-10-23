@@ -13,8 +13,8 @@ uniform float border_px;
 uniform float glow_px;
 uniform float glow_strength;
 uniform float4 ring_color;
-uniform float hue;  // radians the ring colour is turned around the colour wheel (0 = as chosen)
-uniform float flow; // 1 = the hue also changes with the angle round the ring, like an LED strip
+uniform float hue;  // radians the rainbow ring is turned round the colour wheel (the animation)
+uniform float flow; // 1 = rainbow: the spectrum instead of the chosen colour, turning round the ring
 
 sampler_state textureSampler {
 	Filter    = Linear;
@@ -35,18 +35,12 @@ VertInOut VSDefault(VertInOut vert_in)
 	return vert_out;
 }
 
-// Turns a colour around the colour wheel (a rotation in the I/Q plane, which keeps its brightness). Grey, black and
-// white have no colour to turn, so they stay as they are.
-float3 hue_rotate(float3 c, float a)
+// A pure, fully bright colour from the colour wheel (red at 0, then yellow, green, cyan, blue, magenta), like the lights of
+// an ARGB fan. It does not depend on any colour the user picked.
+float3 spectrum(float a)
 {
-	float ca = cos(a);
-	float sa = sin(a);
-	float y = dot(c, float3(0.299, 0.587, 0.114));
-	float i = dot(c, float3(0.596, -0.274, -0.322));
-	float q = dot(c, float3(0.211, -0.523, 0.312));
-	float i2 = i * ca - q * sa;
-	float q2 = i * sa + q * ca;
-	return saturate(float3(y + 0.956 * i2 + 0.621 * q2, y - 0.272 * i2 - 0.647 * q2, y - 1.106 * i2 + 1.703 * q2));
+	float h = frac(a / 6.2831853);
+	return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
 }
 
 float4 PSRing(VertInOut vert_in) : TARGET
@@ -79,7 +73,9 @@ float4 PSRing(VertInOut vert_in) : TARGET
 	float h = hue;
 	if (flow > 0.5)
 		h += atan2(p.y - c.y, p.x - c.x);
-	float3 rc = hue_rotate(ring_color.rgb, h);
+	float3 rc = ring_color.rgb;
+	if (flow > 0.5)
+		rc = spectrum(h);
 	float3 rgb = (pic.rgb * picA + rc * ringA * (1.0 - picA)) / max(outA, 0.0001);
 	return float4(rgb, outA);
 }
