@@ -920,8 +920,11 @@ void ZoominatorController::applyZoomToScene(double t)
 	}
 
 	/* Webcam placed by numbers: glides between the resting and the zoomed place. */
+	/* Only while the zoom is moving is the webcam forced every frame. At rest, or
+	 * held at full zoom, it is placed once per change, so it can still be dragged
+	 * in OBS (idle follow keeps this function running at rest). */
 	camProgress = ttA;
-	applyCamLayout(scene, ttA, true);
+	applyCamLayout(scene, ttA, animDir.load(std::memory_order_relaxed) != 0);
 
 	/* Webcam: grows or shrinks around its own centre with the zoom. */
 	if (camItem && isLiveItem(camItem)) {
