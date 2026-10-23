@@ -129,7 +129,6 @@ private:
 	QSpinBox *spCamRing = nullptr;
 	QSpinBox *spCamGlow = nullptr;
 	QSpinBox *spCamGlowPct = nullptr;
-	QSpinBox *spCamZoom = nullptr;
 	QCheckBox *chkCamLayout = nullptr;
 	QSpinBox *spCamIdleX = nullptr;
 	QSpinBox *spCamIdleY = nullptr;

@@ -783,18 +783,11 @@ void ZoominatorDialog::buildUi()
 		spCamGlowPct->setSingleStep(5);
 		spCamGlowPct->setSuffix(T("Unit.Percent"));
 		spCamGlowPct->setToolTip(T("Dialog.CamGlowStrengthTooltip"));
-		spCamZoom = new QSpinBox(page);
-		spCamZoom->setRange(30, 300);
-		spCamZoom->setSingleStep(5);
-		spCamZoom->setSuffix(T("Unit.Percent"));
-		spCamZoom->setToolTip(T("Dialog.CamZoomTooltip"));
-
 		auto *camShapeRow = new QHBoxLayout;
 		camShapeRow->setSpacing(12);
 		camShapeRow->addWidget(mkField(T("Dialog.CamRing"), spCamRing), 1);
 		camShapeRow->addWidget(mkField(T("Dialog.CamGlow"), spCamGlow), 1);
 		camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
-		camShapeRow->addWidget(mkField(T("Dialog.CamZoom"), spCamZoom), 1);
 		lay->addLayout(camShapeRow);
 		lay->addSpacing(6);
 
@@ -918,7 +911,6 @@ void ZoominatorDialog::buildUi()
 			spCamRing->setEnabled(on);
 			spCamGlow->setEnabled(on);
 			spCamGlowPct->setEnabled(on);
-			spCamZoom->setEnabled(on && !chkCamLayout->isChecked());
 		};
 		connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 		connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
@@ -1593,7 +1585,6 @@ void ZoominatorDialog::loadFromController()
 		spCamRing->setValue(c.camRingPx);
 		spCamGlow->setValue(c.camGlowPx);
 		spCamGlowPct->setValue(c.camGlowPct);
-		spCamZoom->setValue(c.camZoomPct);
 		chkCamLayout->setChecked(c.camLayoutEnabled);
 		spCamIdleX->setValue(c.camIdleX);
 		spCamIdleY->setValue(c.camIdleY);
@@ -1607,7 +1598,6 @@ void ZoominatorDialog::loadFromController()
 		spCamRing->setEnabled(c.camRingEnabled);
 		spCamGlow->setEnabled(c.camRingEnabled);
 		spCamGlowPct->setEnabled(c.camRingEnabled);
-		spCamZoom->setEnabled(c.camRingEnabled && !c.camLayoutEnabled);
 		chkCamLayout->setEnabled(c.camRingEnabled);
 		for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
 				   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
@@ -1736,7 +1726,6 @@ void ZoominatorDialog::applyToController()
 	c.camRingPx = spCamRing->value();
 	c.camGlowPx = spCamGlow->value();
 	c.camGlowPct = spCamGlowPct->value();
-	c.camZoomPct = spCamZoom->value();
 	c.camLayoutEnabled = chkCamLayout->isChecked();
 	c.camIdleX = spCamIdleX->value();
 	c.camIdleY = spCamIdleY->value();

@@ -1,7 +1,7 @@
-/* Webcam ring: the circular webcam with a ring and glow, and its size change
- * while zooming. The circle and ring are drawn by a filter on the webcam source
- * (cam-ring-filter.cpp); this file attaches it and scales the webcam's scene
- * item with the zoom. */
+/* Webcam ring: the circular webcam with a ring and glow, and its optional place
+ * and size by numbers (resting and zoomed). The circle and ring are drawn by a
+ * filter on the webcam source (cam-ring-filter.cpp); this file attaches it and
+ * moves the webcam's scene item with the zoom. */
 
 #include "zoominator-internal.hpp"
 #include "cam-ring-filter.hpp"
@@ -155,55 +155,3 @@ bool ZoominatorController::readCamLayout(int &x, int &y, int &size)
 	return ok;
 }
 
-/* Main thread, when a zoom starts: remember the webcam's own transform so it can
- * be scaled around its centre and put back afterwards. */
-void ZoominatorController::captureCamItem(obs_scene_t *scene)
-{
-	camItem = nullptr;
-	camLastValid = false;
-	camOrig = {};
-	if (!scene || !camRingEnabled || camLayoutEnabled || camSourceName.isEmpty() || camZoomPct == 100)
-		return;
-
-	obs_source_t *src = obs_get_source_by_name(camSourceName.toUtf8().constData());
-	if (!src)
-		return;
-	obs_sceneitem_t *item = find_scene_item_for_source(scene, src);
-	obs_source_release(src);
-	if (!item)
-		return;
-
-	/* A webcam that is ticked on the Sources tab is zoomed with the content. */
-	for (const auto &state : sceneItems) {
-		if (state.item == item)
-			return;
-	}
-
-	const OrigState orig = computeOrigState(item);
-	if (!orig.valid || std::fabs(orig.rot) > 0.01f)
-		return;
-
-	obs_sceneitem_addref(item);
-	camItem = item;
-	camOrig = orig;
-
-	const QString key = sceneItemKey(item);
-	if (!key.isEmpty()) {
-		recoveryTransforms.insert(key, orig);
-		if (recoveryActive)
-			saveSettings();
-	}
-}
-
-/* Main thread. Puts the webcam back exactly as it was. */
-void ZoominatorController::restoreCamItem()
-{
-	if (!camItem)
-		return;
-	if (obs_sceneitem_get_scene(camItem))
-		applySceneItemTransform(camItem, camOrig);
-	obs_sceneitem_release(camItem);
-	camItem = nullptr;
-	camLastValid = false;
-	camOrig = {};
-}
