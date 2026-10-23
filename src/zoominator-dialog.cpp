@@ -795,18 +795,89 @@ void ZoominatorDialog::buildUi()
 		camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
 		camShapeRow->addWidget(mkField(T("Dialog.CamZoom"), spCamZoom), 1);
 		lay->addLayout(camShapeRow);
+		lay->addSpacing(6);
+
+		chkCamLayout = new QCheckBox(T("Dialog.CamLayout"), page);
+		chkCamLayout->setToolTip(T("Dialog.CamLayoutTooltip"));
+		lay->addWidget(chkCamLayout);
+
+		auto mkPosSpin = [page](const QString &tip) {
+			auto *sp = new QSpinBox(page);
+			sp->setRange(-20000, 20000);
+			sp->setSingleStep(10);
+			sp->setSuffix(T("Unit.Pixels"));
+			sp->setToolTip(tip);
+			return sp;
+		};
+		auto mkSizeSpin = [page](const QString &tip) {
+			auto *sp = new QSpinBox(page);
+			sp->setRange(20, 8000);
+			sp->setSingleStep(10);
+			sp->setSuffix(T("Unit.Pixels"));
+			sp->setToolTip(tip);
+			return sp;
+		};
+		spCamIdleX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
+		spCamIdleY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
+		spCamIdleSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
+		spCamZoomX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
+		spCamZoomY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
+		spCamZoomSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
+		btnCamIdleTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+		btnCamIdleTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
+		btnCamZoomTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+		btnCamZoomTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
+
+		auto *idleRow = new QHBoxLayout;
+		idleRow->setSpacing(12);
+		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleX"), spCamIdleX), 1);
+		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleY"), spCamIdleY), 1);
+		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleSize"), spCamIdleSize), 1);
+		idleRow->addWidget(mkField(" ", btnCamIdleTake), 1);
+		lay->addLayout(idleRow);
+
+		auto *camZoomedRow = new QHBoxLayout;
+		camZoomedRow->setSpacing(12);
+		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomX"), spCamZoomX), 1);
+		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomY"), spCamZoomY), 1);
+		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomSize"), spCamZoomSize), 1);
+		camZoomedRow->addWidget(mkField(" ", btnCamZoomTake), 1);
+		lay->addLayout(camZoomedRow);
 		lay->addSpacing(10);
+
+		auto takeInto = [this](QSpinBox *x, QSpinBox *y, QSpinBox *size) {
+			int px = 0, py = 0, ps = 0;
+			if (ZoominatorController::instance().readCamLayout(px, py, ps)) {
+				x->setValue(px);
+				y->setValue(py);
+				size->setValue(ps);
+				lblStatus->setText(T("Dialog.CamLayoutTaken"));
+			} else {
+				lblStatus->setText(T("Dialog.CamLayoutTakeFailed"));
+			}
+		};
+		connect(btnCamIdleTake, &QPushButton::clicked, this,
+			[=]() { takeInto(spCamIdleX, spCamIdleY, spCamIdleSize); });
+		connect(btnCamZoomTake, &QPushButton::clicked, this,
+			[=]() { takeInto(spCamZoomX, spCamZoomY, spCamZoomSize); });
 
 		auto syncCamFields = [this]() {
 			const bool on = chkCamRing->isChecked();
+			const bool lay = on && chkCamLayout->isChecked();
+			chkCamLayout->setEnabled(on);
+			for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
+					   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
+					   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
+				w->setEnabled(lay);
 			cmbCamSource->setEnabled(on);
 			btnCamColor->setEnabled(on);
 			spCamRing->setEnabled(on);
 			spCamGlow->setEnabled(on);
 			spCamGlowPct->setEnabled(on);
-			spCamZoom->setEnabled(on);
+			spCamZoom->setEnabled(on && !chkCamLayout->isChecked());
 		};
 		connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+		connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 		syncCamFields();
 
 		addSection(lay, T("Dialog.Section.Focus"));
@@ -1479,13 +1550,25 @@ void ZoominatorDialog::loadFromController()
 		spCamGlow->setValue(c.camGlowPx);
 		spCamGlowPct->setValue(c.camGlowPct);
 		spCamZoom->setValue(c.camZoomPct);
+		chkCamLayout->setChecked(c.camLayoutEnabled);
+		spCamIdleX->setValue(c.camIdleX);
+		spCamIdleY->setValue(c.camIdleY);
+		spCamIdleSize->setValue(c.camIdleSize);
+		spCamZoomX->setValue(c.camZoomX);
+		spCamZoomY->setValue(c.camZoomY);
+		spCamZoomSize->setValue(c.camZoomSize);
 		cmbCamSource->setProperty("savedName", c.camSourceName);
 		cmbCamSource->setEnabled(c.camRingEnabled);
 		btnCamColor->setEnabled(c.camRingEnabled);
 		spCamRing->setEnabled(c.camRingEnabled);
 		spCamGlow->setEnabled(c.camRingEnabled);
 		spCamGlowPct->setEnabled(c.camRingEnabled);
-		spCamZoom->setEnabled(c.camRingEnabled);
+		spCamZoom->setEnabled(c.camRingEnabled && !c.camLayoutEnabled);
+		chkCamLayout->setEnabled(c.camRingEnabled);
+		for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
+				   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
+				   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
+			w->setEnabled(c.camRingEnabled && c.camLayoutEnabled);
 		chkDebug->setChecked(c.debug);
 		chkStatusHud->setChecked(c.showStatusHud);
 		cmbStatusHudCorner->setCurrentIndex(std::clamp(c.statusHudCorner, 0, 3));
@@ -1610,6 +1693,13 @@ void ZoominatorDialog::applyToController()
 	c.camGlowPx = spCamGlow->value();
 	c.camGlowPct = spCamGlowPct->value();
 	c.camZoomPct = spCamZoom->value();
+	c.camLayoutEnabled = chkCamLayout->isChecked();
+	c.camIdleX = spCamIdleX->value();
+	c.camIdleY = spCamIdleY->value();
+	c.camIdleSize = spCamIdleSize->value();
+	c.camZoomX = spCamZoomX->value();
+	c.camZoomY = spCamZoomY->value();
+	c.camZoomSize = spCamZoomSize->value();
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
