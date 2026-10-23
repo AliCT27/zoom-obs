@@ -44,6 +44,7 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QSet>
 #include <QSpinBox>
 #include <QTabWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QString>
 
@@ -824,8 +825,10 @@ void ZoominatorDialog::buildUi()
 		spCamZoomY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
 		spCamZoomSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
 		btnCamIdleTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+		btnCamIdleTake->setCheckable(true);
 		btnCamIdleTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
 		btnCamZoomTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+		btnCamZoomTake->setCheckable(true);
 		btnCamZoomTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
 
 		auto *idleRow = new QHBoxLayout;
@@ -845,26 +848,67 @@ void ZoominatorDialog::buildUi()
 		lay->addLayout(camZoomedRow);
 		lay->addSpacing(10);
 
-		auto takeInto = [this](QSpinBox *x, QSpinBox *y, QSpinBox *size) {
+		/* While one "Follow OBS" button is on, the numbers of its row track the
+		 * webcam as it is dragged or resized in OBS. Only one row follows at a
+		 * time, and it stops when the tab changes, the dialog hides or the
+		 * layout is switched off. */
+		auto *camFollowTimer = new QTimer(this);
+		camFollowTimer->setInterval(200);
+		auto stopFollow = [this, camFollowTimer]() {
+			camFollowTimer->stop();
+			btnCamIdleTake->setChecked(false);
+			btnCamZoomTake->setChecked(false);
+		};
+		connect(camFollowTimer, &QTimer::timeout, this, [this, camFollowTimer, stopFollow]() {
+			const bool idleRow = btnCamIdleTake->isChecked();
+			if (!isVisible() || tabWidget->currentIndex() != camFollowTimer->property("tab").toInt() ||
+			    !chkCamLayout->isChecked() || !chkCamRing->isChecked() ||
+			    (!idleRow && !btnCamZoomTake->isChecked())) {
+				stopFollow();
+				return;
+			}
 			int px = 0, py = 0, ps = 0;
-			if (ZoominatorController::instance().readCamLayout(px, py, ps)) {
+			if (!ZoominatorController::instance().readCamLayout(px, py, ps))
+				return; /* not readable right now; keep the old numbers */
+			QSpinBox *x = idleRow ? spCamIdleX : spCamZoomX;
+			QSpinBox *y = idleRow ? spCamIdleY : spCamZoomY;
+			QSpinBox *size = idleRow ? spCamIdleSize : spCamZoomSize;
+			if (x->value() != px)
 				x->setValue(px);
+			if (y->value() != py)
 				y->setValue(py);
+			if (size->value() != ps)
 				size->setValue(ps);
-				lblStatus->setText(T("Dialog.CamLayoutTaken"));
-			} else {
-				lblStatus->setText(T("Dialog.CamLayoutTakeFailed"));
+		});
+		auto onFollowToggled = [this, camFollowTimer](QPushButton *self, QPushButton *other, bool on) {
+			if (on) {
+				other->setChecked(false);
+				int px = 0, py = 0, ps = 0;
+				if (!ZoominatorController::instance().readCamLayout(px, py, ps)) {
+					lblStatus->setText(T("Dialog.CamLayoutTakeFailed"));
+					self->setChecked(false);
+					return;
+				}
+				lblStatus->setText(T("Dialog.CamLayoutFollowing"));
+				camFollowTimer->setProperty("tab", tabWidget->currentIndex());
+				camFollowTimer->start();
+			} else if (!other->isChecked()) {
+				camFollowTimer->stop();
 			}
 		};
-		connect(btnCamIdleTake, &QPushButton::clicked, this,
-			[=]() { takeInto(spCamIdleX, spCamIdleY, spCamIdleSize); });
-		connect(btnCamZoomTake, &QPushButton::clicked, this,
-			[=]() { takeInto(spCamZoomX, spCamZoomY, spCamZoomSize); });
+		connect(btnCamIdleTake, &QPushButton::toggled, this,
+			[=](bool on) { onFollowToggled(btnCamIdleTake, btnCamZoomTake, on); });
+		connect(btnCamZoomTake, &QPushButton::toggled, this,
+			[=](bool on) { onFollowToggled(btnCamZoomTake, btnCamIdleTake, on); });
 
 		auto syncCamFields = [this]() {
 			const bool on = chkCamRing->isChecked();
 			const bool lay = on && chkCamLayout->isChecked();
 			chkCamLayout->setEnabled(on);
+			if (!lay) {
+				btnCamIdleTake->setChecked(false);
+				btnCamZoomTake->setChecked(false);
+			}
 			for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
 					   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
 					   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
