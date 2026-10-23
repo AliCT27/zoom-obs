@@ -395,7 +395,12 @@ void ZoominatorController::initialize()
 	tickCallbackAdded = true;
 	frameTimer.start();
 	zoominator_caret::start();
-	QTimer::singleShot(1500, this, [this]() { installHooks(); });
+	QTimer::singleShot(1500, this, [this]() {
+		installHooks();
+		/* Idle focus, the frame and idle 3D tilt are driven by the main tick, which
+		 * otherwise only starts with the first zoom. Start it now if they need it. */
+		refreshIdleFocusTicking();
+	});
 	QTimer::singleShot(3000, this, [this]() { requestRecoveryRestore(); });
 	QTimer::singleShot(5000, this, [this]() { cleanup_legacy_marker_items_all_scenes(markerSource); });
 }
