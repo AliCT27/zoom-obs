@@ -260,7 +260,6 @@ void ZoominatorController::restoreOriginalSceneItems(const std::vector<obs_scene
 
 void ZoominatorController::restoreOriginalSceneItemsFromState()
 {
-	restoreCamItem();
 	for (const auto &state : sceneItems) {
 		if (state.item && state.orig.valid)
 			applySceneItemTransform(state.item, state.orig);

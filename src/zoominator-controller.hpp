@@ -198,9 +198,8 @@ public:
 	int camRingPx = 6;
 	int camGlowPx = 28;
 	int camGlowPct = 80;
-	int camZoomPct = 125; /* size at full zoom, in percent of normal; 100 = unchanged */
 	/* Webcam placed by numbers: centre and outer diameter in canvas pixels, for
-	 * the resting view and for full zoom. When on, it replaces camZoomPct. */
+	 * the resting view and for full zoom. */
 	bool camLayoutEnabled = false;
 	int camIdleX = 960;
 	int camIdleY = 540;
@@ -392,14 +391,12 @@ private:
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
 	void refreshFrame();
 	void refreshCamRing();
-	void captureCamItem(obs_scene_t *scene);
 	void applyCamLayout(obs_scene_t *scene, double progress, bool force);
 public:
 	/* Reads the webcam's current place in the scene (centre and outer diameter, in
 	 * canvas pixels) for the dialog's "Take from OBS" buttons. Main thread. */
 	bool readCamLayout(int &x, int &y, int &size);
 private:
-	void restoreCamItem();
 	void hideFrameInAllScenes();
 
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
@@ -595,12 +592,6 @@ private:
 	obs_source_t *camFilter = nullptr;
 	obs_source_t *camFilterTarget = nullptr;
 	bool camRingUnavailable = false;
-	/* The webcam's scene item while a zoom runs, so it can be scaled with the zoom. */
-	obs_sceneitem_t *camItem = nullptr;
-	OrigState camOrig;
-	bool camLastValid = false;
-	vec2 camLastScale{};
-	vec2 camLastPos{};
 	/* Webcam layout: zoom progress last applied (0..1) and what was applied last,
 	 * so the 500 ms refresh only re-applies after a real change and never fights a
 	 * drag in OBS. */
