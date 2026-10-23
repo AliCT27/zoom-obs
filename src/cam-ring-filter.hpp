@@ -13,7 +13,6 @@ struct Style {
 	float glowPx = 24.0f;
 	float glowStrength = 0.8f;
 	bool rainbow = false;     /* ring and glow colour cycle round the colour wheel */
-	bool flow = false;        /* ...running round the ring like an LED strip */
 	float rainbowSec = 10.0f; /* seconds for one full turn */
 };
 
