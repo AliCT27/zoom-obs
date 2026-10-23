@@ -25,10 +25,10 @@ uniform float4 bg_color;
 uniform float4 bg_color2;
 uniform float bg_mode;   // 0 solid, 1 linear, 2 radial
 uniform float bg_angle;  // radians, linear only: 0 = left to right, pi/2 = top to bottom
-uniform float hue_bg;     // radians the background colours are turned around the colour wheel (0 = as chosen)
-uniform float hue_border; // same for the border and glow colour
-uniform float flow_bg;     // 1 = the background hue also changes with the angle round the frame, 0 = same everywhere
-uniform float flow_border; // 1 = the border and glow hue changes with the angle round the frame, like an LED strip
+uniform float hue_bg;     // radians the rainbow background is turned round the colour wheel (the animation)
+uniform float hue_border; // same for the rainbow border and glow
+uniform float flow_bg;     // 1 = rainbow background: the spectrum instead of the chosen colours, turning round the frame
+uniform float flow_border; // 1 = rainbow border and glow: the spectrum instead of the chosen colour
 uniform float flow_waves;  // whole colour cycles that fit round the frame
 
 struct VertInOut {
@@ -44,18 +44,12 @@ VertInOut VSDefault(VertInOut vert_in)
 	return vert_out;
 }
 
-// Turns a colour around the colour wheel (a rotation in the I/Q plane, which keeps its brightness). Grey, black and
-// white have no colour to turn, so they stay as they are.
-float3 hue_rotate(float3 c, float a)
+// A pure, fully bright colour from the colour wheel (red at 0, then yellow, green, cyan, blue, magenta), like the lights of
+// an ARGB fan. It does not depend on any colour the user picked.
+float3 spectrum(float a)
 {
-	float ca = cos(a);
-	float sa = sin(a);
-	float y = dot(c, float3(0.299, 0.587, 0.114));
-	float i = dot(c, float3(0.596, -0.274, -0.322));
-	float q = dot(c, float3(0.211, -0.523, 0.312));
-	float i2 = i * ca - q * sa;
-	float q2 = i * sa + q * ca;
-	return saturate(float3(y + 0.956 * i2 + 0.621 * q2, y - 0.272 * i2 - 0.647 * q2, y - 1.106 * i2 + 1.703 * q2));
+	float h = frac(a / 6.2831853);
+	return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
 }
 
 float4 PSFrame(VertInOut vert_in) : TARGET
@@ -103,11 +97,16 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	if (flow_border > 0.5)
 		hr += wheel;
 
-	float3 bg1 = hue_rotate(bg_color.rgb, hb);
-	float3 bg2 = hue_rotate(bg_color2.rgb, hb);
-	float3 bcol = hue_rotate(border_color.rgb, hr);
+	// Rainbow replaces the chosen colours with the spectrum itself.
+	float3 bg1 = bg_color.rgb;
+	float3 bg2 = bg_color2.rgb;
+	float3 bcol = border_color.rgb;
+	if (flow_border > 0.5)
+		bcol = spectrum(hr);
 	float3 col = bg1;
-	if (bg_mode > 0.5) {
+	if (flow_bg > 0.5) {
+		col = spectrum(hb);
+	} else if (bg_mode > 0.5) {
 		float2 cc = canvas_px * 0.5;
 		float t;
 		if (bg_mode < 1.5) {
