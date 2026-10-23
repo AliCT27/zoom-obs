@@ -208,11 +208,11 @@ void videoRender(void *data, gs_effect_t *)
 		if (d->pHueBorder)
 			gs_effect_set_float(d->pHueBorder, s.rainbowBorder ? ang : 0.0f);
 		if (d->pFlowBg)
-			gs_effect_set_float(d->pFlowBg, (s.rainbowBg && s.rainbowFlow) ? 1.0f : 0.0f);
+			gs_effect_set_float(d->pFlowBg, s.rainbowBg ? 1.0f : 0.0f);
 		if (d->pFlowBorder)
-			gs_effect_set_float(d->pFlowBorder, (s.rainbowBorder && s.rainbowFlow) ? 1.0f : 0.0f);
+			gs_effect_set_float(d->pFlowBorder, s.rainbowBorder ? 1.0f : 0.0f);
 		if (d->pFlowWaves)
-			gs_effect_set_float(d->pFlowWaves, (float)std::clamp(s.flowWaves, 1, 4));
+			gs_effect_set_float(d->pFlowWaves, 1.0f);
 	}
 
 	while (gs_effect_loop(d->effect, "Draw"))

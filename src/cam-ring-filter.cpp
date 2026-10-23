@@ -149,7 +149,7 @@ void videoRender(void *data, gs_effect_t *)
 		if (d->pHue)
 			gs_effect_set_float(d->pHue, s.rainbow ? (float)(turn * 6.283185307179586) : 0.0f);
 		if (d->pFlow)
-			gs_effect_set_float(d->pFlow, (s.rainbow && s.flow) ? 1.0f : 0.0f);
+			gs_effect_set_float(d->pFlow, s.rainbow ? 1.0f : 0.0f);
 	}
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);

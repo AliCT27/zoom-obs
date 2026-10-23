@@ -25,8 +25,6 @@ struct Style {
 	bool rainbowBg = false;     /* background colours cycle round the colour wheel */
 	bool rainbowBorder = false; /* border and glow colour cycle round the colour wheel */
 	float rainbowSec = 10.0f;   /* seconds for one full turn */
-	bool rainbowFlow = false;   /* the rainbow runs along the frame like an LED strip instead of changing everywhere at once */
-	int flowWaves = 1;          /* whole colour cycles across the background / round the frame */
 };
 
 /* Registers the source type. Call once from obs_module_load. */
