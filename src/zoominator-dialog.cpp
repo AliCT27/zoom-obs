@@ -2252,7 +2252,7 @@ void ZoominatorDialog::updateMarkerColorButton(const QColor &color)
 	btnMarkerColor->setProperty("markerRgba", c.rgba());
 	btnMarkerColor->setText(QStringLiteral("%1 / %2 / %3").arg(c.red()).arg(c.green()).arg(c.blue()));
 	btnMarkerColor->setStyleSheet(QStringLiteral("QPushButton { background:%1; color:%2;"
-						     " border:1px solid palette(mid); padding:4px 8px; }"
+						     " border:1px solid #6e6e78; padding:4px 8px; }"
 						     "QPushButton:disabled { background:#3a3a40; color:#9a9aa2;"
 						     " border:1px solid #6e6e78; padding:4px 8px; }")
 					      .arg(c.name(QColor::HexArgb))
@@ -2267,7 +2267,7 @@ void ZoominatorDialog::setColorButton(QPushButton *button, uint32_t rgba)
 	button->setProperty("rgba", c.rgba());
 	button->setText(c.name(QColor::HexRgb).toUpper());
 	button->setStyleSheet(QStringLiteral("QPushButton { background:%1; color:%2;"
-					     " border:1px solid palette(mid); padding:4px 8px; }"
+					     " border:1px solid #6e6e78; padding:4px 8px; }"
 					     "QPushButton:disabled { background:#3a3a40; color:#9a9aa2;"
 					     " border:1px solid #6e6e78; padding:4px 8px; }")
 				      .arg(c.name(QColor::HexRgb))
