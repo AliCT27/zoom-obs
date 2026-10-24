@@ -68,6 +68,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/frame-source.cpp
   src/guide-source.cpp
   src/zoominator-guide.cpp
+  src/zoominator-countdown.cpp
+  src/zoominator-countdown.hpp
   src/cam-ring-filter.cpp
   src/zoominator-camring.cpp
   src/zoominator-hotkeys.cpp

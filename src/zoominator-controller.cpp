@@ -373,6 +373,8 @@ ZoominatorController::ZoominatorController()
 	hudTimer.setInterval(100);
 	connect(&hudTimer, &QTimer::timeout, this, [this]() { refreshHud(); });
 	hudTimer.start();
+	countdownTimer.setInterval(1000);
+	connect(&countdownTimer, &QTimer::timeout, this, [this]() { onCountdownTick(); });
 	frameTimer.setInterval(500);
 	connect(&frameTimer, &QTimer::timeout, this, [this]() {
 		refreshFrame();
@@ -395,6 +397,7 @@ void ZoominatorController::initialize()
 	obs_add_tick_callback(videoTickCallback, this);
 	tickCallbackAdded = true;
 	frameTimer.start();
+	registerCountdownHotkey();
 	zoominator_caret::start();
 	QTimer::singleShot(1500, this, [this]() {
 		installHooks();
@@ -421,6 +424,7 @@ void ZoominatorController::shutdown()
 	obs_frontend_remove_event_callback(frontendEventCallback, this);
 	frameTimer.stop();
 	hudTimer.stop();
+	unregisterCountdownHotkey();
 	if (hud) {
 		delete hud;
 		hud = nullptr;

@@ -13,6 +13,11 @@
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
+static void countdown_menu_cb(void *)
+{
+	ZoominatorController::instance().startCountdownRecording();
+}
+
 static void open_dialog_cb(void *)
 {
 	ZoominatorController::instance().showDialog();
@@ -31,6 +36,7 @@ bool obs_module_load(void)
 	ZoominatorController::instance().initialize();
 
 	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.Zoominator"), open_dialog_cb, nullptr);
+	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.StartCountdown"), countdown_menu_cb, nullptr);
 	return true;
 }
 

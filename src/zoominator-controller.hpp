@@ -263,6 +263,7 @@ public:
 	int guideBottomPx = 670;
 	int guideLeftPx = 65;
 	int guideRightPx = 65;
+	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
@@ -407,6 +408,15 @@ public:
 private:
 	void hideFrameInAllScenes();
 	void refreshGuide();
+public:
+	/* Countdown before recording (zoominator-countdown.cpp). Main thread only, except the hotkey id. */
+	void startCountdownRecording();
+	obs_hotkey_id countdownHotkeyId = OBS_INVALID_HOTKEY_ID;
+private:
+	void cancelCountdown();
+	void onCountdownTick();
+	void registerCountdownHotkey();
+	void unregisterCountdownHotkey();
 	void hideGuideInAllScenes();
 
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
@@ -604,6 +614,9 @@ private:
 	void publishDimSheet(); /* main thread, not zoomed: the screen's resting rectangle for the dim mask */
 	obs_source_t *frameSource = nullptr;
 	obs_source_t *guideSource = nullptr;
+	class ZoominatorCountdown *countdownWidget = nullptr;
+	QTimer countdownTimer;
+	int countdownLeft = 0;
 	bool guideShown = false;
 	obs_source_t *camFilter = nullptr;
 	obs_source_t *camFilterTarget = nullptr;
