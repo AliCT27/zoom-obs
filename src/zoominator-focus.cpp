@@ -487,7 +487,7 @@ void ZoominatorController::updateIdleFocus(bool on)
 
 void ZoominatorController::refreshIdleFocusTicking()
 {
-	if (wantsIdleFocus() || idleFollowX || tilt3dEnabled)
+	if (wantsIdleFocus() || idleFollowX || tilt3dEnabled || wantsCursorRingIdle())
 		ensureTicking(true);
 }
 
