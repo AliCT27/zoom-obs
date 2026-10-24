@@ -1270,11 +1270,19 @@ void ZoominatorDialog::buildUi()
 		keyDisplayRow->setSpacing(12);
 		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySize"), spKeyDisplaySize), 1);
 		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplayY"), spKeyDisplayY), 1);
+		btnKeyDisplayReset = new QPushButton(T("Dialog.KeyDisplayReset"), page);
+		btnKeyDisplayReset->setToolTip(T("Dialog.KeyDisplayResetTooltip"));
+		connect(btnKeyDisplayReset, &QPushButton::clicked, this, [this]() {
+			spKeyDisplaySize->setValue(64);
+			spKeyDisplayY->setValue(58);
+		});
+		keyDisplayRow->addWidget(btnKeyDisplayReset, 0, Qt::AlignBottom);
 		lay->addLayout(keyDisplayRow);
 		connect(chkKeyDisplay, &QCheckBox::toggled, this, [this](bool on) {
 			chkKeyDisplayAll->setEnabled(on);
 			spKeyDisplaySize->setEnabled(on);
 			spKeyDisplayY->setEnabled(on);
+			btnKeyDisplayReset->setEnabled(on);
 		});
 		lay->addSpacing(10);
 
@@ -1804,6 +1812,7 @@ void ZoominatorDialog::loadFromController()
 		chkKeyDisplayAll->setEnabled(c.keyDisplayEnabled);
 		spKeyDisplaySize->setEnabled(c.keyDisplayEnabled);
 		spKeyDisplayY->setEnabled(c.keyDisplayEnabled);
+		btnKeyDisplayReset->setEnabled(c.keyDisplayEnabled);
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
 		spGuideBottom->setValue(c.guideBottomPx);
