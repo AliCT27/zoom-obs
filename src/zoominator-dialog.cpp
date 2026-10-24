@@ -1071,6 +1071,58 @@ void ZoominatorDialog::buildUi()
 			[syncFocusFields](int) { syncFocusFields(); });
 		syncFocusFields();
 
+		addSection(lay, T("Dialog.Section.Countdown"));
+
+		auto *cdHelp = new QLabel(T("Dialog.CountdownHelp"), page);
+		cdHelp->setWordWrap(true);
+		lay->addWidget(cdHelp);
+		spCountdown = new QSpinBox(page);
+		spCountdown->setRange(1, 10);
+		spCountdown->setSuffix(QStringLiteral(" s"));
+		spCountdown->setToolTip(T("Dialog.CountdownTooltip"));
+		lay->addWidget(mkField(T("Dialog.Countdown"), spCountdown));
+		chkCountdownDefault = new QCheckBox(T("Dialog.CountdownDefault"), page);
+		chkCountdownDefault->setToolTip(T("Dialog.CountdownDefaultTooltip"));
+		lay->addWidget(chkCountdownDefault);
+		lay->addSpacing(10);
+
+		addSection(lay, T("Dialog.Section.StatusHud"));
+
+		auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
+		hudHelp->setWordWrap(true);
+		lay->addWidget(hudHelp);
+		chkStatusHud = new QCheckBox(T("Dialog.StatusHud"), page);
+		chkStatusHud->setToolTip(T("Dialog.StatusHudTooltip"));
+		lay->addWidget(chkStatusHud);
+		cmbStatusHudCorner = new QComboBox(page);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopLeft"), 0);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
+		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
+		spRecLimit = new QSpinBox(page);
+		spRecLimit->setRange(0, 600);
+		spRecLimit->setSingleStep(5);
+		spRecLimit->setSuffix(QStringLiteral(" s"));
+		spRecLimit->setSpecialValueText(T("Dialog.RecLimitOff"));
+		spRecLimit->setToolTip(T("Dialog.RecLimitTooltip"));
+		auto *hudRow = new QHBoxLayout;
+		hudRow->setSpacing(12);
+		hudRow->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner), 1);
+		hudRow->addWidget(mkField(T("Dialog.RecLimit"), spRecLimit), 1);
+		lay->addLayout(hudRow);
+		connect(chkStatusHud, &QCheckBox::toggled, this, [this](bool on) {
+			cmbStatusHudCorner->setEnabled(on);
+			spRecLimit->setEnabled(on);
+		});
+		lay->addSpacing(10);
+
+		addSection(lay, T("Dialog.Section.Developer"));
+
+		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
+		lay->addWidget(chkDebug);
+
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.Sound"));
 
 		QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
@@ -1220,56 +1272,6 @@ void ZoominatorDialog::buildUi()
 				w->setEnabled(on);
 		});
 		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.Countdown"));
-
-		auto *cdHelp = new QLabel(T("Dialog.CountdownHelp"), page);
-		cdHelp->setWordWrap(true);
-		lay->addWidget(cdHelp);
-		spCountdown = new QSpinBox(page);
-		spCountdown->setRange(1, 10);
-		spCountdown->setSuffix(QStringLiteral(" s"));
-		spCountdown->setToolTip(T("Dialog.CountdownTooltip"));
-		lay->addWidget(mkField(T("Dialog.Countdown"), spCountdown));
-		chkCountdownDefault = new QCheckBox(T("Dialog.CountdownDefault"), page);
-		chkCountdownDefault->setToolTip(T("Dialog.CountdownDefaultTooltip"));
-		lay->addWidget(chkCountdownDefault);
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.StatusHud"));
-
-		auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
-		hudHelp->setWordWrap(true);
-		lay->addWidget(hudHelp);
-		chkStatusHud = new QCheckBox(T("Dialog.StatusHud"), page);
-		chkStatusHud->setToolTip(T("Dialog.StatusHudTooltip"));
-		lay->addWidget(chkStatusHud);
-		cmbStatusHudCorner = new QComboBox(page);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopLeft"), 0);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
-		spRecLimit = new QSpinBox(page);
-		spRecLimit->setRange(0, 600);
-		spRecLimit->setSingleStep(5);
-		spRecLimit->setSuffix(QStringLiteral(" s"));
-		spRecLimit->setSpecialValueText(T("Dialog.RecLimitOff"));
-		spRecLimit->setToolTip(T("Dialog.RecLimitTooltip"));
-		auto *hudRow = new QHBoxLayout;
-		hudRow->setSpacing(12);
-		hudRow->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner), 1);
-		hudRow->addWidget(mkField(T("Dialog.RecLimit"), spRecLimit), 1);
-		lay->addLayout(hudRow);
-		connect(chkStatusHud, &QCheckBox::toggled, this, [this](bool on) {
-			cmbStatusHudCorner->setEnabled(on);
-			spRecLimit->setEnabled(on);
-		});
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.Developer"));
-
-		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
-		lay->addWidget(chkDebug);
 
 		lay->addStretch(1);
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Advanced"));
