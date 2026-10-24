@@ -274,12 +274,6 @@ public:
 	bool keyDisplayAll = false;     /* also plain keys, not only shortcuts */
 	int keyDisplaySize = 64;        /* key cap text height for a 1080-wide canvas */
 	int keyDisplayYPct = 58;        /* vertical position, percent of the canvas height */
-	bool progressBarEnabled = false; /* a bar along the top or bottom edge that fills over the recording time limit */
-	int progressBarPos = 0;          /* 0 top edge, 1 bottom edge */
-	int progressBarPx = 8;           /* thickness for a 1080-wide canvas */
-	uint32_t progressBarColor = 0xFF2EA8DC;
-	bool progressBarRainbow = false;
-	int progressBarSec = 10;
 	bool countdownOnDefaultRecord = false; /* OBS's own Start Recording button also counts down first */
 	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
@@ -417,8 +411,6 @@ private:
 	bool wantsCursorRingIdle() const { return cursorRingEnabled && cursorRingIdle && !shuttingDown; }
 	void refreshCursorRing();
 	void refreshKeyDisplay();
-	void refreshProgressBar();
-	void hideProgressBarInAllScenes();
 	void hideKeyDisplayInAllScenes();
 	void showKeyLabel(const QString &label);
 	void handleKeyForDisplay(int vk);
@@ -652,10 +644,8 @@ private:
 	bool cursorFxShown = false;
 	obs_source_t *keysSource = nullptr;
 	bool keysShown = false;
-	obs_source_t *progressSource = nullptr;
-	bool progressShown = false;
 	/* How many of the overlay items (guide, cursor ring, key display) are in the scene; they share the top of it. */
-	int overlayCount() const { return (guideShown ? 1 : 0) + (cursorFxShown ? 1 : 0) + (keysShown ? 1 : 0) + (progressShown ? 1 : 0); }
+	int overlayCount() const { return (guideShown ? 1 : 0) + (cursorFxShown ? 1 : 0) + (keysShown ? 1 : 0); }
 	class ZoominatorCountdown *countdownWidget = nullptr;
 	QTimer countdownTimer;
 	int countdownLeft = 0;

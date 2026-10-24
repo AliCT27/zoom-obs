@@ -12,7 +12,6 @@
 #include "guide-source.hpp"
 #include "cursor-fx-source.hpp"
 #include "key-display-source.hpp"
-#include "progress-bar-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "caret-locator.hpp"
 
