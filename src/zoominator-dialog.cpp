@@ -725,7 +725,7 @@ void ZoominatorDialog::buildUi()
 		auto *frameRainbowRow = new QHBoxLayout;
 		frameRainbowRow->setSpacing(12);
 		/* The checkboxes and their cycle time sit on one line, so they read as one setting. */
-		spFrameRainbowSec->setFixedWidth(100);
+		spFrameRainbowSec->setFixedWidth(96);
 		frameRainbowRow->addWidget(chkFrameBgRainbow);
 		frameRainbowRow->addWidget(chkFrameBorderRainbow);
 		frameRainbowRow->addWidget(new QLabel(T("Dialog.FrameRainbowSec"), page));
@@ -808,9 +808,8 @@ void ZoominatorDialog::buildUi()
 		spCamRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
 		auto *camRainbowRow = new QHBoxLayout;
 		camRainbowRow->setSpacing(12);
-		spCamRainbowSec->setFixedWidth(110);
+		spCamRainbowSec->setFixedWidth(96);
 		camRainbowRow->addWidget(chkCamRainbow);
-		camRainbowRow->addSpacing(12);
 		camRainbowRow->addWidget(new QLabel(T("Dialog.FrameRainbowSec"), page));
 		camRainbowRow->addWidget(spCamRainbowSec);
 		camRainbowRow->addStretch(1);
@@ -1228,9 +1227,8 @@ void ZoominatorDialog::buildUi()
 		auto *cursorRainbowRow = new QHBoxLayout;
 		cursorRainbowRow->setSpacing(12);
 		/* The checkbox and its cycle time sit on one line, so they read as one setting. */
-		spCursorRingSec->setFixedWidth(110);
+		spCursorRingSec->setFixedWidth(96);
 		cursorRainbowRow->addWidget(chkCursorRingRainbow);
-		cursorRainbowRow->addSpacing(12);
 		cursorRainbowRow->addWidget(new QLabel(T("Dialog.FrameRainbowSec"), page));
 		cursorRainbowRow->addWidget(spCursorRingSec);
 		cursorRainbowRow->addStretch(1);
