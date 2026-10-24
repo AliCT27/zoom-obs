@@ -161,6 +161,7 @@ private:
 	QCheckBox *chkDebug = nullptr;
 	QCheckBox *chkStatusHud = nullptr;
 	QComboBox *cmbStatusHudCorner = nullptr;
+	QSpinBox *spRecLimit = nullptr;
 	QCheckBox *chkSoundEnabled = nullptr;
 	QCheckBox *chkSoundOn[3] = {nullptr, nullptr, nullptr};
 	QLineEdit *editSoundName[3] = {nullptr, nullptr, nullptr};

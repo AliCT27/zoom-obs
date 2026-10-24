@@ -1149,9 +1149,21 @@ void ZoominatorDialog::buildUi()
 		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
 		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
 		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
-		lay->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner));
-		connect(chkStatusHud, &QCheckBox::toggled, this,
-			[this](bool on) { cmbStatusHudCorner->setEnabled(on); });
+		spRecLimit = new QSpinBox(page);
+		spRecLimit->setRange(0, 600);
+		spRecLimit->setSingleStep(5);
+		spRecLimit->setSuffix(QStringLiteral(" s"));
+		spRecLimit->setSpecialValueText(T("Dialog.RecLimitOff"));
+		spRecLimit->setToolTip(T("Dialog.RecLimitTooltip"));
+		auto *hudRow = new QHBoxLayout;
+		hudRow->setSpacing(12);
+		hudRow->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner), 1);
+		hudRow->addWidget(mkField(T("Dialog.RecLimit"), spRecLimit), 1);
+		lay->addLayout(hudRow);
+		connect(chkStatusHud, &QCheckBox::toggled, this, [this](bool on) {
+			cmbStatusHudCorner->setEnabled(on);
+			spRecLimit->setEnabled(on);
+		});
 		lay->addSpacing(10);
 
 		addSection(lay, T("Dialog.Section.Developer"));
@@ -1630,6 +1642,8 @@ void ZoominatorDialog::loadFromController()
 		chkStatusHud->setChecked(c.showStatusHud);
 		cmbStatusHudCorner->setCurrentIndex(std::clamp(c.statusHudCorner, 0, 3));
 		cmbStatusHudCorner->setEnabled(c.showStatusHud);
+		spRecLimit->setValue(c.recLimitSec);
+		spRecLimit->setEnabled(c.showStatusHud);
 		chkSoundEnabled->setChecked(c.soundEnabled);
 		for (int i = 0; i < 3; ++i) {
 			chkSoundOn[i]->setChecked(c.soundOn[i]);
@@ -1763,6 +1777,7 @@ void ZoominatorDialog::applyToController()
 	c.debug = chkDebug->isChecked();
 	c.showStatusHud = chkStatusHud->isChecked();
 	c.statusHudCorner = cmbStatusHudCorner->currentData().toInt();
+	c.recLimitSec = spRecLimit->value();
 	c.soundEnabled = chkSoundEnabled->isChecked();
 	for (int i = 0; i < 3; ++i) {
 		c.soundVolume[i] = spSoundVolume[i]->value();

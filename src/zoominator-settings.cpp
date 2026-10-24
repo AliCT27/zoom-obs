@@ -114,6 +114,7 @@ constexpr double kNoMax = (double)std::numeric_limits<int>::max();
 constexpr ScalarSetting kScalarSettings[] = {
 	{"show_status_hud", &ZoominatorController::showStatusHud, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"status_hud_corner", nullptr, &ZoominatorController::statusHudCorner, nullptr, nullptr, 1, 0, 3},
+	{"rec_limit_sec", nullptr, &ZoominatorController::recLimitSec, nullptr, nullptr, 90, 0, 600},
 	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"marker_offset_x", nullptr, &ZoominatorController::markerOffsetX, nullptr, nullptr, 6, -100, 100},

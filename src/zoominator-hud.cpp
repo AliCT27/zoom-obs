@@ -112,6 +112,7 @@ void ZoominatorHud::hideBadge()
 void ZoominatorHud::setState(const State &state)
 {
 	if (state.zoomed == st.zoomed && state.direction == st.direction && state.flags == st.flags && state.recording == st.recording &&
+	    state.recElapsedSec == st.recElapsedSec && state.recLimitSec == st.recLimitSec &&
 	    qAbs(state.level - st.level) < 0.005)
 		return;
 	st = state;
@@ -133,7 +134,8 @@ QSize ZoominatorHud::sizeHint() const
 	int line2 = 0;
 	for (const auto &f : st.flags)
 		line2 += (line2 ? 14 : 0) + 20 + fs.horizontalAdvance(f.first);
-	const int line3 = 20 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING"));
+	const QString worstTime = st.recLimitSec > 0 ? QStringLiteral("000:00 / 000:00") : QStringLiteral("000:00");
+	const int line3 = 20 + fs.horizontalAdvance(QStringLiteral("NOT RECORDING")) + 24 + fs.horizontalAdvance(worstTime);
 	int h = pad * 2 + fb.height();
 	if (!st.flags.isEmpty())
 		h += 4 + fs.height();
@@ -218,5 +220,20 @@ void ZoominatorHud::paintEvent(QPaintEvent *)
 		p.drawEllipse(QPoint(pad + 6, base - fs.ascent() / 2 + 1), 4, 4);
 		p.setPen(QColor(210, 210, 218));
 		p.drawText(QPoint(pad + 20, base), label);
+
+		if (st.recording != 0) {
+			auto mmss = [](int s) { return QStringLiteral("%1:%2").arg(s / 60, 2, 10, QLatin1Char('0')).arg(s % 60, 2, 10, QLatin1Char('0')); };
+			QString time = mmss(st.recElapsedSec);
+			QColor tc(210, 210, 218);
+			if (st.recLimitSec > 0) {
+				time += QStringLiteral(" / ") + mmss(st.recLimitSec);
+				if (st.recElapsedSec >= st.recLimitSec)
+					tc = QColor(235, 60, 60);
+				else if (st.recElapsedSec >= st.recLimitSec - 10)
+					tc = QColor(255, 190, 40);
+			}
+			p.setPen(tc);
+			p.drawText(QPoint(width() - pad - fs.horizontalAdvance(time), base), time);
+		}
 	}
 }

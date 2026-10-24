@@ -17,6 +17,8 @@ public:
 		double level = 1.0;
 		QList<QPair<QString, bool>> flags; /* feature name, on or off (green or red light) */
 		int recording = 0;                 /* 0 not recording, 1 recording, 2 recording paused */
+		int recElapsedSec = 0;             /* recording time so far, pauses not counted */
+		int recLimitSec = 0;               /* time limit to warn about, 0 = none */
 	};
 
 	explicit ZoominatorHud(QWidget *parent = nullptr);
