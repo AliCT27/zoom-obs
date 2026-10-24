@@ -168,6 +168,12 @@ private:
 	QPushButton *btnCursorRingColor = nullptr;
 	QCheckBox *chkCursorRingRainbow = nullptr;
 	QSpinBox *spCursorRingSec = nullptr;
+	QCheckBox *chkProgressBar = nullptr;
+	QComboBox *cmbProgressBarPos = nullptr;
+	QSpinBox *spProgressBarPx = nullptr;
+	QPushButton *btnProgressBarColor = nullptr;
+	QCheckBox *chkProgressBarRainbow = nullptr;
+	QSpinBox *spProgressBarSec = nullptr;
 	QCheckBox *chkKeyDisplay = nullptr;
 	QCheckBox *chkKeyDisplayAll = nullptr;
 	QSpinBox *spKeyDisplaySize = nullptr;

@@ -72,6 +72,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/zoominator-cursorfx.cpp
   src/key-display-source.cpp
   src/zoominator-keys.cpp
+  src/progress-bar-source.cpp
+  src/zoominator-progress.cpp
   src/zoominator-countdown.cpp
   src/zoominator-countdown.hpp
   src/cam-ring-filter.cpp

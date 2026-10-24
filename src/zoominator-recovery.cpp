@@ -230,6 +230,7 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 				ctl->recAccumMs = 0;
 				ctl->recRunning = false;
 			}
+			ctl->refreshProgressBar();
 		});
 	}
 

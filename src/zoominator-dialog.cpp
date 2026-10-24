@@ -1249,6 +1249,58 @@ void ZoominatorDialog::buildUi()
 		syncCursorRingFields();
 		lay->addSpacing(10);
 
+		addSection(lay, T("Dialog.Section.ProgressBar"));
+
+		chkProgressBar = new QCheckBox(T("Dialog.ProgressBar"), page);
+		chkProgressBar->setToolTip(T("Dialog.ProgressBarTooltip"));
+		lay->addWidget(chkProgressBar);
+		cmbProgressBarPos = new QComboBox(page);
+		cmbProgressBarPos->addItem(T("Dialog.ProgressBar.Top"), 0);
+		cmbProgressBarPos->addItem(T("Dialog.ProgressBar.Bottom"), 1);
+		spProgressBarPx = new QSpinBox(page);
+		spProgressBarPx->setRange(2, 40);
+		spProgressBarPx->setSuffix(T("Unit.Pixels"));
+		spProgressBarPx->setToolTip(T("Dialog.ProgressBarThicknessTooltip"));
+		btnProgressBarColor = new ColorButton(page);
+		btnProgressBarColor->setMinimumHeight(28);
+		btnProgressBarColor->setToolTip(T("Dialog.ProgressBarColorTooltip"));
+		auto *progressRow = new QHBoxLayout;
+		progressRow->setSpacing(12);
+		progressRow->addWidget(mkField(T("Dialog.ProgressBarPosition"), cmbProgressBarPos), 1);
+		progressRow->addWidget(mkField(T("Dialog.ProgressBarThickness"), spProgressBarPx), 1);
+		progressRow->addWidget(mkField(T("Dialog.ProgressBarColor"), btnProgressBarColor), 1);
+		lay->addLayout(progressRow);
+
+		chkProgressBarRainbow = new QCheckBox(T("Dialog.ProgressBarRainbow"), page);
+		chkProgressBarRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+		spProgressBarSec = new QSpinBox(page);
+		spProgressBarSec->setRange(2, 120);
+		spProgressBarSec->setSuffix(QStringLiteral(" s"));
+		spProgressBarSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+		spProgressBarSec->setFixedWidth(110);
+		auto *progressRainbowRow = new QHBoxLayout;
+		progressRainbowRow->setSpacing(12);
+		progressRainbowRow->addWidget(chkProgressBarRainbow);
+		progressRainbowRow->addSpacing(12);
+		progressRainbowRow->addWidget(new QLabel(T("Dialog.FrameRainbowSec"), page));
+		progressRainbowRow->addWidget(spProgressBarSec);
+		progressRainbowRow->addStretch(1);
+		lay->addLayout(progressRainbowRow);
+
+		auto syncProgressBarFields = [this]() {
+			const bool on = chkProgressBar->isChecked();
+			const bool rb = chkProgressBarRainbow->isChecked();
+			cmbProgressBarPos->setEnabled(on);
+			spProgressBarPx->setEnabled(on);
+			btnProgressBarColor->setEnabled(on && !rb);
+			chkProgressBarRainbow->setEnabled(on);
+			spProgressBarSec->setEnabled(on && rb);
+		};
+		connect(chkProgressBar, &QCheckBox::toggled, this, [syncProgressBarFields](bool) { syncProgressBarFields(); });
+		connect(chkProgressBarRainbow, &QCheckBox::toggled, this, [syncProgressBarFields](bool) { syncProgressBarFields(); });
+		syncProgressBarFields();
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.KeyDisplay"));
 
 		chkKeyDisplay = new QCheckBox(T("Dialog.KeyDisplay"), page);
@@ -1457,6 +1509,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
 	connect(btnCamColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamColor); });
 	connect(btnCursorRingColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCursorRingColor); });
+	connect(btnProgressBarColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnProgressBarColor); });
 	{
 		auto syncHaloFields = [this]() {
 			const bool on = chkShowCursorMarker->isChecked();
@@ -1805,6 +1858,17 @@ void ZoominatorDialog::loadFromController()
 		btnCursorRingColor->setEnabled(c.cursorRingEnabled && !c.cursorRingRainbow);
 		chkCursorRingRainbow->setEnabled(c.cursorRingEnabled);
 		spCursorRingSec->setEnabled(c.cursorRingEnabled && c.cursorRingRainbow);
+		chkProgressBar->setChecked(c.progressBarEnabled);
+		cmbProgressBarPos->setCurrentIndex(std::clamp(c.progressBarPos, 0, 1));
+		spProgressBarPx->setValue(c.progressBarPx);
+		setColorButton(btnProgressBarColor, c.progressBarColor);
+		chkProgressBarRainbow->setChecked(c.progressBarRainbow);
+		spProgressBarSec->setValue(c.progressBarSec);
+		cmbProgressBarPos->setEnabled(c.progressBarEnabled);
+		spProgressBarPx->setEnabled(c.progressBarEnabled);
+		btnProgressBarColor->setEnabled(c.progressBarEnabled && !c.progressBarRainbow);
+		chkProgressBarRainbow->setEnabled(c.progressBarEnabled);
+		spProgressBarSec->setEnabled(c.progressBarEnabled && c.progressBarRainbow);
 		chkKeyDisplay->setChecked(c.keyDisplayEnabled);
 		chkKeyDisplayAll->setChecked(c.keyDisplayAll);
 		spKeyDisplaySize->setValue(c.keyDisplaySize);
@@ -1965,6 +2029,12 @@ void ZoominatorDialog::applyToController()
 	c.cursorRingColor = (uint32_t)btnCursorRingColor->property("rgba").toUInt();
 	c.cursorRingRainbow = chkCursorRingRainbow->isChecked();
 	c.cursorRingSec = spCursorRingSec->value();
+	c.progressBarEnabled = chkProgressBar->isChecked();
+	c.progressBarPos = cmbProgressBarPos->currentData().toInt();
+	c.progressBarPx = spProgressBarPx->value();
+	c.progressBarColor = (uint32_t)btnProgressBarColor->property("rgba").toUInt();
+	c.progressBarRainbow = chkProgressBarRainbow->isChecked();
+	c.progressBarSec = spProgressBarSec->value();
 	c.keyDisplayEnabled = chkKeyDisplay->isChecked();
 	c.keyDisplayAll = chkKeyDisplayAll->isChecked();
 	c.keyDisplaySize = spKeyDisplaySize->value();
