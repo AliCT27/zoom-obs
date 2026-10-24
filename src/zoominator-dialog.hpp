@@ -159,6 +159,7 @@ private:
 	QSpinBox *spFocusDim = nullptr;
 	QSpinBox *spFocusCone = nullptr;
 	QCheckBox *chkDebug = nullptr;
+	QSpinBox *spCountdown = nullptr;
 	QCheckBox *chkGuide = nullptr;
 	QSpinBox *spGuideTop = nullptr;
 	QSpinBox *spGuideBottom = nullptr;

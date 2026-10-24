@@ -119,6 +119,7 @@ constexpr ScalarSetting kScalarSettings[] = {
 	{"guide_bottom_px", nullptr, &ZoominatorController::guideBottomPx, nullptr, nullptr, 670, 0, 1500},
 	{"guide_left_px", nullptr, &ZoominatorController::guideLeftPx, nullptr, nullptr, 65, 0, 500},
 	{"guide_right_px", nullptr, &ZoominatorController::guideRightPx, nullptr, nullptr, 65, 0, 500},
+	{"countdown_sec", nullptr, &ZoominatorController::countdownSec, nullptr, nullptr, 3, 1, 10},
 	{"rec_limit_sec", nullptr, &ZoominatorController::recLimitSec, nullptr, nullptr, 90, 0, 600},
 	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
