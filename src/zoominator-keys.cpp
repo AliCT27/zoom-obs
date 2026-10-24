@@ -33,7 +33,7 @@ void ZoominatorController::showKeyLabel(const QString &label)
 
 	const double padX = textPx * 0.42;
 	const double padY = textPx * 0.26;
-	const double gap = textPx * 0.22;
+	const double gap = textPx * 0.62; /* room for the "+" between two key caps */
 	const double radius = textPx * 0.26;
 	const double lift = std::max(2.0, textPx * 0.08); /* the darker bottom edge of a key cap */
 	const double margin = std::max(4.0, textPx * 0.2);
@@ -69,6 +69,11 @@ void ZoominatorController::showKeyLabel(const QString &label)
 			p.drawRoundedRect(top, radius, radius);
 			p.setPen(QColor(245, 247, 250));
 			p.drawText(top, Qt::AlignCenter, parts[i]);
+			if (i + 1 < (int)parts.size()) {
+				const QRectF plus(x + capW[(size_t)i], margin, gap, capH);
+				p.setPen(QColor(245, 247, 250, 230));
+				p.drawText(plus, Qt::AlignCenter, QStringLiteral("+"));
+			}
 			x += capW[(size_t)i] + gap;
 		}
 	}
