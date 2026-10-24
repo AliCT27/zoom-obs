@@ -70,6 +70,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/zoominator-guide.cpp
   src/cursor-fx-source.cpp
   src/zoominator-cursorfx.cpp
+  src/key-display-source.cpp
+  src/zoominator-keys.cpp
   src/zoominator-countdown.cpp
   src/zoominator-countdown.hpp
   src/cam-ring-filter.cpp
