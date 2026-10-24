@@ -202,6 +202,29 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 	if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED)
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->refreshFrame(); });
 
+	/* Recording time for the status badge: pauses are not counted. */
+	if (event == OBS_FRONTEND_EVENT_RECORDING_STARTED || event == OBS_FRONTEND_EVENT_RECORDING_PAUSED ||
+	    event == OBS_FRONTEND_EVENT_RECORDING_UNPAUSED || event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
+		QTimer::singleShot(0, ctl, [ctl, event]() {
+			const qint64 now = QDateTime::currentMSecsSinceEpoch();
+			if (event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+				ctl->recAccumMs = 0;
+				ctl->recSegStartMs = now;
+				ctl->recRunning = true;
+			} else if (event == OBS_FRONTEND_EVENT_RECORDING_PAUSED) {
+				if (ctl->recRunning)
+					ctl->recAccumMs += now - ctl->recSegStartMs;
+				ctl->recRunning = false;
+			} else if (event == OBS_FRONTEND_EVENT_RECORDING_UNPAUSED) {
+				ctl->recSegStartMs = now;
+				ctl->recRunning = true;
+			} else {
+				ctl->recAccumMs = 0;
+				ctl->recRunning = false;
+			}
+		});
+	}
+
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING || event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED ||
 	    event == OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED) {
 		QTimer::singleShot(750, ctl, [ctl]() { ctl->requestRecoveryRestore(); });

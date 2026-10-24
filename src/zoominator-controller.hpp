@@ -258,6 +258,7 @@ public:
 	bool portraitCover = true;
 	bool showStatusHud = false; /* status badge on the user's own monitor, hidden from the recording */
 	int statusHudCorner = 1;    /* 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
+	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
 	/* Click-halo runtime state (not user settings). Used by zoominator-marker.cpp and the tick in
@@ -440,6 +441,10 @@ private:
 	std::atomic<bool> pendingFinish{false};
 
 	QTimer tickTimer;
+	/* Recording time for the badge, kept from the frontend events (main thread). */
+	qint64 recAccumMs = 0;
+	qint64 recSegStartMs = 0;
+	bool recRunning = false;
 	QTimer hudTimer;
 	ZoominatorHud *hud = nullptr;
 	std::atomic<float> hudZoom{1.0f}; /* the zoom you asked for, as currently shown (1 = not zoomed) */

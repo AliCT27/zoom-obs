@@ -1334,6 +1334,13 @@ void ZoominatorController::refreshHud()
 
 	st.flags << qMakePair(QStringLiteral("FOCUS"), focusEnabled);
 	st.recording = obs_frontend_recording_active() ? (obs_frontend_recording_paused() ? 2 : 1) : 0;
+	{
+		qint64 ms = recAccumMs;
+		if (recRunning)
+			ms += QDateTime::currentMSecsSinceEpoch() - recSegStartMs;
+		st.recElapsedSec = st.recording != 0 ? (int)std::max<qint64>(0, ms / 1000) : 0;
+		st.recLimitSec = std::clamp(recLimitSec, 0, 600);
+	}
 
 	hud->setState(st);
 	if (!hud->isVisible() || hud->corner() != statusHudCorner)
