@@ -263,6 +263,7 @@ public:
 	int guideBottomPx = 670;
 	int guideLeftPx = 65;
 	int guideRightPx = 65;
+	bool countdownOnDefaultRecord = false; /* OBS's own Start Recording button also counts down first */
 	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
 	bool showCursorMarker = false;
@@ -414,6 +415,8 @@ public:
 	obs_hotkey_id countdownHotkeyId = OBS_INVALID_HOTKEY_ID;
 private:
 	void cancelCountdown();
+	void installRecordButtonFilter();
+	bool recordButtonFilterInstalled = false;
 	void onCountdownTick();
 	void registerCountdownHotkey();
 	void unregisterCountdownHotkey();
