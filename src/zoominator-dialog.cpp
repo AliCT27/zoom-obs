@@ -1136,6 +1136,36 @@ void ZoominatorDialog::buildUi()
 		syncSoundFields();
 		lay->addSpacing(10);
 
+		addSection(lay, T("Dialog.Section.Guide"));
+
+		chkGuide = new QCheckBox(T("Dialog.Guide"), page);
+		chkGuide->setToolTip(T("Dialog.GuideTooltip"));
+		lay->addWidget(chkGuide);
+		auto mkGuideSpin = [page](int hi, const QString &tip) {
+			auto *sp = new QSpinBox(page);
+			sp->setRange(0, hi);
+			sp->setSingleStep(5);
+			sp->setSuffix(T("Unit.Pixels"));
+			sp->setToolTip(tip);
+			return sp;
+		};
+		spGuideTop = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
+		spGuideBottom = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
+		spGuideLeft = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
+		spGuideRight = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
+		auto *guideRow = new QHBoxLayout;
+		guideRow->setSpacing(12);
+		guideRow->addWidget(mkField(T("Dialog.GuideTop"), spGuideTop), 1);
+		guideRow->addWidget(mkField(T("Dialog.GuideBottom"), spGuideBottom), 1);
+		guideRow->addWidget(mkField(T("Dialog.GuideLeft"), spGuideLeft), 1);
+		guideRow->addWidget(mkField(T("Dialog.GuideRight"), spGuideRight), 1);
+		lay->addLayout(guideRow);
+		connect(chkGuide, &QCheckBox::toggled, this, [this](bool on) {
+			for (QWidget *w : {(QWidget *)spGuideTop, (QWidget *)spGuideBottom, (QWidget *)spGuideLeft, (QWidget *)spGuideRight})
+				w->setEnabled(on);
+		});
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.StatusHud"));
 
 		auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
@@ -1639,6 +1669,13 @@ void ZoominatorDialog::loadFromController()
 				   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
 			w->setEnabled(c.camRingEnabled && c.camLayoutEnabled);
 		chkDebug->setChecked(c.debug);
+		chkGuide->setChecked(c.guideEnabled);
+		spGuideTop->setValue(c.guideTopPx);
+		spGuideBottom->setValue(c.guideBottomPx);
+		spGuideLeft->setValue(c.guideLeftPx);
+		spGuideRight->setValue(c.guideRightPx);
+		for (QWidget *w : {(QWidget *)spGuideTop, (QWidget *)spGuideBottom, (QWidget *)spGuideLeft, (QWidget *)spGuideRight})
+			w->setEnabled(c.guideEnabled);
 		chkStatusHud->setChecked(c.showStatusHud);
 		cmbStatusHudCorner->setCurrentIndex(std::clamp(c.statusHudCorner, 0, 3));
 		cmbStatusHudCorner->setEnabled(c.showStatusHud);
@@ -1775,6 +1812,11 @@ void ZoominatorDialog::applyToController()
 	if (btnMarkerColor)
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
+	c.guideEnabled = chkGuide->isChecked();
+	c.guideTopPx = spGuideTop->value();
+	c.guideBottomPx = spGuideBottom->value();
+	c.guideLeftPx = spGuideLeft->value();
+	c.guideRightPx = spGuideRight->value();
 	c.showStatusHud = chkStatusHud->isChecked();
 	c.statusHudCorner = cmbStatusHudCorner->currentData().toInt();
 	c.recLimitSec = spRecLimit->value();

@@ -31,6 +31,7 @@ over several files so each can be read on its own.
 | `zoominator-marker.cpp` | Click halo |
 | `zoominator-focus.cpp` | Focus dim, idle blur, and attaching/detaching the blur filter |
 | `zoominator-tilt.cpp` | 3D tilt filter and pose |
+| `zoominator-guide.cpp`, `guide-source.cpp` | Reels safe-zone guide (a scene source shown only while nothing is recorded or streamed) |
 | `zoominator-input.cpp` | Global keyboard/mouse hooks (per platform) and install/uninstall |
 | `zoominator-triggers.cpp` | What a trigger does: start/stop zoom, automatic mode, pause, follow toggle |
 | `zoominator-hotkeys.cpp` | Key sequences -> virtual keys; builds trigger state from settings |
