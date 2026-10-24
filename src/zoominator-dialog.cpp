@@ -1217,8 +1217,13 @@ void ZoominatorDialog::buildUi()
 		spCursorRingSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
 		auto *cursorRainbowRow = new QHBoxLayout;
 		cursorRainbowRow->setSpacing(12);
-		cursorRainbowRow->addWidget(chkCursorRingRainbow, 1);
-		cursorRainbowRow->addWidget(mkField(T("Dialog.FrameRainbowSec"), spCursorRingSec), 1);
+		/* The checkbox and its cycle time sit on one line, so they read as one setting. */
+		spCursorRingSec->setFixedWidth(110);
+		cursorRainbowRow->addWidget(chkCursorRingRainbow);
+		cursorRainbowRow->addSpacing(12);
+		cursorRainbowRow->addWidget(new QLabel(T("Dialog.FrameRainbowSec"), page));
+		cursorRainbowRow->addWidget(spCursorRingSec);
+		cursorRainbowRow->addStretch(1);
 		lay->addLayout(cursorRainbowRow);
 
 		auto syncCursorRingFields = [this]() {
