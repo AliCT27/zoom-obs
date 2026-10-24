@@ -258,6 +258,11 @@ public:
 	bool portraitCover = true;
 	bool showStatusHud = false; /* status badge on the user's own monitor, hidden from the recording */
 	int statusHudCorner = 1;    /* 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
+	bool guideEnabled = false; /* Reels safe-zone guide in the preview while not recording */
+	int guideTopPx = 270;      /* margins for a 1080 x 1920 video */
+	int guideBottomPx = 670;
+	int guideLeftPx = 65;
+	int guideRightPx = 65;
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
 	bool showCursorMarker = false;
 	bool showMarkerWhenNotZoomed = false;
@@ -401,6 +406,8 @@ public:
 	bool readCamLayout(int &x, int &y, int &size);
 private:
 	void hideFrameInAllScenes();
+	void refreshGuide();
+	void hideGuideInAllScenes();
 
 	/* Split loop. Frame-critical work runs on OBS's graphics thread via
 	 * obs_add_tick_callback so the transform lands exactly once per rendered
@@ -596,6 +603,8 @@ private:
 	} focusRt;
 	void publishDimSheet(); /* main thread, not zoomed: the screen's resting rectangle for the dim mask */
 	obs_source_t *frameSource = nullptr;
+	obs_source_t *guideSource = nullptr;
+	bool guideShown = false;
 	obs_source_t *camFilter = nullptr;
 	obs_source_t *camFilterTarget = nullptr;
 	bool camRingUnavailable = false;

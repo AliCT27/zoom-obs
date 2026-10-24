@@ -9,6 +9,7 @@
 #include "tilt-filter.hpp"
 #include "dim-mask-filter.hpp"
 #include "frame-source.hpp"
+#include "guide-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "caret-locator.hpp"
 

@@ -377,6 +377,7 @@ ZoominatorController::ZoominatorController()
 	connect(&frameTimer, &QTimer::timeout, this, [this]() {
 		refreshFrame();
 		refreshCamRing();
+		refreshGuide();
 	});
 }
 
@@ -432,6 +433,7 @@ void ZoominatorController::shutdown()
 	detachTilt();
 	releaseSoundSources();
 	zoominator_frame::clearRect();
+	hideGuideInAllScenes();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
 		camFilter = nullptr;
