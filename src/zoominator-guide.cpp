@@ -70,7 +70,7 @@ void ZoominatorController::refreshGuide()
 			return true;
 		},
 		&count);
-	if (fresh || (int)obs_sceneitem_get_order_position(item) != count - 1)
+	if (fresh || (int)obs_sceneitem_get_order_position(item) < count - overlayCount())
 		obs_sceneitem_set_order(item, OBS_ORDER_MOVE_TOP);
 
 	if (!obs_sceneitem_visible(item))

@@ -1236,6 +1236,35 @@ void ZoominatorDialog::buildUi()
 		syncCursorRingFields();
 		lay->addSpacing(10);
 
+		addSection(lay, T("Dialog.Section.KeyDisplay"));
+
+		chkKeyDisplay = new QCheckBox(T("Dialog.KeyDisplay"), page);
+		chkKeyDisplay->setToolTip(T("Dialog.KeyDisplayTooltip"));
+		lay->addWidget(chkKeyDisplay);
+		chkKeyDisplayAll = new QCheckBox(T("Dialog.KeyDisplayAll"), page);
+		chkKeyDisplayAll->setToolTip(T("Dialog.KeyDisplayAllTooltip"));
+		lay->addWidget(chkKeyDisplayAll);
+		spKeyDisplaySize = new QSpinBox(page);
+		spKeyDisplaySize->setRange(24, 160);
+		spKeyDisplaySize->setSingleStep(4);
+		spKeyDisplaySize->setSuffix(T("Unit.Pixels"));
+		spKeyDisplaySize->setToolTip(T("Dialog.KeyDisplaySizeTooltip"));
+		spKeyDisplayY = new QSpinBox(page);
+		spKeyDisplayY->setRange(5, 95);
+		spKeyDisplayY->setSuffix(T("Unit.Percent"));
+		spKeyDisplayY->setToolTip(T("Dialog.KeyDisplayYTooltip"));
+		auto *keyDisplayRow = new QHBoxLayout;
+		keyDisplayRow->setSpacing(12);
+		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySize"), spKeyDisplaySize), 1);
+		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplayY"), spKeyDisplayY), 1);
+		lay->addLayout(keyDisplayRow);
+		connect(chkKeyDisplay, &QCheckBox::toggled, this, [this](bool on) {
+			chkKeyDisplayAll->setEnabled(on);
+			spKeyDisplaySize->setEnabled(on);
+			spKeyDisplayY->setEnabled(on);
+		});
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.Guide"));
 
 		chkGuide = new QCheckBox(T("Dialog.Guide"), page);
@@ -1755,6 +1784,13 @@ void ZoominatorDialog::loadFromController()
 		btnCursorRingColor->setEnabled(c.cursorRingEnabled && !c.cursorRingRainbow);
 		chkCursorRingRainbow->setEnabled(c.cursorRingEnabled);
 		spCursorRingSec->setEnabled(c.cursorRingEnabled && c.cursorRingRainbow);
+		chkKeyDisplay->setChecked(c.keyDisplayEnabled);
+		chkKeyDisplayAll->setChecked(c.keyDisplayAll);
+		spKeyDisplaySize->setValue(c.keyDisplaySize);
+		spKeyDisplayY->setValue(c.keyDisplayYPct);
+		chkKeyDisplayAll->setEnabled(c.keyDisplayEnabled);
+		spKeyDisplaySize->setEnabled(c.keyDisplayEnabled);
+		spKeyDisplayY->setEnabled(c.keyDisplayEnabled);
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
 		spGuideBottom->setValue(c.guideBottomPx);
@@ -1907,6 +1943,10 @@ void ZoominatorDialog::applyToController()
 	c.cursorRingColor = (uint32_t)btnCursorRingColor->property("rgba").toUInt();
 	c.cursorRingRainbow = chkCursorRingRainbow->isChecked();
 	c.cursorRingSec = spCursorRingSec->value();
+	c.keyDisplayEnabled = chkKeyDisplay->isChecked();
+	c.keyDisplayAll = chkKeyDisplayAll->isChecked();
+	c.keyDisplaySize = spKeyDisplaySize->value();
+	c.keyDisplayYPct = spKeyDisplayY->value();
 	c.guideEnabled = chkGuide->isChecked();
 	c.guideTopPx = spGuideTop->value();
 	c.guideBottomPx = spGuideBottom->value();

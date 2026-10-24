@@ -381,6 +381,7 @@ ZoominatorController::ZoominatorController()
 		refreshCamRing();
 		refreshGuide();
 		refreshCursorRing();
+		refreshKeyDisplay();
 	});
 }
 
@@ -441,6 +442,7 @@ void ZoominatorController::shutdown()
 	zoominator_frame::clearRect();
 	hideGuideInAllScenes();
 	hideCursorRingInAllScenes();
+	hideKeyDisplayInAllScenes();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
 		camFilter = nullptr;

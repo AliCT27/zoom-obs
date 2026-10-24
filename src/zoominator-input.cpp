@@ -189,6 +189,76 @@ static inline bool shortcut_modifier_held()
 	       (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
 }
 
+/* Readable name of a key for the key display. Empty for keys that are not worth showing. */
+static QString key_display_name(int vk)
+{
+	if (vk >= 'A' && vk <= 'Z')
+		return QString(QChar((ushort)vk));
+	if (vk >= '0' && vk <= '9')
+		return QString(QChar((ushort)vk));
+	if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9)
+		return QStringLiteral("Num %1").arg(vk - VK_NUMPAD0);
+	if (vk >= VK_F1 && vk <= VK_F24)
+		return QStringLiteral("F%1").arg(vk - VK_F1 + 1);
+	switch (vk) {
+	case VK_RETURN: return QStringLiteral("Enter");
+	case VK_SPACE: return QStringLiteral("Space");
+	case VK_BACK: return QStringLiteral("Backspace");
+	case VK_TAB: return QStringLiteral("Tab");
+	case VK_ESCAPE: return QStringLiteral("Esc");
+	case VK_DELETE: return QStringLiteral("Del");
+	case VK_INSERT: return QStringLiteral("Ins");
+	case VK_HOME: return QStringLiteral("Home");
+	case VK_END: return QStringLiteral("End");
+	case VK_PRIOR: return QStringLiteral("PgUp");
+	case VK_NEXT: return QStringLiteral("PgDn");
+	case VK_LEFT: return QStringLiteral("\u2190");
+	case VK_UP: return QStringLiteral("\u2191");
+	case VK_RIGHT: return QStringLiteral("\u2192");
+	case VK_DOWN: return QStringLiteral("\u2193");
+	case VK_SNAPSHOT: return QStringLiteral("PrtSc");
+	case VK_CAPITAL: case VK_NUMLOCK: case VK_SCROLL:
+		return QString();
+	default:
+		break;
+	}
+	const UINT ch = MapVirtualKeyW((UINT)vk, MAPVK_VK_TO_CHAR) & 0x7FFFFFFF;
+	if (ch >= 0x20 && ch != 0x7F)
+		return QString(QChar((ushort)ch)).toUpper();
+	return QString();
+}
+
+/* Called from the keyboard hook for every key press while the key display is on. Builds the label ("Ctrl + Shift + P")
+ * and hands it to the main thread. Shortcuts (Ctrl, Alt or Win held) are always shown; plain keys only when asked. */
+void ZoominatorController::handleKeyForDisplay(int vk)
+{
+	if (shuttingDown || is_modifier_vk(vk))
+		return;
+	const bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+	const bool alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+	const bool win = (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
+	const bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+	const bool shortcut = ctrl || alt || win;
+	if (!shortcut && !keyDisplayAll)
+		return;
+	const QString name = key_display_name(vk);
+	if (name.isEmpty())
+		return;
+
+	QStringList parts;
+	if (ctrl)
+		parts << QStringLiteral("Ctrl");
+	if (alt)
+		parts << QStringLiteral("Alt");
+	if (win)
+		parts << QStringLiteral("Win");
+	if (shift && shortcut)
+		parts << QStringLiteral("Shift");
+	parts << name;
+	const QString label = parts.join(QStringLiteral(" + "));
+	QMetaObject::invokeMethod(this, [this, label]() { showKeyLabel(label); }, Qt::QueuedConnection);
+}
+
 LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	if (nCode == HC_ACTION && g_ctl) {
@@ -200,6 +270,9 @@ LRESULT CALLBACK ZoominatorController::kb_hook_proc(int nCode, WPARAM wParam, LP
 			return CallNextHookEx((HHOOK)g_ctl->keyboardHook, nCode, wParam, lParam);
 
 		const int vk = (int)k->vkCode;
+
+		if (down && g_ctl->keyDisplayEnabled)
+			g_ctl->handleKeyForDisplay(vk);
 
 		if (g_ctl->followToggleHkValid && down && g_ctl->followToggleHotkeyVk != 0 &&
 		    vk_matches(vk, g_ctl->followToggleHotkeyVk) &&
@@ -823,7 +896,7 @@ bool ZoominatorController::needsKeyboardHook() const
 {
 	return triggerType == "keyboard" || followToggleHkValid || manualZoomInBinding.valid ||
 	       manualZoomOutBinding.valid || focusToggleBinding.valid || focusOnBinding.valid || focusOffBinding.valid ||
-	       (triggerType == "auto" && autoOnTyping);
+	       (triggerType == "auto" && autoOnTyping) || keyDisplayEnabled;
 }
 
 bool ZoominatorController::needsMouseHook() const
@@ -993,3 +1066,7 @@ void ZoominatorController::uninstallHooks()
 #endif
 }
 
+#if !defined(_WIN32)
+/* The key display is only implemented for Windows. */
+void ZoominatorController::handleKeyForDisplay(int) {}
+#endif

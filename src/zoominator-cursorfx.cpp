@@ -87,7 +87,7 @@ void ZoominatorController::refreshCursorRing()
 		},
 		&count);
 	const int pos = (int)obs_sceneitem_get_order_position(item);
-	const int lowest = guideShown ? count - 2 : count - 1;
+	const int lowest = count - std::max(1, overlayCount());
 	if (fresh || pos < lowest)
 		obs_sceneitem_set_order(item, OBS_ORDER_MOVE_TOP);
 
