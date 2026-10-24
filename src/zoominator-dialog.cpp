@@ -1116,13 +1116,6 @@ void ZoominatorDialog::buildUi()
 		});
 		lay->addSpacing(10);
 
-		addSection(lay, T("Dialog.Section.Developer"));
-
-		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
-		lay->addWidget(chkDebug);
-
-		lay->addSpacing(10);
-
 		addSection(lay, T("Dialog.Section.Sound"));
 
 		QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
@@ -1272,6 +1265,11 @@ void ZoominatorDialog::buildUi()
 				w->setEnabled(on);
 		});
 		lay->addSpacing(10);
+
+		addSection(lay, T("Dialog.Section.Developer"));
+
+		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
+		lay->addWidget(chkDebug);
 
 		lay->addStretch(1);
 		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Advanced"));
