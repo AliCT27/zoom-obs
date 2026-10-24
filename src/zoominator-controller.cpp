@@ -382,7 +382,6 @@ ZoominatorController::ZoominatorController()
 		refreshGuide();
 		refreshCursorRing();
 		refreshKeyDisplay();
-		refreshProgressBar();
 	});
 }
 
@@ -444,7 +443,6 @@ void ZoominatorController::shutdown()
 	hideGuideInAllScenes();
 	hideCursorRingInAllScenes();
 	hideKeyDisplayInAllScenes();
-	hideProgressBarInAllScenes();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
 		camFilter = nullptr;

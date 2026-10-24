@@ -2,7 +2,6 @@
 #include "guide-source.hpp"
 #include "cursor-fx-source.hpp"
 #include "key-display-source.hpp"
-#include "progress-bar-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "focus-blur-filter.hpp"
 #include "tilt-filter.hpp"
@@ -37,7 +36,6 @@ bool obs_module_load(void)
 	zoominator_guide::registerSource();
 	zoominator_cursorfx::registerSource();
 	zoominator_keys::registerSource();
-	zoominator_progress::registerSource();
 	zoominator_camring::registerFilter();
 	ZoominatorController::instance().initialize();
 
