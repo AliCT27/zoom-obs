@@ -401,6 +401,7 @@ void ZoominatorController::initialize()
 	zoominator_caret::start();
 	QTimer::singleShot(1500, this, [this]() {
 		installHooks();
+		installRecordButtonFilter();
 		/* Idle focus, the frame and idle 3D tilt are driven by the main tick, which
 		 * otherwise only starts with the first zoom. Start it now if they need it. */
 		refreshIdleFocusTicking();

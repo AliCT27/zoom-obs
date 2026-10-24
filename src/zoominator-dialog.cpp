@@ -1176,6 +1176,9 @@ void ZoominatorDialog::buildUi()
 		spCountdown->setSuffix(QStringLiteral(" s"));
 		spCountdown->setToolTip(T("Dialog.CountdownTooltip"));
 		lay->addWidget(mkField(T("Dialog.Countdown"), spCountdown));
+		chkCountdownDefault = new QCheckBox(T("Dialog.CountdownDefault"), page);
+		chkCountdownDefault->setToolTip(T("Dialog.CountdownDefaultTooltip"));
+		lay->addWidget(chkCountdownDefault);
 		lay->addSpacing(10);
 
 		addSection(lay, T("Dialog.Section.StatusHud"));
@@ -1682,6 +1685,7 @@ void ZoominatorDialog::loadFromController()
 			w->setEnabled(c.camRingEnabled && c.camLayoutEnabled);
 		chkDebug->setChecked(c.debug);
 		spCountdown->setValue(c.countdownSec);
+		chkCountdownDefault->setChecked(c.countdownOnDefaultRecord);
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
 		spGuideBottom->setValue(c.guideBottomPx);
@@ -1826,6 +1830,7 @@ void ZoominatorDialog::applyToController()
 		c.markerColor = (uint32_t)btnMarkerColor->property("markerRgba").toUInt();
 	c.debug = chkDebug->isChecked();
 	c.countdownSec = spCountdown->value();
+	c.countdownOnDefaultRecord = chkCountdownDefault->isChecked();
 	c.guideEnabled = chkGuide->isChecked();
 	c.guideTopPx = spGuideTop->value();
 	c.guideBottomPx = spGuideBottom->value();

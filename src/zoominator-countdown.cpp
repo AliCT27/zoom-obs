@@ -4,11 +4,13 @@
 #include "zoominator-countdown.hpp"
 #include "zoominator-internal.hpp"
 
+#include <QAbstractButton>
 #include <QCursor>
 #include <QFont>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QScreen>
+#include <QMouseEvent>
 #include <QTimer>
 
 ZoominatorCountdown::ZoominatorCountdown(QWidget *parent) : QWidget(parent)
@@ -96,6 +98,58 @@ void ZoominatorController::onCountdownTick()
 		if (!shuttingDown && !obs_frontend_recording_active())
 			obs_frontend_recording_start();
 	});
+}
+
+namespace {
+/* Sits on OBS's own Start Recording button. While the option is on, a click on it (when nothing is recording)
+ * starts the countdown instead of the recording; the countdown then starts the recording itself. */
+class RecordButtonFilter final : public QObject {
+public:
+	explicit RecordButtonFilter(ZoominatorController *c, QObject *parent) : QObject(parent), ctl(c) {}
+
+	bool eventFilter(QObject *obj, QEvent *event) override
+	{
+		if (!ctl || !ctl->countdownOnDefaultRecord || obs_frontend_recording_active())
+			return false;
+		auto *button = qobject_cast<QAbstractButton *>(obj);
+		if (!button)
+			return false;
+		switch (event->type()) {
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonDblClick:
+			return static_cast<QMouseEvent *>(event)->button() == Qt::LeftButton && button->isEnabled();
+		case QEvent::MouseButtonRelease: {
+			auto *me = static_cast<QMouseEvent *>(event);
+			if (me->button() != Qt::LeftButton || !button->isEnabled())
+				return false;
+			if (button->rect().contains(me->position().toPoint()))
+				ctl->startCountdownRecording();
+			return true;
+		}
+		default:
+			return false;
+		}
+	}
+
+private:
+	ZoominatorController *ctl;
+};
+} // namespace
+
+/* Main thread. Finds OBS's Start Recording button and puts the filter on it. Retried by the caller until the
+ * button exists. */
+void ZoominatorController::installRecordButtonFilter()
+{
+	if (recordButtonFilterInstalled || shuttingDown)
+		return;
+	auto *mainWin = static_cast<QWidget *>(obs_frontend_get_main_window());
+	if (!mainWin)
+		return;
+	auto *button = mainWin->findChild<QAbstractButton *>(QStringLiteral("recordButton"));
+	if (!button)
+		return;
+	button->installEventFilter(new RecordButtonFilter(this, button));
+	recordButtonFilterInstalled = true;
 }
 
 static void countdown_hotkey_cb(void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed)

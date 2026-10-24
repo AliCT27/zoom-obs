@@ -201,6 +201,8 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 
 	if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED)
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->refreshFrame(); });
+	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING)
+		QTimer::singleShot(0, ctl, [ctl]() { ctl->installRecordButtonFilter(); });
 
 	/* The safe-zone guide must never reach a recording, a stream or the virtual camera. These events come before
 	 * any frame is output, so hide it right here. */
