@@ -657,12 +657,6 @@ void ZoominatorDialog::buildUi()
 		btnFrameBg->setMinimumHeight(28);
 		btnFrameBg->setToolTip(T("Dialog.FrameBgTooltip"));
 
-		auto *frameColorRow = new QHBoxLayout;
-		frameColorRow->setSpacing(12);
-		frameColorRow->addWidget(mkField(T("Dialog.FrameColor"), btnFrameColor), 1);
-		frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
-		lay->addLayout(frameColorRow);
-
 		cmbFrameBgMode = new QComboBox(page);
 		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Solid"), 0);
 		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Linear"), 1);
@@ -677,11 +671,19 @@ void ZoominatorDialog::buildUi()
 		spFrameBgAngle->setSuffix(QString::fromUtf8("\xC2\xB0"));
 		spFrameBgAngle->setToolTip(T("Dialog.FrameBgAngleTooltip"));
 
+		/* The three colour buttons sit side by side; the background style and angle come under them. */
+		auto *frameColorRow = new QHBoxLayout;
+		frameColorRow->setSpacing(12);
+		frameColorRow->addWidget(mkField(T("Dialog.FrameColor"), btnFrameColor), 1);
+		frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
+		frameColorRow->addWidget(mkField(T("Dialog.FrameBg2"), btnFrameBg2), 1);
+		lay->addLayout(frameColorRow);
+
 		auto *frameGradRow = new QHBoxLayout;
 		frameGradRow->setSpacing(12);
 		frameGradRow->addWidget(mkField(T("Dialog.FrameBgMode"), cmbFrameBgMode), 1);
-		frameGradRow->addWidget(mkField(T("Dialog.FrameBg2"), btnFrameBg2), 1);
 		frameGradRow->addWidget(mkField(T("Dialog.FrameBgAngle"), spFrameBgAngle), 1);
+		frameGradRow->addStretch(1);
 		lay->addLayout(frameGradRow);
 
 		spFrameBorder = new QSpinBox(page);
