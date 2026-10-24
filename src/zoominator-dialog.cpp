@@ -1136,6 +1136,61 @@ void ZoominatorDialog::buildUi()
 		syncSoundFields();
 		lay->addSpacing(10);
 
+		addSection(lay, T("Dialog.Section.CursorRing"));
+
+		chkCursorRing = new QCheckBox(T("Dialog.CursorRing"), page);
+		chkCursorRing->setToolTip(T("Dialog.CursorRingTooltip"));
+		lay->addWidget(chkCursorRing);
+		chkCursorRingIdle = new QCheckBox(T("Dialog.CursorRingIdle"), page);
+		chkCursorRingIdle->setToolTip(T("Dialog.CursorRingIdleTooltip"));
+		lay->addWidget(chkCursorRingIdle);
+
+		spCursorRingSize = new QSpinBox(page);
+		spCursorRingSize->setRange(20, 400);
+		spCursorRingSize->setSingleStep(5);
+		spCursorRingSize->setSuffix(T("Unit.Pixels"));
+		spCursorRingSize->setToolTip(T("Dialog.CursorRingSizeTooltip"));
+		spCursorRingPx = new QSpinBox(page);
+		spCursorRingPx->setRange(1, 40);
+		spCursorRingPx->setSuffix(T("Unit.Pixels"));
+		spCursorRingPx->setToolTip(T("Dialog.CursorRingThicknessTooltip"));
+		btnCursorRingColor = new ColorButton(page);
+		btnCursorRingColor->setMinimumHeight(28);
+		btnCursorRingColor->setToolTip(T("Dialog.CursorRingColorTooltip"));
+		auto *cursorRingRow = new QHBoxLayout;
+		cursorRingRow->setSpacing(12);
+		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingSize"), spCursorRingSize), 1);
+		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingThickness"), spCursorRingPx), 1);
+		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingColor"), btnCursorRingColor), 1);
+		lay->addLayout(cursorRingRow);
+
+		chkCursorRingRainbow = new QCheckBox(T("Dialog.CursorRingRainbow"), page);
+		chkCursorRingRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+		spCursorRingSec = new QSpinBox(page);
+		spCursorRingSec->setRange(2, 120);
+		spCursorRingSec->setSuffix(QStringLiteral(" s"));
+		spCursorRingSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+		auto *cursorRainbowRow = new QHBoxLayout;
+		cursorRainbowRow->setSpacing(12);
+		cursorRainbowRow->addWidget(chkCursorRingRainbow, 1);
+		cursorRainbowRow->addWidget(mkField(T("Dialog.FrameRainbowSec"), spCursorRingSec), 1);
+		lay->addLayout(cursorRainbowRow);
+
+		auto syncCursorRingFields = [this]() {
+			const bool on = chkCursorRing->isChecked();
+			const bool rb = chkCursorRingRainbow->isChecked();
+			chkCursorRingIdle->setEnabled(on);
+			spCursorRingSize->setEnabled(on);
+			spCursorRingPx->setEnabled(on);
+			btnCursorRingColor->setEnabled(on && !rb);
+			chkCursorRingRainbow->setEnabled(on);
+			spCursorRingSec->setEnabled(on && rb);
+		};
+		connect(chkCursorRing, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
+		connect(chkCursorRingRainbow, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
+		syncCursorRingFields();
+		lay->addSpacing(10);
+
 		addSection(lay, T("Dialog.Section.Guide"));
 
 		chkGuide = new QCheckBox(T("Dialog.Guide"), page);
@@ -1351,6 +1406,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
 	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
 	connect(btnCamColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamColor); });
+	connect(btnCursorRingColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCursorRingColor); });
 	{
 		auto syncHaloFields = [this]() {
 			const bool on = chkShowCursorMarker->isChecked();
@@ -1686,6 +1742,19 @@ void ZoominatorDialog::loadFromController()
 		chkDebug->setChecked(c.debug);
 		spCountdown->setValue(c.countdownSec);
 		chkCountdownDefault->setChecked(c.countdownOnDefaultRecord);
+		chkCursorRing->setChecked(c.cursorRingEnabled);
+		chkCursorRingIdle->setChecked(c.cursorRingIdle);
+		spCursorRingSize->setValue(c.cursorRingSize);
+		spCursorRingPx->setValue(c.cursorRingPx);
+		setColorButton(btnCursorRingColor, c.cursorRingColor);
+		chkCursorRingRainbow->setChecked(c.cursorRingRainbow);
+		spCursorRingSec->setValue(c.cursorRingSec);
+		chkCursorRingIdle->setEnabled(c.cursorRingEnabled);
+		spCursorRingSize->setEnabled(c.cursorRingEnabled);
+		spCursorRingPx->setEnabled(c.cursorRingEnabled);
+		btnCursorRingColor->setEnabled(c.cursorRingEnabled && !c.cursorRingRainbow);
+		chkCursorRingRainbow->setEnabled(c.cursorRingEnabled);
+		spCursorRingSec->setEnabled(c.cursorRingEnabled && c.cursorRingRainbow);
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
 		spGuideBottom->setValue(c.guideBottomPx);
@@ -1831,6 +1900,13 @@ void ZoominatorDialog::applyToController()
 	c.debug = chkDebug->isChecked();
 	c.countdownSec = spCountdown->value();
 	c.countdownOnDefaultRecord = chkCountdownDefault->isChecked();
+	c.cursorRingEnabled = chkCursorRing->isChecked();
+	c.cursorRingIdle = chkCursorRingIdle->isChecked();
+	c.cursorRingSize = spCursorRingSize->value();
+	c.cursorRingPx = spCursorRingPx->value();
+	c.cursorRingColor = (uint32_t)btnCursorRingColor->property("rgba").toUInt();
+	c.cursorRingRainbow = chkCursorRingRainbow->isChecked();
+	c.cursorRingSec = spCursorRingSec->value();
 	c.guideEnabled = chkGuide->isChecked();
 	c.guideTopPx = spGuideTop->value();
 	c.guideBottomPx = spGuideBottom->value();

@@ -263,6 +263,13 @@ public:
 	int guideBottomPx = 670;
 	int guideLeftPx = 65;
 	int guideRightPx = 65;
+	bool cursorRingEnabled = false; /* a ring around the mouse cursor in the video */
+	bool cursorRingIdle = true;     /* also while the view is not zoomed */
+	int cursorRingSize = 90;        /* outer diameter at 1x, canvas pixels */
+	int cursorRingPx = 6;           /* stroke thickness at 1x */
+	uint32_t cursorRingColor = 0xFFFFFFFF;
+	bool cursorRingRainbow = false;
+	int cursorRingSec = 10;
 	bool countdownOnDefaultRecord = false; /* OBS's own Start Recording button also counts down first */
 	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */
@@ -397,6 +404,10 @@ private:
 	void updateIdleFocus(bool on);
 	bool wantsIdleFocus() const { return focusEnabled && showFocusWhenNotZoomed && (wantsDim() || wantsBlur()); }
 	void refreshIdleFocusTicking();
+	bool wantsCursorRingIdle() const { return cursorRingEnabled && cursorRingIdle && !shuttingDown; }
+	void refreshCursorRing();
+	void hideCursorRingInAllScenes();
+	void updateCursorRingIdle();
 
 	/* Frame overlay (zoominator-frame.cpp). Main thread only. */
 	void refreshFrame();
@@ -453,6 +464,10 @@ private:
 	double pendingFocusX = 0.0;
 	double pendingFocusY = 0.0;
 	int pendingFocusOpacity = 0;
+	bool pendingCursorVisible = false; /* cursor ring: published by the graphics thread, applied by onTick */
+	double pendingCursorX = 0.0;
+	double pendingCursorY = 0.0;
+	double pendingCursorZ = 1.0;
 	double pendingMarkerX = 0.0;
 	double pendingMarkerZ = 1.0;
 	double pendingMarkerY = 0.0;
@@ -617,6 +632,8 @@ private:
 	void publishDimSheet(); /* main thread, not zoomed: the screen's resting rectangle for the dim mask */
 	obs_source_t *frameSource = nullptr;
 	obs_source_t *guideSource = nullptr;
+	obs_source_t *cursorFxSource = nullptr;
+	bool cursorFxShown = false;
 	class ZoominatorCountdown *countdownWidget = nullptr;
 	QTimer countdownTimer;
 	int countdownLeft = 0;

@@ -161,6 +161,13 @@ private:
 	QCheckBox *chkDebug = nullptr;
 	QSpinBox *spCountdown = nullptr;
 	QCheckBox *chkCountdownDefault = nullptr;
+	QCheckBox *chkCursorRing = nullptr;
+	QCheckBox *chkCursorRingIdle = nullptr;
+	QSpinBox *spCursorRingSize = nullptr;
+	QSpinBox *spCursorRingPx = nullptr;
+	QPushButton *btnCursorRingColor = nullptr;
+	QCheckBox *chkCursorRingRainbow = nullptr;
+	QSpinBox *spCursorRingSec = nullptr;
 	QCheckBox *chkGuide = nullptr;
 	QSpinBox *spGuideTop = nullptr;
 	QSpinBox *spGuideBottom = nullptr;

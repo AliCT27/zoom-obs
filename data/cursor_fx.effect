@@ -1,0 +1,59 @@
+// Zoominator cursor effects: a canvas-sized overlay that draws a ring around the mouse cursor.
+//
+// All positions are in canvas pixels, origin top-left, like the scene items.
+
+uniform float4x4 ViewProj;
+
+uniform float2 canvas_px;
+uniform float2 ring_center;  // cursor position
+uniform float ring_radius;   // radius of the ring's centre line
+uniform float ring_width;    // thickness of the ring
+uniform float4 ring_color;
+uniform float ring_alpha;    // 0..1 overall opacity
+uniform float hue;           // radians the rainbow is turned round the colour wheel (the animation)
+uniform float flow;          // 1 = rainbow: the spectrum instead of the chosen colour, turning round the ring
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = vert_in.uv;
+	return vert_out;
+}
+
+// A pure, fully bright colour from the colour wheel (red at 0, then yellow, green, cyan, blue, magenta), like the lights of
+// an ARGB fan. Same function as in frame.effect and cam_ring.effect.
+float3 spectrum(float a)
+{
+	float h = frac(a / 6.2831853);
+	return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+}
+
+float4 PSRing(VertInOut vert_in) : TARGET
+{
+	float2 p = vert_in.uv * canvas_px;
+	float2 v = p - ring_center;
+
+	// Distance from the ring's centre line, minus half its thickness: negative inside the stroke.
+	float d = abs(length(v) - ring_radius) - ring_width * 0.5;
+	float a = saturate(0.5 - d) * ring_alpha;
+
+	float3 rc = ring_color.rgb;
+	if (flow > 0.5)
+		rc = spectrum(hue + atan2(v.y, v.x));
+	return float4(rc, a);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSRing(vert_in);
+	}
+}

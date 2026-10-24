@@ -10,6 +10,7 @@
 #include "dim-mask-filter.hpp"
 #include "frame-source.hpp"
 #include "guide-source.hpp"
+#include "cursor-fx-source.hpp"
 #include "cam-ring-filter.hpp"
 #include "caret-locator.hpp"
 

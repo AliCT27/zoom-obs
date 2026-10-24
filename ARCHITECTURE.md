@@ -32,6 +32,7 @@ over several files so each can be read on its own.
 | `zoominator-focus.cpp` | Focus dim, idle blur, and attaching/detaching the blur filter |
 | `zoominator-tilt.cpp` | 3D tilt filter and pose |
 | `zoominator-countdown.cpp` | 3-2-1 countdown before starting a recording (OBS hotkey and Tools menu) |
+| `zoominator-cursorfx.cpp`, `cursor-fx-source.cpp`, `data/cursor_fx.effect` | Cursor ring: a canvas-sized source in the scene; onTick tells it where the cursor is (zoomed: published by the graphics tick as `pendingCursor*`; not zoomed: read directly) |
 | `zoominator-guide.cpp`, `guide-source.cpp` | Reels safe-zone guide (a scene source shown only while nothing is recorded or streamed) |
 | `zoominator-input.cpp` | Global keyboard/mouse hooks (per platform) and install/uninstall |
 | `zoominator-triggers.cpp` | What a trigger does: start/stop zoom, automatic mode, pause, follow toggle |

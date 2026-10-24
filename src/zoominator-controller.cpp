@@ -380,6 +380,7 @@ ZoominatorController::ZoominatorController()
 		refreshFrame();
 		refreshCamRing();
 		refreshGuide();
+		refreshCursorRing();
 	});
 }
 
@@ -439,6 +440,7 @@ void ZoominatorController::shutdown()
 	releaseSoundSources();
 	zoominator_frame::clearRect();
 	hideGuideInAllScenes();
+	hideCursorRingInAllScenes();
 	if (camFilter) {
 		zoominator_camring::detach(camFilterTarget, camFilter);
 		camFilter = nullptr;
@@ -859,6 +861,10 @@ void ZoominatorController::applyZoomToScene(double t)
 			pendingMarkerY = (double)anchorY + ((double)markerSceneY - (double)fy) * z + offsetY;
 				pendingFocusVisible = focusEnabled && mapped && snapInside;
 			pendingFocusFresh = true;
+			pendingCursorVisible = cursorRingEnabled && mapped && snapInside;
+			pendingCursorZ = z;
+			pendingCursorX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
+			pendingCursorY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
 			pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
 			pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
 				pendingFocusOpacity = (int)std::lround(ttA * 255.0);
@@ -973,6 +979,10 @@ void ZoominatorController::applyZoomToScene(double t)
 		pendingFocusX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
 		pendingFocusY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
 		pendingFocusOpacity = (int)std::lround(ttA * 255.0);
+		pendingCursorVisible = cursorRingEnabled && mapped && snapInside;
+		pendingCursorZ = z;
+		pendingCursorX = (double)anchorX + ((double)mx - (double)fx) * z + offsetX;
+		pendingCursorY = (double)anchorY + ((double)my - (double)fy) * z + offsetY;
 	}
 }
 
@@ -1003,11 +1013,13 @@ void ZoominatorController::onTick()
 	}
 
 	const bool zoomTickWanted = tickingWanted.load(std::memory_order_acquire);
+	if (!zoomTickWanted)
+		updateCursorRingIdle();
 	const bool idleFocus = !zoomTickWanted && wantsIdleFocus();
 	if (idleFocus || (!zoomTickWanted && (focusRt.shown || !idleBlurs.empty())))
 		updateIdleFocus(idleFocus);
 	if (!zoomTickWanted && !mk.clickHasPos) {
-		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
+		if (!idleFocus && !idleFollowX && !tilt3dEnabled && !wantsCursorRingIdle())
 			ensureTicking(false);
 		return;
 	}
@@ -1017,7 +1029,7 @@ void ZoominatorController::onTick()
 		mk.flashStartMs = 0;
 		mk.flashHoldUntilMs = 0;
 		mk.flashFadeOutEndMs = 0;
-		if (!idleFocus && !idleFollowX && !tilt3dEnabled)
+		if (!idleFocus && !idleFollowX && !tilt3dEnabled && !wantsCursorRingIdle())
 			ensureTicking(false);
 		return;
 	}
@@ -1048,7 +1060,7 @@ void ZoominatorController::onTick()
 			mk.flashStartMs = 0;
 			mk.flashHoldUntilMs = 0;
 			mk.flashFadeOutEndMs = 0;
-			if (!idleFocus && !idleFollowX && !tilt3dEnabled)
+			if (!idleFocus && !idleFollowX && !tilt3dEnabled && !wantsCursorRingIdle())
 				ensureTicking(false);
 		}
 		return;
@@ -1137,8 +1149,14 @@ void ZoominatorController::onTick()
 		double focusX = 0.0, focusY = 0.0;
 		int focusOpacity = 0;
 		bool focusFresh = false;
+		bool cursorVisible = false;
+		double cursorX = 0.0, cursorY = 0.0, cursorZ = 1.0;
 		{
 			std::lock_guard<std::mutex> lock(inputMutex);
+			cursorVisible = pendingCursorVisible;
+			cursorX = pendingCursorX;
+			cursorY = pendingCursorY;
+			cursorZ = pendingCursorZ;
 			markerVisible = pendingMarkerVisible;
 			markerX = pendingMarkerX;
 			markerY = pendingMarkerY;
@@ -1154,6 +1172,13 @@ void ZoominatorController::onTick()
 		 * zooming and only its radius eases; otherwise it fades with the zoom. */
 		applyTiltToIdlePoint(focusX, focusY);
 		applyTiltToIdlePoint(markerX, markerY);
+		applyTiltToIdlePoint(cursorX, cursorY);
+		{
+			/* At 1x (sideways follow) the ring obeys "also when not zoomed". */
+			const bool ringZoomed = zoomedView() || animT > 0.001;
+			zoominator_cursorfx::setCursor(cursorVisible && (cursorRingIdle || ringZoomed), cursorX, cursorY,
+						       std::max(1.0, cursorZ));
+		}
 		const bool keepIdle = showFocusWhenNotZoomed && wantsDim();
 		if (wantsDim() && focusVisible && (focusOpacity > 0 || keepIdle)) {
 			updateFocus(sc, focusX, focusY, keepIdle ? 255 : focusOpacity, false, focusOpacity);
@@ -1306,6 +1331,7 @@ void ZoominatorController::finishZoomOnMainThread()
 		pendingFocusVisible = false;
 		pendingFocusFresh = false;
 		pendingFocusOpacity = 0;
+		pendingCursorVisible = false;
 	}
 
 	obs_source_t *staleRef = nullptr;
