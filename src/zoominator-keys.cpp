@@ -58,9 +58,9 @@ void ZoominatorController::showKeyLabel(const QString &label)
 		p.setRenderHint(QPainter::TextAntialiasing, true);
 		p.setFont(font);
 		double x = margin;
-		for (size_t i = 0; i < parts.size(); ++i) {
-			const QRectF base(x, margin + lift, capW[i], capH);
-			const QRectF top(x, margin, capW[i], capH);
+		for (int i = 0; i < (int)parts.size(); ++i) {
+			const QRectF base(x, margin + lift, capW[(size_t)i], capH);
+			const QRectF top(x, margin, capW[(size_t)i], capH);
 			p.setPen(Qt::NoPen);
 			p.setBrush(QColor(8, 9, 12, 235)); /* the edge under the cap */
 			p.drawRoundedRect(base, radius, radius);
@@ -68,8 +68,8 @@ void ZoominatorController::showKeyLabel(const QString &label)
 			p.setPen(QPen(QColor(120, 128, 146, 255), std::max(1.5, textPx * 0.035)));
 			p.drawRoundedRect(top, radius, radius);
 			p.setPen(QColor(245, 247, 250));
-			p.drawText(top, Qt::AlignCenter, parts[(int)i]);
-			x += capW[i] + gap;
+			p.drawText(top, Qt::AlignCenter, parts[i]);
+			x += capW[(size_t)i] + gap;
 		}
 	}
 
