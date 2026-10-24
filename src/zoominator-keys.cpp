@@ -7,6 +7,7 @@
 #include <QFontMetrics>
 #include <QImage>
 #include <QPainter>
+#include <QLinearGradient>
 #include <QPainterPath>
 
 /* Main thread. Paints the key caps for a label such as "Ctrl + Shift + P" and shows them. */
@@ -31,13 +32,13 @@ void ZoominatorController::showKeyLabel(const QString &label)
 	if (parts.isEmpty())
 		return;
 
-	const double padX = textPx * 0.42;
-	const double padY = textPx * 0.26;
+	const double padX = textPx * 0.5;
+	const double padY = textPx * 0.3;
 	/* Room for the "+" between two key caps, with some air on both sides of it. */
 	const double gap = (double)fm.horizontalAdvance(QStringLiteral("+")) + textPx * 0.6;
-	const double radius = textPx * 0.26;
-	const double lift = std::max(2.0, textPx * 0.08); /* the darker bottom edge of a key cap */
-	const double margin = std::max(4.0, textPx * 0.2);
+	const double radius = textPx * 0.3;
+	const double lift = std::max(3.0, textPx * 0.1); /* the visible thickness (front face) of a key cap */
+	const double margin = std::max(6.0, textPx * 0.45); /* room for the soft shadow */
 
 	const double capH = fm.height() + 2.0 * padY;
 	std::vector<double> capW;
@@ -59,20 +60,53 @@ void ZoominatorController::showKeyLabel(const QString &label)
 		p.setRenderHint(QPainter::TextAntialiasing, true);
 		p.setFont(font);
 		double x = margin;
+		const double line = std::max(1.0, textPx * 0.03);
 		for (int i = 0; i < (int)parts.size(); ++i) {
-			const QRectF base(x, margin + lift, capW[(size_t)i], capH);
 			const QRectF top(x, margin, capW[(size_t)i], capH);
+			const QRectF base(x, margin + lift, capW[(size_t)i], capH);
+
+			/* Soft shadow under the key: a few growing, nearly transparent shapes. */
 			p.setPen(Qt::NoPen);
-			p.setBrush(QColor(8, 9, 12, 235)); /* the edge under the cap */
+			for (int s = 1; s <= 7; ++s) {
+				const double grow = textPx * 0.045 * s;
+				p.setBrush(QColor(0, 0, 0, 20));
+				p.drawRoundedRect(base.adjusted(-grow, -grow * 0.4, grow, grow * 1.3), radius + grow, radius + grow);
+			}
+
+			/* The front face (thickness) of the key. */
+			QLinearGradient face(0, base.top(), 0, base.bottom());
+			face.setColorAt(0.0, QColor(34, 37, 45));
+			face.setColorAt(1.0, QColor(10, 11, 15));
+			p.setBrush(face);
 			p.drawRoundedRect(base, radius, radius);
-			p.setBrush(QColor(38, 41, 49, 245));
-			p.setPen(QPen(QColor(120, 128, 146, 255), std::max(1.5, textPx * 0.035)));
+
+			/* The top of the key: a light-to-dark gradient with a thin border and a bright rim on its upper edge. */
+			QLinearGradient cap(0, top.top(), 0, top.bottom());
+			cap.setColorAt(0.0, QColor(74, 80, 96));
+			cap.setColorAt(0.55, QColor(48, 52, 63));
+			cap.setColorAt(1.0, QColor(36, 39, 48));
+			p.setBrush(cap);
+			p.setPen(QPen(QColor(14, 15, 20), line * 1.6));
 			p.drawRoundedRect(top, radius, radius);
-			p.setPen(QColor(245, 247, 250));
+			QLinearGradient rim(0, top.top(), 0, top.bottom());
+			rim.setColorAt(0.0, QColor(255, 255, 255, 120));
+			rim.setColorAt(0.45, QColor(255, 255, 255, 0));
+			p.setBrush(Qt::NoBrush);
+			p.setPen(QPen(QBrush(rim), line * 1.4));
+			const double inset = line * 1.6;
+			p.drawRoundedRect(top.adjusted(inset, inset, -inset, -inset), radius - inset, radius - inset);
+
+			/* The label, with a small shadow so it stays readable on a bright background. */
+			p.setPen(QColor(0, 0, 0, 130));
+			p.drawText(top.translated(0, textPx * 0.04), Qt::AlignCenter, parts[i]);
+			p.setPen(QColor(248, 249, 252));
 			p.drawText(top, Qt::AlignCenter, parts[i]);
+
 			if (i + 1 < (int)parts.size()) {
 				const QRectF plus(x + capW[(size_t)i], margin, gap, capH);
-				p.setPen(QColor(245, 247, 250, 230));
+				p.setPen(QColor(0, 0, 0, 130));
+				p.drawText(plus.translated(0, textPx * 0.04), Qt::AlignCenter, QStringLiteral("+"));
+				p.setPen(QColor(235, 238, 244, 235));
 				p.drawText(plus, Qt::AlignCenter, QStringLiteral("+"));
 			}
 			x += capW[(size_t)i] + gap;
