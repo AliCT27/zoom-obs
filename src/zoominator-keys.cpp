@@ -33,7 +33,8 @@ void ZoominatorController::showKeyLabel(const QString &label)
 
 	const double padX = textPx * 0.42;
 	const double padY = textPx * 0.26;
-	const double gap = textPx * 0.62; /* room for the "+" between two key caps */
+	/* Room for the "+" between two key caps, with some air on both sides of it. */
+	const double gap = (double)fm.horizontalAdvance(QStringLiteral("+")) + textPx * 0.6;
 	const double radius = textPx * 0.26;
 	const double lift = std::max(2.0, textPx * 0.08); /* the darker bottom edge of a key cap */
 	const double margin = std::max(4.0, textPx * 0.2);
