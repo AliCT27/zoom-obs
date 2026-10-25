@@ -1573,21 +1573,36 @@ static QIcon strokeIcon(const QWidget *w, bool plus)
 void ZoominatorDialog::rebuildKeyIgnoreChips()
 {
 	while (QLayoutItem *it = keyIgnoreChips->takeAt(0)) {
-		delete it->widget();
+		if (QWidget *w = it->widget()) {
+			w->hide();
+			w->deleteLater(); /* may be called from the click of one of these very widgets */
+		}
 		delete it;
 	}
 	for (int key : keyIgnoreQt) {
-		auto *chip = new QPushButton(QKeySequence(key).toString(QKeySequence::NativeText), this);
-		chip->setIcon(strokeIcon(this, false));
-		chip->setIconSize(QSize(14, 14));
-		chip->setLayoutDirection(Qt::RightToLeft); /* cross on the right of the key name */
-		chip->setMinimumHeight(30);
-		chip->setToolTip(T("Dialog.KeyIgnoreRemoveTooltip"));
+		const QString name = QKeySequence(key).toString(QKeySequence::NativeText);
+		/* A chip is a framed key name with its own small remove button; only that button removes the key. */
+		auto *chip = new QFrame(this);
+		chip->setObjectName(QStringLiteral("keyIgnoreChip"));
+		chip->setStyleSheet(QStringLiteral("#keyIgnoreChip { border: 1px solid #6e6e78; border-radius: 6px; }"));
 		chip->setEnabled(chkKeyDisplay->isChecked());
-		connect(chip, &QPushButton::clicked, this, [this, key]() {
+		auto *row = new QHBoxLayout(chip);
+		row->setContentsMargins(10, 2, 3, 2);
+		row->setSpacing(6);
+		row->addWidget(new QLabel(name, chip));
+		auto *remove = new QPushButton(chip);
+		remove->setIcon(strokeIcon(this, false));
+		remove->setIconSize(QSize(12, 12));
+		remove->setFixedSize(24, 24);
+		remove->setToolTip(T("Dialog.KeyIgnoreRemoveTooltip"));
+		connect(remove, &QPushButton::clicked, this, [this, key, name]() {
+			if (QMessageBox::question(this, T("Dialog.KeyIgnoreRemoveTitle"),
+						  T("Dialog.KeyIgnoreRemoveAsk").arg(name)) != QMessageBox::Yes)
+				return;
 			keyIgnoreQt.removeAll(key);
 			rebuildKeyIgnoreChips();
 		});
+		row->addWidget(remove);
 		keyIgnoreChips->addWidget(chip);
 	}
 }
