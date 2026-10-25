@@ -321,80 +321,11 @@ void ZoominatorController::loadSettings()
 		hotkeySequence = QStringLiteral("Ctrl+F1");
 	hotkeyMode = getStr("hotkey_mode");
 	followToggleHotkeySequence = getStr("follow_toggle_hotkey");
+	/* Its virtual key and modifiers are worked out in rebuildTriggersFromSettings(), called at the end. */
 	if (hotkeyMode != "toggle")
 		hotkeyMode = "hold";
 
 	triggerType = getStr("trigger_type");
-	QKeySequence followSeq(followToggleHotkeySequence);
-	if (!followSeq.isEmpty()) {
-		const QKeyCombination kc = followSeq[0];
-		const auto mods = kc.keyboardModifiers();
-		const int key = int(kc.key());
-		followToggleHotkeyVk = qtKeyToVk(key);
-		followToggleModCtrl = mods.testFlag(Qt::ControlModifier);
-		followToggleModAlt = mods.testFlag(Qt::AltModifier);
-		followToggleModShift = mods.testFlag(Qt::ShiftModifier);
-		followToggleModWin = mods.testFlag(Qt::MetaModifier);
-
-#ifdef _WIN32
-		const bool keyIsModifier = (followToggleHotkeyVk == VK_CONTROL || followToggleHotkeyVk == VK_LCONTROL ||
-					    followToggleHotkeyVk == VK_RCONTROL || followToggleHotkeyVk == VK_MENU ||
-					    followToggleHotkeyVk == VK_LMENU || followToggleHotkeyVk == VK_RMENU ||
-					    followToggleHotkeyVk == VK_SHIFT || followToggleHotkeyVk == VK_LSHIFT ||
-					    followToggleHotkeyVk == VK_RSHIFT || followToggleHotkeyVk == VK_LWIN ||
-					    followToggleHotkeyVk == VK_RWIN);
-#elif defined(__APPLE__)
-		const bool keyIsModifier =
-			(followToggleHotkeyVk == kVK_Control || followToggleHotkeyVk == kVK_RightControl ||
-			 followToggleHotkeyVk == kVK_Option || followToggleHotkeyVk == kVK_RightOption ||
-			 followToggleHotkeyVk == kVK_Shift || followToggleHotkeyVk == kVK_RightShift ||
-			 followToggleHotkeyVk == kVK_Command || followToggleHotkeyVk == kVK_RightCommand);
-#elif defined(__linux__)
-		const bool keyIsModifier = (followToggleHotkeyVk == XK_Control_L ||
-					    followToggleHotkeyVk == XK_Control_R || followToggleHotkeyVk == XK_Alt_L ||
-					    followToggleHotkeyVk == XK_Alt_R || followToggleHotkeyVk == XK_Shift_L ||
-					    followToggleHotkeyVk == XK_Shift_R || followToggleHotkeyVk == XK_Super_L ||
-					    followToggleHotkeyVk == XK_Super_R);
-#else
-		const bool keyIsModifier = false;
-#endif
-
-		if (keyIsModifier && mods == Qt::NoModifier) {
-#ifdef _WIN32
-			followToggleModCtrl = (followToggleHotkeyVk == VK_CONTROL ||
-					       followToggleHotkeyVk == VK_LCONTROL ||
-					       followToggleHotkeyVk == VK_RCONTROL);
-			followToggleModAlt = (followToggleHotkeyVk == VK_MENU || followToggleHotkeyVk == VK_LMENU ||
-					      followToggleHotkeyVk == VK_RMENU);
-			followToggleModShift = (followToggleHotkeyVk == VK_SHIFT || followToggleHotkeyVk == VK_LSHIFT ||
-						followToggleHotkeyVk == VK_RSHIFT);
-			followToggleModWin = (followToggleHotkeyVk == VK_LWIN || followToggleHotkeyVk == VK_RWIN);
-#elif defined(__APPLE__)
-			followToggleModCtrl =
-				(followToggleHotkeyVk == kVK_Control || followToggleHotkeyVk == kVK_RightControl);
-			followToggleModAlt =
-				(followToggleHotkeyVk == kVK_Option || followToggleHotkeyVk == kVK_RightOption);
-			followToggleModShift =
-				(followToggleHotkeyVk == kVK_Shift || followToggleHotkeyVk == kVK_RightShift);
-			followToggleModWin =
-				(followToggleHotkeyVk == kVK_Command || followToggleHotkeyVk == kVK_RightCommand);
-#elif defined(__linux__)
-			followToggleModCtrl =
-				(followToggleHotkeyVk == XK_Control_L || followToggleHotkeyVk == XK_Control_R);
-			followToggleModAlt = (followToggleHotkeyVk == XK_Alt_L || followToggleHotkeyVk == XK_Alt_R);
-			followToggleModShift =
-				(followToggleHotkeyVk == XK_Shift_L || followToggleHotkeyVk == XK_Shift_R);
-			followToggleModWin = (followToggleHotkeyVk == XK_Super_L || followToggleHotkeyVk == XK_Super_R);
-#else
-			followToggleHotkeyVk = 0;
-#endif
-		}
-
-		followToggleHkValid = (followToggleHotkeyVk != 0) &&
-				      (followToggleModCtrl || followToggleModAlt || followToggleModShift ||
-				       followToggleModWin || key != 0);
-	}
-
 	if (triggerType != "mouse" && triggerType != "auto")
 		triggerType = "keyboard";
 
