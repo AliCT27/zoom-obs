@@ -275,9 +275,10 @@ public:
 	int keyDisplaySize = 64;        /* key cap text height for a 1080-wide canvas */
 	int keyDisplayYPct = 58;        /* vertical position, percent of the canvas height */
 	double keyDisplaySec = 1.7;     /* seconds the key caps stay after the last key press, fade-out included */
-	QList<int> keyDisplayIgnoreQt;  /* Qt key codes that are never shown by the key display */
+	QList<int> keyDisplayIgnoreQt;  /* Qt key combinations (key + modifiers) that the key display never shows */
 	static constexpr int kMaxIgnoredKeys = 32;
 	std::atomic<int> keyIgnoreVk[kMaxIgnoredKeys]{}; /* the same keys as virtual-key codes, read by the keyboard hook */
+	std::atomic<int> keyIgnoreMods[kMaxIgnoredKeys]{}; /* modifier bits of each entry: 1 Ctrl, 2 Alt, 4 Shift, 8 Win */
 	std::atomic<int> keyIgnoreCount{0};
 	bool countdownOnDefaultRecord = false; /* OBS's own Start Recording button also counts down first */
 	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
