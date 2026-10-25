@@ -172,6 +172,7 @@ private:
 	QCheckBox *chkKeyDisplayAll = nullptr;
 	QSpinBox *spKeyDisplaySize = nullptr;
 	QSpinBox *spKeyDisplayY = nullptr;
+	QDoubleSpinBox *spKeyDisplaySec = nullptr;
 	QPushButton *btnKeyDisplayReset = nullptr;
 	QCheckBox *chkGuide = nullptr;
 	QSpinBox *spGuideTop = nullptr;
