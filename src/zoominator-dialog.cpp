@@ -20,6 +20,9 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QColorDialog>
 #include <QPen>
 #include <QPainter>
+#include <QIcon>
+#include <QPixmap>
+#include <QPalette>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFrame>
@@ -236,6 +239,8 @@ void ZoominatorDialog::obsSourceChanged(void *data, struct calldata *)
 	if (dlg)
 		QMetaObject::invokeMethod(dlg, "populateSourcesTab", Qt::QueuedConnection);
 }
+
+static QIcon strokeIcon(const QWidget *w, bool plus);
 
 void ZoominatorDialog::buildUi()
 {
@@ -1299,8 +1304,10 @@ void ZoominatorDialog::buildUi()
 		keyIgnoreChips = new QHBoxLayout;
 		keyIgnoreChips->setSpacing(6);
 		ignoreRow->addLayout(keyIgnoreChips);
-		btnKeyIgnoreAdd = new QPushButton(QStringLiteral("+"), page);
-		btnKeyIgnoreAdd->setFixedWidth(32);
+		btnKeyIgnoreAdd = new QPushButton(page);
+		btnKeyIgnoreAdd->setIcon(strokeIcon(page, true));
+		btnKeyIgnoreAdd->setIconSize(QSize(14, 14));
+		btnKeyIgnoreAdd->setFixedSize(36, 30);
 		btnKeyIgnoreAdd->setToolTip(T("Dialog.KeyIgnoreAddTooltip"));
 		connect(btnKeyIgnoreAdd, &QPushButton::clicked, this, [this]() {
 			QDialog ask(this);
@@ -1525,6 +1532,35 @@ void ZoominatorDialog::buildUi()
 	}
 }
 
+/* A "+" or a cross drawn with two strokes, so it looks the same on every font and size. */
+static QIcon strokeIcon(const QWidget *w, bool plus)
+{
+	QIcon icon;
+	const qreal dpr = w->devicePixelRatioF();
+	const int px = 14;
+	for (const bool enabled : {true, false}) {
+		QPixmap pm(int(px * dpr), int(px * dpr));
+		pm.setDevicePixelRatio(dpr);
+		pm.fill(Qt::transparent);
+		QPainter p(&pm);
+		p.setRenderHint(QPainter::Antialiasing, true);
+		QPen pen(w->palette().color(enabled ? QPalette::Active : QPalette::Disabled, QPalette::ButtonText), 1.8);
+		pen.setCapStyle(Qt::RoundCap);
+		p.setPen(pen);
+		const qreal a = plus ? 2.0 : 3.5, b = px - a, m = px / 2.0;
+		if (plus) {
+			p.drawLine(QPointF(a, m), QPointF(b, m));
+			p.drawLine(QPointF(m, a), QPointF(m, b));
+		} else {
+			p.drawLine(QPointF(a, a), QPointF(b, b));
+			p.drawLine(QPointF(a, b), QPointF(b, a));
+		}
+		p.end();
+		icon.addPixmap(pm, enabled ? QIcon::Normal : QIcon::Disabled);
+	}
+	return icon;
+}
+
 void ZoominatorDialog::rebuildKeyIgnoreChips()
 {
 	while (QLayoutItem *it = keyIgnoreChips->takeAt(0)) {
@@ -1532,8 +1568,11 @@ void ZoominatorDialog::rebuildKeyIgnoreChips()
 		delete it;
 	}
 	for (int key : keyIgnoreQt) {
-		auto *chip = new QPushButton(QKeySequence(key).toString(QKeySequence::NativeText) + QStringLiteral(" \u00D7"),
-					     this);
+		auto *chip = new QPushButton(QKeySequence(key).toString(QKeySequence::NativeText), this);
+		chip->setIcon(strokeIcon(this, false));
+		chip->setIconSize(QSize(14, 14));
+		chip->setLayoutDirection(Qt::RightToLeft); /* cross on the right of the key name */
+		chip->setMinimumHeight(30);
 		chip->setToolTip(T("Dialog.KeyIgnoreRemoveTooltip"));
 		chip->setEnabled(chkKeyDisplay->isChecked());
 		connect(chip, &QPushButton::clicked, this, [this, key]() {
