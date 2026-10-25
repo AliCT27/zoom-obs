@@ -30,10 +30,15 @@ over several files so each can be read on its own.
 | `zoominator-screen.cpp` | Which monitor/window is captured; maps the cursor to scene pixels (per platform) |
 | `zoominator-marker.cpp` | Click halo |
 | `zoominator-focus.cpp` | Focus dim, idle blur, and attaching/detaching the blur filter |
-| `zoominator-tilt.cpp` | 3D tilt filter and pose |
+| `zoominator-tilt.cpp`, `tilt-filter.cpp/.hpp`, `data/tilt3d.effect` | 3D camera: a filter that turns the captured screen like a sheet towards the mouse; one shared pose that the frame, spotlight and halo placement also read |
 | `zoominator-countdown.cpp` | 3-2-1 countdown before starting a recording (OBS hotkey and Tools menu) |
-| `zoominator-cursorfx.cpp`, `cursor-fx-source.cpp`, `data/cursor_fx.effect` | Cursor ring: a canvas-sized source in the scene; onTick tells it where the cursor is (zoomed: published by the graphics tick as `pendingCursor*`; not zoomed: read directly) |
+| `zoominator-cursorfx.cpp`, `cursor-fx-source.cpp`, `data/cursor_fx.effect` | Cursor ring: a canvas-sized source in the scene; onTick tells it where the cursor is (always published by `applyZoomToScene` as `pendingCursor*` and consumed in `onTick`) |
 | `zoominator-keys.cpp`, `key-display-source.cpp`, `data/key_label.effect` | Key display: the keyboard hook (Windows, `handleKeyForDisplay` in `zoominator-input.cpp`) builds a label, the main thread paints key caps into a BGRA picture, the source draws it with a fade |
+| `zoominator-frame.cpp`, `frame-source.cpp/.hpp`, `data/frame.effect` | Frame: a canvas-sized source that fills everything outside the captured screen with a colour and draws a glowing rounded border along the screen's edges; the screen rectangle is pushed to it every frame while zooming |
+| `zoominator-camring.cpp`, `cam-ring-filter.cpp/.hpp`, `data/cam_ring.effect` | Webcam ring: a filter on the webcam source draws the circle, ring and glow; the controller attaches it and moves the webcam item with the zoom |
+| `zoominator-hud.cpp/.hpp` | Status badge on the user's own monitor (zoom level, Focus on/off, recording time); click-through and excluded from screen capture |
+| `zoominator-sound.cpp` | Sound effects for zoom in, zoom out and typing, played through hidden media sources straight into the recording |
+| `dim-mask-filter.cpp/.hpp`, `data/dim_mask.effect` | Filter for the focus dim image: keeps the dim only where the captured screen is |
 | `zoominator-guide.cpp`, `guide-source.cpp` | Reels safe-zone guide (a scene source shown only while nothing is recorded or streamed) |
 | `zoominator-input.cpp` | Global keyboard/mouse hooks (per platform) and install/uninstall |
 | `zoominator-triggers.cpp` | What a trigger does: start/stop zoom, automatic mode, pause, follow toggle |
