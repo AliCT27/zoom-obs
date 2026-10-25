@@ -8,6 +8,7 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QFrame;
+class QHBoxLayout;
 class QKeySequenceEdit;
 class QLineEdit;
 class QLabel;
@@ -174,6 +175,10 @@ private:
 	QSpinBox *spKeyDisplayY = nullptr;
 	QDoubleSpinBox *spKeyDisplaySec = nullptr;
 	QPushButton *btnKeyDisplayReset = nullptr;
+	QPushButton *btnKeyIgnoreAdd = nullptr;
+	QHBoxLayout *keyIgnoreChips = nullptr;
+	QList<int> keyIgnoreQt;
+	void rebuildKeyIgnoreChips();
 	QCheckBox *chkGuide = nullptr;
 	QSpinBox *spGuideTop = nullptr;
 	QSpinBox *spGuideBottom = nullptr;
