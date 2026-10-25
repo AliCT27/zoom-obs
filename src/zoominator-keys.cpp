@@ -117,6 +117,7 @@ void ZoominatorController::showKeyLabel(const QString &label)
 	for (int y = 0; y < imgH; ++y)
 		memcpy(bytes.data() + (size_t)y * (size_t)imgW * 4u, img.constScanLine(y), (size_t)imgW * 4u);
 	zoominator_keys::setPlacement(std::clamp(keyDisplayYPct, 5, 95));
+	zoominator_keys::setDuration(keyDisplaySec);
 	zoominator_keys::show(bytes, imgW, imgH);
 }
 
@@ -133,6 +134,7 @@ void ZoominatorController::refreshKeyDisplay()
 		return;
 	}
 	zoominator_keys::setPlacement(std::clamp(keyDisplayYPct, 5, 95));
+	zoominator_keys::setDuration(keyDisplaySec);
 
 	obs_source_t *sceneSource = obs_frontend_get_current_scene();
 	obs_scene_t *scene = sceneSource ? obs_scene_from_source(sceneSource) : nullptr;

@@ -1273,11 +1273,19 @@ void ZoominatorDialog::buildUi()
 		keyDisplayRow->setSpacing(12);
 		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySize"), spKeyDisplaySize), 1);
 		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplayY"), spKeyDisplayY), 1);
+		spKeyDisplaySec = new QDoubleSpinBox(page);
+		spKeyDisplaySec->setRange(0.5, 10.0);
+		spKeyDisplaySec->setDecimals(1);
+		spKeyDisplaySec->setSingleStep(0.1);
+		spKeyDisplaySec->setSuffix(QStringLiteral(" s"));
+		spKeyDisplaySec->setToolTip(T("Dialog.KeyDisplaySecTooltip"));
+		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySec"), spKeyDisplaySec), 1);
 		btnKeyDisplayReset = new QPushButton(T("Dialog.KeyDisplayReset"), page);
 		btnKeyDisplayReset->setToolTip(T("Dialog.KeyDisplayResetTooltip"));
 		connect(btnKeyDisplayReset, &QPushButton::clicked, this, [this]() {
 			spKeyDisplaySize->setValue(64);
 			spKeyDisplayY->setValue(58);
+			spKeyDisplaySec->setValue(1.7);
 		});
 		keyDisplayRow->addWidget(btnKeyDisplayReset, 0, Qt::AlignBottom);
 		lay->addLayout(keyDisplayRow);
@@ -1285,6 +1293,7 @@ void ZoominatorDialog::buildUi()
 			chkKeyDisplayAll->setEnabled(on);
 			spKeyDisplaySize->setEnabled(on);
 			spKeyDisplayY->setEnabled(on);
+			spKeyDisplaySec->setEnabled(on);
 			btnKeyDisplayReset->setEnabled(on);
 		});
 		lay->addSpacing(10);
@@ -1812,9 +1821,11 @@ void ZoominatorDialog::loadFromController()
 		chkKeyDisplayAll->setChecked(c.keyDisplayAll);
 		spKeyDisplaySize->setValue(c.keyDisplaySize);
 		spKeyDisplayY->setValue(c.keyDisplayYPct);
+		spKeyDisplaySec->setValue(c.keyDisplaySec);
 		chkKeyDisplayAll->setEnabled(c.keyDisplayEnabled);
 		spKeyDisplaySize->setEnabled(c.keyDisplayEnabled);
 		spKeyDisplayY->setEnabled(c.keyDisplayEnabled);
+		spKeyDisplaySec->setEnabled(c.keyDisplayEnabled);
 		btnKeyDisplayReset->setEnabled(c.keyDisplayEnabled);
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
@@ -1972,6 +1983,7 @@ void ZoominatorDialog::applyToController()
 	c.keyDisplayAll = chkKeyDisplayAll->isChecked();
 	c.keyDisplaySize = spKeyDisplaySize->value();
 	c.keyDisplayYPct = spKeyDisplayY->value();
+	c.keyDisplaySec = spKeyDisplaySec->value();
 	c.guideEnabled = chkGuide->isChecked();
 	c.guideTopPx = spGuideTop->value();
 	c.guideBottomPx = spGuideBottom->value();

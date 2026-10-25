@@ -16,7 +16,7 @@ constexpr const char *kSourceName = "Zoominator Key Display";
 constexpr const char *kEffectFile = "key_label.effect";
 
 constexpr double kFadeInSec = 0.10;
-constexpr double kHoldSec = 1.40;
+constexpr double kDefaultTotalSec = 1.70; /* from the last key press until the keys are gone */
 constexpr double kFadeOutSec = 0.30;
 
 std::mutex g_mutex;
@@ -28,6 +28,7 @@ uint64_t g_firstNs = 0; /* when the current run of key presses became visible */
 uint64_t g_lastNs = 0;  /* the latest key press */
 bool g_hasPicture = false;
 int g_yPct = 58;
+double g_totalSec = kDefaultTotalSec;
 bool g_loadFailed = false;
 
 struct Data {
@@ -129,10 +130,11 @@ void videoRender(void *data, gs_effect_t *)
 			return;
 		const double sinceLast = (double)(now - g_lastNs) / 1e9;
 		const double sinceFirst = (double)(now - g_firstNs) / 1e9;
-		if (sinceLast >= kHoldSec + kFadeOutSec)
+		const double holdSec = std::max(0.0, g_totalSec - kFadeOutSec);
+		if (sinceLast >= holdSec + kFadeOutSec)
 			return;
 		const double fadeIn = std::clamp(sinceFirst / kFadeInSec, 0.0, 1.0);
-		const double fadeOut = sinceLast <= kHoldSec ? 1.0 : 1.0 - (sinceLast - kHoldSec) / kFadeOutSec;
+		const double fadeOut = sinceLast <= holdSec ? 1.0 : 1.0 - (sinceLast - holdSec) / kFadeOutSec;
 		opacity = fadeIn * std::clamp(fadeOut, 0.0, 1.0);
 		yPct = g_yPct;
 		version = g_version;
@@ -228,7 +230,7 @@ void show(const std::vector<uint8_t> &bgra, int width, int height)
 	++g_version;
 	/* A new key press while the last one is still on screen carries on without fading in again. */
 	const double sinceLast = (double)(now - g_lastNs) / 1e9;
-	if (!g_hasPicture || sinceLast > kHoldSec + kFadeOutSec * 0.5)
+	if (!g_hasPicture || sinceLast > std::max(0.0, g_totalSec - kFadeOutSec) + kFadeOutSec * 0.5)
 		g_firstNs = now;
 	g_lastNs = now;
 	g_hasPicture = true;
@@ -238,6 +240,12 @@ void setPlacement(int yPct)
 {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	g_yPct = yPct;
+}
+
+void setDuration(double totalSec)
+{
+	std::lock_guard<std::mutex> lock(g_mutex);
+	g_totalSec = std::clamp(totalSec, 0.5, 10.0);
 }
 
 void hide()

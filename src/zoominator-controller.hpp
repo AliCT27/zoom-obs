@@ -274,6 +274,7 @@ public:
 	bool keyDisplayAll = false;     /* also plain keys, not only shortcuts */
 	int keyDisplaySize = 64;        /* key cap text height for a 1080-wide canvas */
 	int keyDisplayYPct = 58;        /* vertical position, percent of the canvas height */
+	double keyDisplaySec = 1.7;     /* seconds the key caps stay after the last key press, fade-out included */
 	bool countdownOnDefaultRecord = false; /* OBS's own Start Recording button also counts down first */
 	int countdownSec = 3;       /* seconds counted down before a recording that is started with the countdown */
 	int recLimitSec = 90;       /* the badge turns amber 10 s before this and red after it; 0 = no limit */

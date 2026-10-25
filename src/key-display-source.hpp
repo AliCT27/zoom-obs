@@ -21,6 +21,9 @@ void show(const std::vector<uint8_t> &bgra, int width, int height);
 /* Where the picture's centre sits, as a percentage of the canvas height. Safe from any thread. */
 void setPlacement(int yPct);
 
+/* How long the keys stay visible after the last key press, fade-out included, in seconds. Safe from any thread. */
+void setDuration(double totalSec);
+
 /* Stops showing anything. Safe from any thread. */
 void hide();
 
