@@ -47,6 +47,26 @@ private slots:
 
 private:
 	void buildUi();
+	void buildTargetTab();
+	void buildTriggerTab();
+	void buildAdvancedTab();
+	void buildZoomSection(QWidget *page, QVBoxLayout *lay);
+	void buildMouseFollowSection(QWidget *page, QVBoxLayout *lay);
+	void buildCanvasSection(QWidget *page, QVBoxLayout *lay);
+	void buildTilt3dSection(QWidget *page, QVBoxLayout *lay);
+	void buildCursorHaloSection(QWidget *page, QVBoxLayout *lay);
+	void buildFrameSection(QWidget *page, QVBoxLayout *lay);
+	void buildCamRingSection(QWidget *page, QVBoxLayout *lay);
+	void buildFocusSection(QWidget *page, QVBoxLayout *lay);
+	void buildCountdownSection(QWidget *page, QVBoxLayout *lay);
+	void buildStatusHudSection(QWidget *page, QVBoxLayout *lay);
+	void buildSoundSection(QWidget *page, QVBoxLayout *lay);
+	void buildCursorRingSection(QWidget *page, QVBoxLayout *lay);
+	void buildKeyDisplaySection(QWidget *page, QVBoxLayout *lay);
+	void buildGuideSection(QWidget *page, QVBoxLayout *lay);
+	void buildDeveloperSection(QWidget *page, QVBoxLayout *lay);
+	void buildPresetsTab();
+	void buildSourcesTab();
 	void loadFromController();
 	void populateSources();
 	void updateMarkerColorButton(const QColor &color);

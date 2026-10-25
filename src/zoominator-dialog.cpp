@@ -250,1249 +250,15 @@ void ZoominatorDialog::buildUi()
 
 	tabWidget = new QTabWidget(this);
 
-	{
-		auto *page = new QWidget;
-		auto *lay = new QVBoxLayout(page);
-		lay->setContentsMargins(20, 20, 20, 20);
-		lay->setSpacing(0);
+	buildTargetTab();
 
-		cmbSource = new QComboBox(page);
-		lay->addWidget(mkField(T("Dialog.TargetScreen"), cmbSource));
-		lay->addSpacing(16);
+	buildTriggerTab();
 
-		cmbMode = new QComboBox(page);
-		cmbMode->addItem(T("Dialog.Mode.Hold"), "hold");
-		cmbMode->addItem(T("Dialog.Mode.Toggle"), "toggle");
-		rowBehaviorWidget = mkField(T("Dialog.Behavior"), cmbMode);
-		lay->addWidget(rowBehaviorWidget);
-		lay->addSpacing(16);
+	buildAdvancedTab();
 
-		auto *followHkRow = new QWidget(page);
-		{
-			auto *h = new QHBoxLayout(followHkRow);
-			h->setContentsMargins(0, 0, 0, 0);
-			h->setSpacing(6);
-			editFollowToggleHotkey = new QKeySequenceEdit(followHkRow);
-			btnClearFollowToggleHotkey = new QPushButton(T("Dialog.Clear"), followHkRow);
-			btnClearFollowToggleHotkey->setToolTip(T("Dialog.ClearFollowToggleTooltip"));
-			h->addWidget(editFollowToggleHotkey, 1);
-			h->addWidget(btnClearFollowToggleHotkey);
-		}
-		lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
-		lay->addSpacing(16);
+	buildPresetsTab();
 
-		lay->addStretch(1);
-		lay->addSpacing(16);
-
-		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Target"));
-	}
-
-	{
-		auto *page = new QWidget;
-		auto *lay = new QVBoxLayout(page);
-		lay->setContentsMargins(20, 20, 20, 20);
-		lay->setSpacing(0);
-
-		cmbTrigger = new QComboBox(page);
-		cmbTrigger->addItem(T("Dialog.Trigger.Keyboard"), "keyboard");
-		cmbTrigger->addItem(T("Dialog.Trigger.MouseButton"), "mouse");
-		cmbTrigger->addItem(T("Dialog.Trigger.Auto"), "auto");
-		lay->addWidget(mkField(T("Dialog.TriggerType"), cmbTrigger));
-		lay->addSpacing(16);
-
-		rowHotkeyWidget = new QWidget(page);
-		{
-			auto *v = new QVBoxLayout(rowHotkeyWidget);
-			v->setContentsMargins(0, 0, 0, 0);
-			v->setSpacing(4);
-			v->addWidget(new QLabel(T("Dialog.Hotkey"), rowHotkeyWidget));
-			auto *h = new QHBoxLayout;
-			h->setSpacing(6);
-			editHotkey = new QKeySequenceEdit(rowHotkeyWidget);
-			btnClearHotkey = new QPushButton(T("Dialog.Clear"), rowHotkeyWidget);
-			btnClearHotkey->setToolTip(T("Dialog.ClearHotkeyTooltip"));
-			h->addWidget(editHotkey, 1);
-			h->addWidget(btnClearHotkey);
-			v->addLayout(h);
-		}
-		lay->addWidget(rowHotkeyWidget);
-
-		rowMouseWidget = new QWidget(page);
-		{
-			auto *v = new QVBoxLayout(rowMouseWidget);
-			v->setContentsMargins(0, 0, 0, 0);
-			v->setSpacing(4);
-			v->addWidget(new QLabel(T("Dialog.MouseButton"), rowMouseWidget));
-			cmbMouseBtn = new QComboBox(rowMouseWidget);
-			cmbMouseBtn->addItem(T("Dialog.Mouse.Left"), "left");
-			cmbMouseBtn->addItem(T("Dialog.Mouse.Right"), "right");
-			cmbMouseBtn->addItem(T("Dialog.Mouse.Middle"), "middle");
-			cmbMouseBtn->addItem("X1", "x1");
-			cmbMouseBtn->addItem("X2", "x2");
-			v->addWidget(cmbMouseBtn);
-		}
-		lay->addWidget(rowMouseWidget);
-		lay->addSpacing(16);
-
-		rowModifiersWidget = new QWidget(page);
-		{
-			auto *v = new QVBoxLayout(rowModifiersWidget);
-			v->setContentsMargins(0, 0, 0, 0);
-			v->setSpacing(6);
-			v->addWidget(new QLabel(T("Dialog.RequiredModifiers"), rowModifiersWidget));
-			auto *grid = new QGridLayout;
-			grid->setHorizontalSpacing(10);
-			grid->setVerticalSpacing(4);
-			chkCtrl = new QCheckBox(T("Dialog.Mod.CtrlAny"), rowModifiersWidget);
-			chkLeftCtrl = new QCheckBox(T("Dialog.Mod.LeftCtrl"), rowModifiersWidget);
-			chkRightCtrl = new QCheckBox(T("Dialog.Mod.RightCtrl"), rowModifiersWidget);
-			chkAlt = new QCheckBox(T("Dialog.Mod.AltAny"), rowModifiersWidget);
-			chkLeftAlt = new QCheckBox(T("Dialog.Mod.LeftAlt"), rowModifiersWidget);
-			chkRightAlt = new QCheckBox(T("Dialog.Mod.RightAlt"), rowModifiersWidget);
-			chkShift = new QCheckBox(T("Dialog.Mod.ShiftAny"), rowModifiersWidget);
-			chkLeftShift = new QCheckBox(T("Dialog.Mod.LeftShift"), rowModifiersWidget);
-			chkRightShift = new QCheckBox(T("Dialog.Mod.RightShift"), rowModifiersWidget);
-			chkWin = new QCheckBox(T("Dialog.Mod.MetaWinAny"), rowModifiersWidget);
-			chkLeftWin = new QCheckBox(T("Dialog.Mod.LeftMetaWin"), rowModifiersWidget);
-			chkRightWin = new QCheckBox(T("Dialog.Mod.RightMetaWin"), rowModifiersWidget);
-			grid->addWidget(chkCtrl, 0, 0);
-			grid->addWidget(chkLeftCtrl, 0, 1);
-			grid->addWidget(chkRightCtrl, 0, 2);
-			grid->addWidget(chkAlt, 1, 0);
-			grid->addWidget(chkLeftAlt, 1, 1);
-			grid->addWidget(chkRightAlt, 1, 2);
-			grid->addWidget(chkShift, 2, 0);
-			grid->addWidget(chkLeftShift, 2, 1);
-			grid->addWidget(chkRightShift, 2, 2);
-			grid->addWidget(chkWin, 3, 0);
-			grid->addWidget(chkLeftWin, 3, 1);
-			grid->addWidget(chkRightWin, 3, 2);
-			grid->addWidget(new QLabel(T("Dialog.ModifierHelp"), rowModifiersWidget), 4, 0, 1, 3);
-			grid->setColumnStretch(3, 1);
-			v->addLayout(grid);
-		}
-		lay->addWidget(rowModifiersWidget);
-
-		rowAutoWidget = new QWidget(page);
-		{
-			auto *v = new QVBoxLayout(rowAutoWidget);
-			v->setContentsMargins(0, 0, 0, 0);
-			v->setSpacing(8);
-			auto *help = new QLabel(T("Dialog.AutoHelp"), rowAutoWidget);
-			help->setWordWrap(true);
-			v->addWidget(help);
-			chkAutoClick = new QCheckBox(T("Dialog.AutoOnClick"), rowAutoWidget);
-			chkAutoTyping = new QCheckBox(T("Dialog.AutoOnTyping"), rowAutoWidget);
-			chkAutoTyping->setToolTip(T("Dialog.AutoOnTypingTooltip"));
-			chkCaretFollow = new QCheckBox(T("Dialog.CaretFollow"), rowAutoWidget);
-			chkCaretFollow->setToolTip(T("Dialog.CaretFollowTooltip"));
-#ifndef _WIN32
-			chkCaretFollow->setEnabled(false);
-#endif
-			spAutoHold = new QSpinBox(rowAutoWidget);
-			spAutoHold->setRange(300, 60000);
-			spAutoHold->setSingleStep(100);
-			spAutoHold->setSuffix(T("Unit.Milliseconds"));
-			spAutoHold->setToolTip(T("Dialog.AutoHoldTooltip"));
-			v->addWidget(chkAutoClick);
-			v->addWidget(chkAutoTyping);
-			v->addWidget(chkCaretFollow);
-			chkAutoZoomOut = new QCheckBox(T("Dialog.AutoZoomOut"), rowAutoWidget);
-			chkAutoZoomOut->setToolTip(T("Dialog.AutoZoomOutTooltip"));
-			v->addWidget(chkAutoZoomOut);
-			v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
-			connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
-#ifdef _WIN32
-			chkCaretFollow->setEnabled(chkAutoTyping->isChecked());
-			connect(chkAutoTyping, &QCheckBox::toggled, chkCaretFollow, &QWidget::setEnabled);
-#endif
-
-		}
-		lay->addWidget(rowAutoWidget);
-
-		rowManualKeysWidget = new QWidget(page);
-		{
-			auto *v = new QVBoxLayout(rowManualKeysWidget);
-			v->setContentsMargins(0, 0, 0, 0);
-			v->setSpacing(8);
-			auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
-				auto *row = new QWidget(rowManualKeysWidget);
-				auto *h = new QHBoxLayout(row);
-				h->setContentsMargins(0, 0, 0, 0);
-				h->setSpacing(6);
-				edit = new QKeySequenceEdit(row);
-				edit->setToolTip(T(tip));
-				auto *clear = new QPushButton(T("Dialog.Clear"), row);
-				QKeySequenceEdit *e = edit;
-				connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
-				h->addWidget(edit, 1);
-				h->addWidget(clear);
-				v->addWidget(mkField(T(label), row));
-			};
-			makeKeyRow(editManualZoomIn, "Dialog.ManualZoomIn", "Dialog.ManualZoomInTooltip");
-			makeKeyRow(editManualZoomOut, "Dialog.ManualZoomOut", "Dialog.ManualZoomOutTooltip");
-		}
-		lay->addSpacing(16);
-		lay->addWidget(rowManualKeysWidget);
-
-		lay->addStretch(1);
-		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));
-
-		connect(cmbTrigger, &QComboBox::currentIndexChanged, this, [this](int) { updateTriggerRows(); });
-	}
-
-	{
-		auto *page = new QWidget;
-		auto *lay = new QVBoxLayout(page);
-		lay->setContentsMargins(20, 8, 20, 20);
-		lay->setSpacing(0);
-
-		addSection(lay, T("Dialog.Section.Zoom"), true);
-
-		spZoom = new QDoubleSpinBox(page);
-		spZoom->setRange(0.0, 8.0);
-		spZoom->setSingleStep(0.05);
-		spZoom->setDecimals(2);
-		spZoom->setToolTip(T("Dialog.ZoomFactorTooltip"));
-
-		spIn = new QSpinBox(page);
-		spIn->setRange(0, 5000);
-		spIn->setSingleStep(10);
-		spIn->setSuffix(T("Unit.Milliseconds"));
-
-		spOut = new QSpinBox(page);
-		spOut->setRange(0, 5000);
-		spOut->setSingleStep(10);
-		spOut->setSuffix(T("Unit.Milliseconds"));
-
-		auto *zoomRow = new QHBoxLayout;
-		zoomRow->setSpacing(12);
-		zoomRow->addWidget(mkField(T("Dialog.ZoomFactor"), spZoom), 1);
-		zoomRow->addWidget(mkField(T("Dialog.AnimateIn"), spIn), 1);
-		zoomRow->addWidget(mkField(T("Dialog.AnimateOut"), spOut), 1);
-		lay->addLayout(zoomRow);
-		lay->addSpacing(12);
-
-		cmbEasing = new QComboBox(page);
-		cmbEasing->addItem(T("Dialog.Easing.Smooth"), "smooth");
-		cmbEasing->addItem(T("Dialog.Easing.EaseOut"), "ease_out");
-		cmbEasing->addItem(T("Dialog.Easing.Expo"), "expo");
-		cmbEasing->addItem(T("Dialog.Easing.Punch"), "punch");
-		cmbEasing->setToolTip(T("Dialog.EasingTooltip"));
-		auto *easingRow = new QHBoxLayout;
-		easingRow->setSpacing(12);
-		easingRow->addWidget(mkField(T("Dialog.Easing"), cmbEasing), 1);
-		easingRow->addStretch(2);
-		lay->addLayout(easingRow);
-		lay->addSpacing(12);
-
-		chkWheelZoom = new QCheckBox(T("Dialog.WheelZoom"), page);
-		chkWheelZoom->setToolTip(T("Dialog.WheelZoomTooltip"));
-		lay->addWidget(chkWheelZoom);
-
-		cmbWheelMod = new QComboBox(page);
-		cmbWheelMod->addItem(T("Dialog.WheelMod.Alt"), "alt");
-		cmbWheelMod->addItem(T("Dialog.WheelMod.Ctrl"), "ctrl");
-		cmbWheelMod->addItem(T("Dialog.WheelMod.Shift"), "shift");
-		spWheelStep = new QDoubleSpinBox(page);
-		spWheelStep->setRange(0.05, 2.0);
-		spWheelStep->setSingleStep(0.05);
-		spWheelStep->setDecimals(2);
-		spWheelMax = new QDoubleSpinBox(page);
-		spWheelMax->setRange(1.5, 20.0);
-		spWheelMax->setSingleStep(0.5);
-		spWheelMax->setDecimals(1);
-		spWheelExit = new QDoubleSpinBox(page);
-		spWheelExit->setRange(0.0, 19.0);
-		spWheelExit->setSpecialValueText(T("Dialog.WheelExitOff"));
-		spWheelExit->setSingleStep(0.1);
-		spWheelExit->setDecimals(1);
-		spWheelExit->setToolTip(T("Dialog.WheelExitTooltip"));
-		auto *wheelRow = new QHBoxLayout;
-		wheelRow->setSpacing(12);
-		wheelRow->addWidget(mkField(T("Dialog.WheelModifier"), cmbWheelMod), 1);
-		wheelRow->addWidget(mkField(T("Dialog.WheelStep"), spWheelStep), 1);
-		wheelRow->addWidget(mkField(T("Dialog.WheelMax"), spWheelMax), 1);
-		wheelRow->addWidget(mkField(T("Dialog.WheelExit"), spWheelExit), 1);
-		lay->addLayout(wheelRow);
-		for (QWidget *w : {(QWidget *)cmbWheelMod, (QWidget *)spWheelStep, (QWidget *)spWheelMax,
-				   (QWidget *)spWheelExit})
-			connect(chkWheelZoom, &QCheckBox::toggled, w, &QWidget::setEnabled);
-		lay->addSpacing(12);
-
-
-		addSection(lay, T("Dialog.Section.MouseFollow"));
-
-		cmbZoomAnchor = new QComboBox(page);
-		cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorStatic"), "cursor_static");
-		cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorFollow"), "cursor_follow");
-		cmbZoomAnchor->setToolTip(T("Dialog.ZoomAnchorTooltip"));
-
-		spFollowSpeed = new QDoubleSpinBox(page);
-		spFollowSpeed->setRange(0.1, 40.0);
-		spFollowSpeed->setSingleStep(0.5);
-		spFollowSpeed->setDecimals(1);
-
-		chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
-		chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
-
-		auto *followRow = new QHBoxLayout;
-		followRow->setSpacing(12);
-
-		followRow->addWidget(mkField(T("Dialog.ZoomAnchor"), cmbZoomAnchor), 1);
-		followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
-		lay->addLayout(followRow);
-
-		lay->addWidget(chkCenterFocus);
-
-		/* Smoothing only means something while the anchor
-		 * actually tracks the cursor. */
-		auto syncFollowOnlyFields = [this]() {
-			const bool follows = (cmbZoomAnchor->currentData().toString() == "cursor_follow");
-			spFollowSpeed->setEnabled(follows);
-		};
-		connect(cmbZoomAnchor, &QComboBox::currentIndexChanged, this,
-			[syncFollowOnlyFields](int) { syncFollowOnlyFields(); });
-		syncFollowOnlyFields();
-
-		addSection(lay, T("Dialog.Section.Canvas"));
-
-		auto *coverHelp = new QLabel(T("Dialog.PortraitCoverHelp"), page);
-		coverHelp->setWordWrap(true);
-		lay->addWidget(coverHelp);
-		chkPortraitCover = new QCheckBox(T("Dialog.PortraitCover"), page);
-		chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
-		lay->addWidget(chkPortraitCover);
-
-		chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
-		chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
-		lay->addWidget(chkIdleFollowX);
-
-		addSection(lay, T("Dialog.Section.Tilt3d"));
-		auto *tiltHelp = new QLabel(T("Dialog.Tilt3dHelp"), page);
-		tiltHelp->setWordWrap(true);
-		lay->addWidget(tiltHelp);
-		chkTilt3d = new QCheckBox(T("Dialog.Tilt3d"), page);
-		chkTilt3d->setToolTip(T("Dialog.Tilt3dTooltip"));
-		lay->addWidget(chkTilt3d);
-		spTiltX = new QDoubleSpinBox(page);
-		spTiltX->setRange(0.0, 45.0);
-		spTiltX->setSingleStep(1.0);
-		spTiltX->setDecimals(1);
-		spTiltX->setSuffix(QStringLiteral("°"));
-		spTiltX->setToolTip(T("Dialog.Tilt3dXTooltip"));
-		spTiltY = new QDoubleSpinBox(page);
-		spTiltY->setRange(0.0, 45.0);
-		spTiltY->setSingleStep(1.0);
-		spTiltY->setDecimals(1);
-		spTiltY->setSuffix(QStringLiteral("°"));
-		spTiltY->setToolTip(T("Dialog.Tilt3dYTooltip"));
-		spTiltPersp = new QDoubleSpinBox(page);
-		spTiltPersp->setRange(0.8, 8.0);
-		spTiltPersp->setSingleStep(0.2);
-		spTiltPersp->setDecimals(1);
-		spTiltPersp->setToolTip(T("Dialog.Tilt3dPerspTooltip"));
-		auto *tiltRow = new QHBoxLayout;
-		tiltRow->setSpacing(12);
-		tiltRow->addWidget(mkField(T("Dialog.Tilt3dX"), spTiltX), 1);
-		tiltRow->addWidget(mkField(T("Dialog.Tilt3dY"), spTiltY), 1);
-		tiltRow->addWidget(mkField(T("Dialog.Tilt3dPersp"), spTiltPersp), 1);
-		lay->addLayout(tiltRow);
-		chkTiltInvert = new QCheckBox(T("Dialog.Tilt3dInvert"), page);
-		chkTiltInvert->setToolTip(T("Dialog.Tilt3dInvertTooltip"));
-		lay->addWidget(chkTiltInvert);
-		chkTiltInZoom = new QCheckBox(T("Dialog.Tilt3dInZoom"), page);
-		chkTiltInZoom->setToolTip(T("Dialog.Tilt3dInZoomTooltip"));
-		lay->addWidget(chkTiltInZoom);
-		for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert,
-				   (QWidget *)chkTiltInZoom})
-			connect(chkTilt3d, &QCheckBox::toggled, w, &QWidget::setEnabled);
-
-		addSection(lay, T("Dialog.Section.CursorHalo"));
-
-		chkShowCursorMarker = new QCheckBox(T("Dialog.ShowCursorHalo"), page);
-		chkShowCursorMarker->setToolTip(T("Dialog.ShowCursorHaloTooltip"));
-		chkShowMarkerWhenNotZoomed = new QCheckBox(T("Dialog.ShowHaloWhenNotZoomed"), page);
-		chkShowMarkerWhenNotZoomed->setToolTip(T("Dialog.ShowHaloWhenNotZoomedTooltip"));
-
-		lay->addWidget(chkShowCursorMarker);
-		lay->addSpacing(6);
-
-		spMarkerSize = new QSpinBox(page);
-		spMarkerSize->setRange(6, 256);
-		spMarkerSize->setSingleStep(2);
-		spMarkerSize->setSuffix(T("Unit.Pixels"));
-
-		spMarkerThickness = new QSpinBox(page);
-		spMarkerThickness->setRange(1, 64);
-		spMarkerThickness->setSingleStep(1);
-		spMarkerThickness->setSuffix(T("Unit.Pixels"));
-
-		btnMarkerColor = new ColorButton(page);
-		btnMarkerColor->setMinimumHeight(28);
-
-		auto *haloRow = new QHBoxLayout;
-		haloRow->setSpacing(12);
-		haloRow->addWidget(mkField(T("Dialog.HaloSize"), spMarkerSize), 1);
-		haloRow->addWidget(mkField(T("Dialog.RingThickness"), spMarkerThickness), 1);
-		haloRow->addWidget(mkField(T("Dialog.Color"), btnMarkerColor), 1);
-		lay->addLayout(haloRow);
-		lay->addSpacing(10);
-
-		lay->addWidget(chkShowMarkerWhenNotZoomed);
-		lay->addSpacing(4);
-		spMarkerIdleSize = new QSpinBox(page);
-		spMarkerIdleSize->setRange(6, 256);
-		spMarkerIdleSize->setSingleStep(2);
-		spMarkerIdleSize->setSuffix(T("Unit.Pixels"));
-		spMarkerIdleSize->setToolTip(T("Dialog.HaloIdleSizeTooltip"));
-		spMarkerIdleSize->setEnabled(chkShowMarkerWhenNotZoomed->isChecked());
-		auto *haloIdleRow = new QHBoxLayout;
-		haloIdleRow->setSpacing(12);
-		haloIdleRow->addWidget(mkField(T("Dialog.HaloIdleSize"), spMarkerIdleSize), 1);
-		haloIdleRow->addStretch(2);
-		lay->addLayout(haloIdleRow);
-		lay->addSpacing(6);
-		lay->addSpacing(4);
-		spMarkerOffX = new QSpinBox(page);
-		spMarkerOffX->setRange(-100, 100);
-		spMarkerOffX->setSuffix(T("Unit.Pixels"));
-		spMarkerOffX->setToolTip(T("Dialog.HaloOffsetTooltip"));
-		spMarkerOffY = new QSpinBox(page);
-		spMarkerOffY->setRange(-100, 100);
-		spMarkerOffY->setSuffix(T("Unit.Pixels"));
-		spMarkerOffY->setToolTip(T("Dialog.HaloOffsetTooltip"));
-		btnMarkerOffReset = new QPushButton(T("Dialog.HaloOffsetReset"), page);
-		btnMarkerOffReset->setToolTip(T("Dialog.HaloOffsetResetTooltip"));
-		connect(btnMarkerOffReset, &QPushButton::clicked, this, [this]() {
-			spMarkerOffX->setValue(6);
-			spMarkerOffY->setValue(10);
-		});
-		auto *haloOffRow = new QHBoxLayout;
-		haloOffRow->setSpacing(12);
-		haloOffRow->addWidget(mkField(T("Dialog.HaloOffsetX"), spMarkerOffX), 1);
-		haloOffRow->addWidget(mkField(T("Dialog.HaloOffsetY"), spMarkerOffY), 1);
-		haloOffRow->addWidget(btnMarkerOffReset, 0, Qt::AlignBottom);
-		lay->addLayout(haloOffRow);
-
-		addSection(lay, T("Dialog.Section.Frame"));
-
-		chkFrame = new QCheckBox(T("Dialog.FrameEnable"), page);
-		chkFrame->setToolTip(T("Dialog.FrameEnableTooltip"));
-		lay->addWidget(chkFrame);
-		lay->addSpacing(6);
-
-		btnFrameColor = new ColorButton(page);
-		btnFrameColor->setMinimumHeight(28);
-		btnFrameColor->setToolTip(T("Dialog.FrameColorTooltip"));
-		btnFrameBg = new ColorButton(page);
-		btnFrameBg->setMinimumHeight(28);
-		btnFrameBg->setToolTip(T("Dialog.FrameBgTooltip"));
-
-		cmbFrameBgMode = new QComboBox(page);
-		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Solid"), 0);
-		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Linear"), 1);
-		cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Radial"), 2);
-		cmbFrameBgMode->setToolTip(T("Dialog.FrameBgModeTooltip"));
-		btnFrameBg2 = new ColorButton(page);
-		btnFrameBg2->setMinimumHeight(28);
-		btnFrameBg2->setToolTip(T("Dialog.FrameBg2Tooltip"));
-		spFrameBgAngle = new QSpinBox(page);
-		spFrameBgAngle->setRange(0, 360);
-		spFrameBgAngle->setSingleStep(15);
-		spFrameBgAngle->setSuffix(QString::fromUtf8("\xC2\xB0"));
-		spFrameBgAngle->setToolTip(T("Dialog.FrameBgAngleTooltip"));
-
-		/* The three colour buttons sit side by side; the background style and angle come under them. */
-		auto *frameColorRow = new QHBoxLayout;
-		frameColorRow->setSpacing(12);
-		frameColorRow->addWidget(mkField(T("Dialog.FrameColor"), btnFrameColor), 1);
-		frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
-		frameColorRow->addWidget(mkField(T("Dialog.FrameBg2"), btnFrameBg2), 1);
-		lay->addLayout(frameColorRow);
-
-		auto *frameGradRow = new QHBoxLayout;
-		frameGradRow->setSpacing(12);
-		frameGradRow->addWidget(mkField(T("Dialog.FrameBgMode"), cmbFrameBgMode), 1);
-		frameGradRow->addWidget(mkField(T("Dialog.FrameBgAngle"), spFrameBgAngle), 1);
-		frameGradRow->addStretch(1);
-		lay->addLayout(frameGradRow);
-
-		spFrameBorder = new QSpinBox(page);
-		spFrameBorder->setRange(0, 80);
-		spFrameBorder->setSuffix(T("Unit.Pixels"));
-		spFrameBorder->setToolTip(T("Dialog.FrameBorderTooltip"));
-		spFrameRadius = new QSpinBox(page);
-		spFrameRadius->setRange(0, 400);
-		spFrameRadius->setSingleStep(2);
-		spFrameRadius->setSuffix(T("Unit.Pixels"));
-		spFrameRadius->setToolTip(T("Dialog.FrameRadiusTooltip"));
-		spFrameGlow = new QSpinBox(page);
-		spFrameGlow->setRange(0, 200);
-		spFrameGlow->setSingleStep(4);
-		spFrameGlow->setSuffix(T("Unit.Pixels"));
-		spFrameGlow->setToolTip(T("Dialog.FrameGlowTooltip"));
-		spFrameGlowPct = new QSpinBox(page);
-		spFrameGlowPct->setRange(0, 100);
-		spFrameGlowPct->setSingleStep(5);
-		spFrameGlowPct->setSuffix(T("Unit.Percent"));
-		spFrameGlowPct->setToolTip(T("Dialog.FrameGlowStrengthTooltip"));
-
-		auto *frameShapeRow = new QHBoxLayout;
-		frameShapeRow->setSpacing(12);
-		frameShapeRow->addWidget(mkField(T("Dialog.FrameBorder"), spFrameBorder), 1);
-		frameShapeRow->addWidget(mkField(T("Dialog.FrameRadius"), spFrameRadius), 1);
-		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlow"), spFrameGlow), 1);
-		frameShapeRow->addWidget(mkField(T("Dialog.FrameGlowStrength"), spFrameGlowPct), 1);
-		lay->addLayout(frameShapeRow);
-
-		chkFrameBgRainbow = new QCheckBox(T("Dialog.FrameBgRainbow"), page);
-		chkFrameBgRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
-		chkFrameBorderRainbow = new QCheckBox(T("Dialog.FrameBorderRainbow"), page);
-		chkFrameBorderRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
-		spFrameRainbowSec = new QSpinBox(page);
-		spFrameRainbowSec->setRange(2, 120);
-		spFrameRainbowSec->setSuffix(QStringLiteral(" s"));
-		spFrameRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
-		lay->addLayout(mkRainbowRow({chkFrameBgRainbow, chkFrameBorderRainbow}, spFrameRainbowSec));
-
-		lay->addSpacing(10);
-
-		auto syncFrameFields = [this]() {
-			const bool on = chkFrame->isChecked();
-			/* A rainbow replaces the colours it covers, so those fields are not used. */
-			const bool bgColours = on && !chkFrameBgRainbow->isChecked();
-			btnFrameColor->setEnabled(on && !chkFrameBorderRainbow->isChecked());
-			btnFrameBg->setEnabled(bgColours);
-			cmbFrameBgMode->setEnabled(bgColours);
-			btnFrameBg2->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() != 0);
-			spFrameBgAngle->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() == 1);
-			spFrameBorder->setEnabled(on);
-			spFrameRadius->setEnabled(on);
-			spFrameGlow->setEnabled(on);
-			spFrameGlowPct->setEnabled(on);
-			chkFrameBgRainbow->setEnabled(on);
-			chkFrameBorderRainbow->setEnabled(on);
-			const bool anyRainbow = on && (chkFrameBgRainbow->isChecked() || chkFrameBorderRainbow->isChecked());
-			spFrameRainbowSec->setEnabled(anyRainbow);
-		};
-		connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
-		connect(chkFrameBgRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
-		connect(chkFrameBorderRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
-		connect(cmbFrameBgMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-			[syncFrameFields](int) { syncFrameFields(); });
-		syncFrameFields();
-
-		addSection(lay, T("Dialog.Section.CamRing"));
-
-		chkCamRing = new QCheckBox(T("Dialog.CamRingEnable"), page);
-		chkCamRing->setToolTip(T("Dialog.CamRingEnableTooltip"));
-		lay->addWidget(chkCamRing);
-		lay->addSpacing(6);
-
-		cmbCamSource = new QComboBox(page);
-		cmbCamSource->setToolTip(T("Dialog.CamSourceTooltip"));
-		btnCamColor = new ColorButton(page);
-		btnCamColor->setMinimumHeight(28);
-		btnCamColor->setToolTip(T("Dialog.CamColorTooltip"));
-
-		auto *camTopRow = new QHBoxLayout;
-		camTopRow->setSpacing(12);
-		camTopRow->addWidget(mkField(T("Dialog.CamSource"), cmbCamSource), 2);
-		camTopRow->addWidget(mkField(T("Dialog.CamColor"), btnCamColor), 1);
-		lay->addLayout(camTopRow);
-
-		spCamRing = new QSpinBox(page);
-		spCamRing->setRange(0, 60);
-		spCamRing->setSuffix(T("Unit.Pixels"));
-		spCamRing->setToolTip(T("Dialog.CamRingTooltip"));
-		spCamGlow = new QSpinBox(page);
-		spCamGlow->setRange(0, 150);
-		spCamGlow->setSingleStep(4);
-		spCamGlow->setSuffix(T("Unit.Pixels"));
-		spCamGlow->setToolTip(T("Dialog.CamGlowTooltip"));
-		spCamGlowPct = new QSpinBox(page);
-		spCamGlowPct->setRange(0, 100);
-		spCamGlowPct->setSingleStep(5);
-		spCamGlowPct->setSuffix(T("Unit.Percent"));
-		spCamGlowPct->setToolTip(T("Dialog.CamGlowStrengthTooltip"));
-		auto *camShapeRow = new QHBoxLayout;
-		camShapeRow->setSpacing(12);
-		camShapeRow->addWidget(mkField(T("Dialog.CamRing"), spCamRing), 1);
-		camShapeRow->addWidget(mkField(T("Dialog.CamGlow"), spCamGlow), 1);
-		camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
-		lay->addLayout(camShapeRow);
-
-		chkCamRainbow = new QCheckBox(T("Dialog.CamRainbow"), page);
-		chkCamRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
-		spCamRainbowSec = new QSpinBox(page);
-		spCamRainbowSec->setRange(2, 120);
-		spCamRainbowSec->setSuffix(QStringLiteral(" s"));
-		spCamRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
-		lay->addLayout(mkRainbowRow({chkCamRainbow}, spCamRainbowSec));
-		lay->addSpacing(6);
-
-		chkCamLayout = new QCheckBox(T("Dialog.CamLayout"), page);
-		chkCamLayout->setToolTip(T("Dialog.CamLayoutTooltip"));
-		lay->addWidget(chkCamLayout);
-
-		auto mkPosSpin = [page](const QString &tip) {
-			auto *sp = new QSpinBox(page);
-			sp->setRange(-20000, 20000);
-			sp->setSingleStep(10);
-			sp->setSuffix(T("Unit.Pixels"));
-			sp->setToolTip(tip);
-			return sp;
-		};
-		auto mkSizeSpin = [page](const QString &tip) {
-			auto *sp = new QSpinBox(page);
-			sp->setRange(20, 8000);
-			sp->setSingleStep(10);
-			sp->setSuffix(T("Unit.Pixels"));
-			sp->setToolTip(tip);
-			return sp;
-		};
-		spCamIdleX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
-		spCamIdleY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
-		spCamIdleSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
-		spCamZoomX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
-		spCamZoomY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
-		spCamZoomSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
-		btnCamIdleTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
-		btnCamIdleTake->setCheckable(true);
-		btnCamIdleTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
-		btnCamZoomTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
-		btnCamZoomTake->setCheckable(true);
-		btnCamZoomTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
-
-		auto *idleRow = new QHBoxLayout;
-		idleRow->setSpacing(12);
-		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleX"), spCamIdleX), 1);
-		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleY"), spCamIdleY), 1);
-		idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleSize"), spCamIdleSize), 1);
-		idleRow->addWidget(mkField(" ", btnCamIdleTake), 1);
-		lay->addLayout(idleRow);
-
-		auto *camZoomedRow = new QHBoxLayout;
-		camZoomedRow->setSpacing(12);
-		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomX"), spCamZoomX), 1);
-		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomY"), spCamZoomY), 1);
-		camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomSize"), spCamZoomSize), 1);
-		camZoomedRow->addWidget(mkField(" ", btnCamZoomTake), 1);
-		lay->addLayout(camZoomedRow);
-		lay->addSpacing(10);
-
-		/* While one "Follow OBS" button is on, the numbers of its row track the
-		 * webcam as it is dragged or resized in OBS. Only one row follows at a
-		 * time, and it stops when the tab changes, the dialog hides or the
-		 * layout is switched off. */
-		auto *camFollowTimer = new QTimer(this);
-		camFollowTimer->setInterval(200);
-		auto stopFollow = [this, camFollowTimer]() {
-			camFollowTimer->stop();
-			btnCamIdleTake->setChecked(false);
-			btnCamZoomTake->setChecked(false);
-		};
-		connect(camFollowTimer, &QTimer::timeout, this, [this, camFollowTimer, stopFollow]() {
-			const bool idleRow = btnCamIdleTake->isChecked();
-			if (!isVisible() || tabWidget->currentIndex() != camFollowTimer->property("tab").toInt() ||
-			    !chkCamLayout->isChecked() || !chkCamRing->isChecked() ||
-			    (!idleRow && !btnCamZoomTake->isChecked())) {
-				stopFollow();
-				return;
-			}
-			int px = 0, py = 0, ps = 0;
-			if (!ZoominatorController::instance().readCamLayout(px, py, ps))
-				return; /* not readable right now; keep the old numbers */
-			QSpinBox *x = idleRow ? spCamIdleX : spCamZoomX;
-			QSpinBox *y = idleRow ? spCamIdleY : spCamZoomY;
-			QSpinBox *size = idleRow ? spCamIdleSize : spCamZoomSize;
-			if (x->value() != px)
-				x->setValue(px);
-			if (y->value() != py)
-				y->setValue(py);
-			if (size->value() != ps)
-				size->setValue(ps);
-		});
-		auto onFollowToggled = [this, camFollowTimer](QPushButton *self, QPushButton *other, bool on) {
-			if (on) {
-				other->setChecked(false);
-				int px = 0, py = 0, ps = 0;
-				if (!ZoominatorController::instance().readCamLayout(px, py, ps)) {
-					lblStatus->setText(T("Dialog.CamLayoutTakeFailed"));
-					self->setChecked(false);
-					return;
-				}
-				lblStatus->setText(T("Dialog.CamLayoutFollowing"));
-				camFollowTimer->setProperty("tab", tabWidget->currentIndex());
-				camFollowTimer->start();
-			} else if (!other->isChecked()) {
-				camFollowTimer->stop();
-			}
-		};
-		connect(btnCamIdleTake, &QPushButton::toggled, this,
-			[=](bool on) { onFollowToggled(btnCamIdleTake, btnCamZoomTake, on); });
-		connect(btnCamZoomTake, &QPushButton::toggled, this,
-			[=](bool on) { onFollowToggled(btnCamZoomTake, btnCamIdleTake, on); });
-
-		auto syncCamFields = [this]() {
-			const bool on = chkCamRing->isChecked();
-			const bool lay = on && chkCamLayout->isChecked();
-			chkCamLayout->setEnabled(on);
-			chkCamRainbow->setEnabled(on);
-			spCamRainbowSec->setEnabled(on && chkCamRainbow->isChecked());
-			if (!lay) {
-				btnCamIdleTake->setChecked(false);
-				btnCamZoomTake->setChecked(false);
-			}
-			for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
-					   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
-					   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
-				w->setEnabled(lay);
-			cmbCamSource->setEnabled(on);
-			btnCamColor->setEnabled(on && !chkCamRainbow->isChecked());
-			spCamRing->setEnabled(on);
-			spCamGlow->setEnabled(on);
-			spCamGlowPct->setEnabled(on);
-		};
-		connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
-		connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
-		connect(chkCamRainbow, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
-		syncCamFields();
-
-		addSection(lay, T("Dialog.Section.Focus"));
-
-		chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
-		chkFocus->setToolTip(T("Dialog.FocusEnableTooltip"));
-		lay->addWidget(chkFocus);
-		chkFocusWhenNotZoomed = new QCheckBox(T("Dialog.FocusWhenNotZoomed"), page);
-		chkFocusWhenNotZoomed->setToolTip(T("Dialog.FocusWhenNotZoomedTooltip"));
-		lay->addSpacing(6);
-
-		{
-			auto *row = new QWidget(page);
-			auto *h = new QHBoxLayout(row);
-			h->setContentsMargins(0, 0, 0, 0);
-			h->setSpacing(6);
-			editFocusToggle = new QKeySequenceEdit(row);
-			editFocusToggle->setToolTip(T("Dialog.FocusToggleHotkeyTooltip"));
-			auto *clear = new QPushButton(T("Dialog.Clear"), row);
-			QKeySequenceEdit *e = editFocusToggle;
-			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
-			h->addWidget(editFocusToggle, 1);
-			h->addWidget(clear);
-			lay->addWidget(mkField(T("Dialog.FocusToggleHotkey"), row));
-			lay->addSpacing(6);
-		}
-		{
-			auto *row = new QWidget(page);
-			auto *h = new QHBoxLayout(row);
-			h->setContentsMargins(0, 0, 0, 0);
-			h->setSpacing(6);
-			editFocusOn = new QKeySequenceEdit(row);
-			editFocusOn->setToolTip(T("Dialog.FocusOnHotkeyTooltip"));
-			auto *clear = new QPushButton(T("Dialog.Clear"), row);
-			QKeySequenceEdit *e = editFocusOn;
-			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
-			h->addWidget(editFocusOn, 1);
-			h->addWidget(clear);
-			lay->addWidget(mkField(T("Dialog.FocusOnHotkey"), row));
-			lay->addSpacing(6);
-		}
-		{
-			auto *row = new QWidget(page);
-			auto *h = new QHBoxLayout(row);
-			h->setContentsMargins(0, 0, 0, 0);
-			h->setSpacing(6);
-			editFocusOff = new QKeySequenceEdit(row);
-			editFocusOff->setToolTip(T("Dialog.FocusOffHotkeyTooltip"));
-			auto *clear = new QPushButton(T("Dialog.Clear"), row);
-			QKeySequenceEdit *e = editFocusOff;
-			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
-			h->addWidget(editFocusOff, 1);
-			h->addWidget(clear);
-			lay->addWidget(mkField(T("Dialog.FocusOffHotkey"), row));
-			lay->addSpacing(6);
-		}
-
-		cmbFocusStyle = new QComboBox(page);
-		cmbFocusStyle->addItem(T("Dialog.FocusStyle.Dim"), "dim");
-		cmbFocusStyle->addItem(T("Dialog.FocusStyle.Blur"), "blur");
-		cmbFocusStyle->addItem(T("Dialog.FocusStyle.BlurDim"), "blur_dim");
-		cmbFocusStyle->setToolTip(T("Dialog.FocusStyleTooltip"));
-
-		spFocusBlur = new QSpinBox(page);
-		spFocusBlur->setRange(0, 60);
-		spFocusBlur->setSingleStep(2);
-		spFocusBlur->setSuffix(T("Unit.Pixels"));
-		spFocusBlur->setToolTip(T("Dialog.FocusBlurTooltip"));
-
-		auto *styleRow = new QHBoxLayout;
-		styleRow->setSpacing(12);
-		styleRow->addWidget(mkField(T("Dialog.FocusStyle"), cmbFocusStyle), 1);
-		styleRow->addWidget(mkField(T("Dialog.FocusBlur"), spFocusBlur), 1);
-		lay->addLayout(styleRow);
-
-		spFocusDim = new QSpinBox(page);
-		spFocusDim->setRange(0, 100);
-		spFocusDim->setSingleStep(5);
-		spFocusDim->setSuffix(QStringLiteral(" %"));
-		spFocusDim->setToolTip(T("Dialog.FocusDimTooltip"));
-
-		spFocusCone = new QSpinBox(page);
-		spFocusCone->setRange(0, 100);
-		spFocusCone->setSingleStep(5);
-		spFocusCone->setSuffix(QStringLiteral(" %"));
-		spFocusCone->setToolTip(T("Dialog.FocusConeTooltip"));
-
-		auto *focusRow = new QHBoxLayout;
-		focusRow->setSpacing(12);
-		focusRow->addWidget(mkField(T("Dialog.FocusDim"), spFocusDim), 1);
-		focusRow->addWidget(mkField(T("Dialog.FocusCone"), spFocusCone), 1);
-		lay->addLayout(focusRow);
-		lay->addSpacing(6);
-
-		spFocusRadius = new QSpinBox(page);
-		spFocusRadius->setRange(40, 2000);
-		spFocusRadius->setSingleStep(10);
-		spFocusRadius->setSuffix(T("Unit.Pixels"));
-		spFocusRadius->setToolTip(T("Dialog.FocusRadiusTooltip"));
-		spFocusIdleRadius = new QSpinBox(page);
-		spFocusIdleRadius->setRange(40, 2000);
-		spFocusIdleRadius->setSingleStep(10);
-		spFocusIdleRadius->setSuffix(T("Unit.Pixels"));
-		spFocusIdleRadius->setToolTip(T("Dialog.FocusIdleRadiusTooltip"));
-		/* One under the other: the zoomed size, then "show when not zoomed" with its own size below it. */
-		auto *focusSizeRow = new QHBoxLayout;
-		focusSizeRow->setSpacing(12);
-		focusSizeRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
-		focusSizeRow->addStretch(1);
-		lay->addLayout(focusSizeRow);
-		lay->addSpacing(6);
-		lay->addWidget(chkFocusWhenNotZoomed);
-		lay->addSpacing(4);
-		auto *focusIdleRow = new QHBoxLayout;
-		focusIdleRow->setSpacing(12);
-		focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
-		focusIdleRow->addStretch(1);
-		lay->addLayout(focusIdleRow);
-		lay->addSpacing(10);
-
-		auto syncFocusFields = [this]() {
-			const bool on = chkFocus->isChecked();
-			const QString style = cmbFocusStyle->currentData().toString();
-			chkFocusWhenNotZoomed->setEnabled(on);
-			cmbFocusStyle->setEnabled(on);
-			spFocusBlur->setEnabled(on && style != QLatin1String("dim"));
-			spFocusDim->setEnabled(on && style != QLatin1String("blur"));
-			spFocusIdleRadius->setEnabled(on && chkFocusWhenNotZoomed->isChecked());
-			spFocusCone->setEnabled(on);
-			spFocusRadius->setEnabled(on);
-		};
-		syncFocusFieldsFn = syncFocusFields;
-		connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
-		connect(chkFocusWhenNotZoomed, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
-		connect(cmbFocusStyle, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-			[syncFocusFields](int) { syncFocusFields(); });
-		syncFocusFields();
-
-		addSection(lay, T("Dialog.Section.Countdown"));
-
-		auto *cdHelp = new QLabel(T("Dialog.CountdownHelp"), page);
-		cdHelp->setWordWrap(true);
-		lay->addWidget(cdHelp);
-		spCountdown = new QSpinBox(page);
-		spCountdown->setRange(1, 10);
-		spCountdown->setSuffix(QStringLiteral(" s"));
-		spCountdown->setToolTip(T("Dialog.CountdownTooltip"));
-		lay->addWidget(mkField(T("Dialog.Countdown"), spCountdown));
-		chkCountdownDefault = new QCheckBox(T("Dialog.CountdownDefault"), page);
-		chkCountdownDefault->setToolTip(T("Dialog.CountdownDefaultTooltip"));
-		lay->addWidget(chkCountdownDefault);
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.StatusHud"));
-
-		auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
-		hudHelp->setWordWrap(true);
-		lay->addWidget(hudHelp);
-		chkStatusHud = new QCheckBox(T("Dialog.StatusHud"), page);
-		chkStatusHud->setToolTip(T("Dialog.StatusHudTooltip"));
-		lay->addWidget(chkStatusHud);
-		cmbStatusHudCorner = new QComboBox(page);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopLeft"), 0);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
-		cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
-		spRecLimit = new QSpinBox(page);
-		spRecLimit->setRange(0, 600);
-		spRecLimit->setSingleStep(5);
-		spRecLimit->setSuffix(QStringLiteral(" s"));
-		spRecLimit->setSpecialValueText(T("Dialog.RecLimitOff"));
-		spRecLimit->setToolTip(T("Dialog.RecLimitTooltip"));
-		auto *hudRow = new QHBoxLayout;
-		hudRow->setSpacing(12);
-		hudRow->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner), 1);
-		hudRow->addWidget(mkField(T("Dialog.RecLimit"), spRecLimit), 1);
-		lay->addLayout(hudRow);
-		connect(chkStatusHud, &QCheckBox::toggled, this, [this](bool on) {
-			cmbStatusHudCorner->setEnabled(on);
-			spRecLimit->setEnabled(on);
-		});
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.Sound"));
-
-		QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
-		chkSoundEnabled = new QCheckBox(T("Dialog.SoundEnable"), page);
-		chkSoundEnabled->setToolTip(T("Dialog.SoundEnableTooltip"));
-		lay->addWidget(chkSoundEnabled);
-		lay->addSpacing(6);
-
-		{
-			static const char *labels[3] = {"Dialog.SoundZoomIn", "Dialog.SoundZoomOut", "Dialog.SoundTyping"};
-			for (int i = 0; i < 3; ++i) {
-				auto *row = new QWidget(page);
-				auto *h = new QHBoxLayout(row);
-				h->setContentsMargins(0, 0, 0, 0);
-				h->setSpacing(6);
-				editSoundName[i] = new QLineEdit(row);
-				editSoundName[i]->setReadOnly(true);
-				auto *browse = new QPushButton(T("Dialog.SoundBrowse"), row);
-				auto *def = new QPushButton(T("Dialog.SoundDefault"), row);
-				def->setToolTip(T("Dialog.SoundDefaultTooltip"));
-				auto *play = new QPushButton(T("Dialog.SoundPlay"), row);
-				spSoundVolume[i] = new QSpinBox(row);
-				spSoundVolume[i]->setRange(0, 100);
-				spSoundVolume[i]->setSingleStep(5);
-				spSoundVolume[i]->setSuffix(T("Unit.Percent"));
-				spSoundVolume[i]->setToolTip(T("Dialog.SoundVolumeTooltip"));
-				h->addWidget(editSoundName[i], 1);
-				h->addWidget(browse);
-				h->addWidget(def);
-				h->addWidget(play);
-				h->addWidget(spSoundVolume[i]);
-				chkSoundOn[i] = new QCheckBox(T(labels[i]), page);
-				chkSoundOn[i]->setToolTip(T("Dialog.SoundOnTooltip"));
-				lay->addWidget(chkSoundOn[i]);
-				lay->addWidget(row);
-				lay->addSpacing(8);
-				soundRowWidget[i] = row;
-
-				connect(browse, &QPushButton::clicked, this, [this, i]() { browseSound(i); });
-				connect(def, &QPushButton::clicked, this, [this, i]() { resetSound(i); });
-				connect(play, &QPushButton::clicked, this, [this, i]() { playSoundPreview(i); });
-			}
-		}
-
-		cmbSoundTypingMode = new QComboBox(page);
-		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Tick"), "tick");
-		cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Loop"), "loop");
-		cmbSoundTypingMode->setToolTip(T("Dialog.SoundTypingModeTooltip"));
-		lay->addWidget(mkField(T("Dialog.SoundTypingMode"), cmbSoundTypingMode));
-		/* The master switch greys everything below it; each sound's own switch
-		 * greys that sound's controls. */
-		auto syncSoundFields = [this, soundRowWidget]() {
-			const bool master = chkSoundEnabled->isChecked();
-			for (int i = 0; i < 3; ++i) {
-				chkSoundOn[i]->setEnabled(master);
-				soundRowWidget[i]->setEnabled(master && chkSoundOn[i]->isChecked());
-			}
-			cmbSoundTypingMode->setEnabled(master && chkSoundOn[2]->isChecked());
-		};
-		connect(chkSoundEnabled, &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
-		for (int i = 0; i < 3; ++i)
-			connect(chkSoundOn[i], &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
-		syncSoundFields();
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.CursorRing"));
-
-		chkCursorRing = new QCheckBox(T("Dialog.CursorRing"), page);
-		chkCursorRing->setToolTip(T("Dialog.CursorRingTooltip"));
-		lay->addWidget(chkCursorRing);
-		chkCursorRingIdle = new QCheckBox(T("Dialog.CursorRingIdle"), page);
-		chkCursorRingIdle->setToolTip(T("Dialog.CursorRingIdleTooltip"));
-		lay->addWidget(chkCursorRingIdle);
-
-		spCursorRingSize = new QSpinBox(page);
-		spCursorRingSize->setRange(20, 400);
-		spCursorRingSize->setSingleStep(5);
-		spCursorRingSize->setSuffix(T("Unit.Pixels"));
-		spCursorRingSize->setToolTip(T("Dialog.CursorRingSizeTooltip"));
-		spCursorRingPx = new QSpinBox(page);
-		spCursorRingPx->setRange(1, 40);
-		spCursorRingPx->setSuffix(T("Unit.Pixels"));
-		spCursorRingPx->setToolTip(T("Dialog.CursorRingThicknessTooltip"));
-		btnCursorRingColor = new ColorButton(page);
-		btnCursorRingColor->setMinimumHeight(28);
-		btnCursorRingColor->setToolTip(T("Dialog.CursorRingColorTooltip"));
-		auto *cursorRingRow = new QHBoxLayout;
-		cursorRingRow->setSpacing(12);
-		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingSize"), spCursorRingSize), 1);
-		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingThickness"), spCursorRingPx), 1);
-		cursorRingRow->addWidget(mkField(T("Dialog.CursorRingColor"), btnCursorRingColor), 1);
-		lay->addLayout(cursorRingRow);
-
-		chkCursorRingRainbow = new QCheckBox(T("Dialog.CursorRingRainbow"), page);
-		chkCursorRingRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
-		spCursorRingSec = new QSpinBox(page);
-		spCursorRingSec->setRange(2, 120);
-		spCursorRingSec->setSuffix(QStringLiteral(" s"));
-		spCursorRingSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
-		lay->addLayout(mkRainbowRow({chkCursorRingRainbow}, spCursorRingSec));
-
-		auto syncCursorRingFields = [this]() {
-			const bool on = chkCursorRing->isChecked();
-			const bool rb = chkCursorRingRainbow->isChecked();
-			chkCursorRingIdle->setEnabled(on);
-			spCursorRingSize->setEnabled(on);
-			spCursorRingPx->setEnabled(on);
-			btnCursorRingColor->setEnabled(on && !rb);
-			chkCursorRingRainbow->setEnabled(on);
-			spCursorRingSec->setEnabled(on && rb);
-		};
-		connect(chkCursorRing, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
-		connect(chkCursorRingRainbow, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
-		syncCursorRingFields();
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.KeyDisplay"));
-
-		chkKeyDisplay = new QCheckBox(T("Dialog.KeyDisplay"), page);
-		chkKeyDisplay->setToolTip(T("Dialog.KeyDisplayTooltip"));
-		lay->addWidget(chkKeyDisplay);
-		chkKeyDisplayAll = new QCheckBox(T("Dialog.KeyDisplayAll"), page);
-		chkKeyDisplayAll->setToolTip(T("Dialog.KeyDisplayAllTooltip"));
-		lay->addWidget(chkKeyDisplayAll);
-		spKeyDisplaySize = new QSpinBox(page);
-		spKeyDisplaySize->setRange(24, 160);
-		spKeyDisplaySize->setSingleStep(4);
-		spKeyDisplaySize->setSuffix(T("Unit.Pixels"));
-		spKeyDisplaySize->setToolTip(T("Dialog.KeyDisplaySizeTooltip"));
-		spKeyDisplayY = new QSpinBox(page);
-		spKeyDisplayY->setRange(5, 95);
-		spKeyDisplayY->setSuffix(T("Unit.Percent"));
-		spKeyDisplayY->setToolTip(T("Dialog.KeyDisplayYTooltip"));
-		auto *keyDisplayRow = new QHBoxLayout;
-		keyDisplayRow->setSpacing(12);
-		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySize"), spKeyDisplaySize), 1);
-		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplayY"), spKeyDisplayY), 1);
-		spKeyDisplaySec = new QDoubleSpinBox(page);
-		spKeyDisplaySec->setRange(0.5, 10.0);
-		spKeyDisplaySec->setDecimals(1);
-		spKeyDisplaySec->setSingleStep(0.1);
-		spKeyDisplaySec->setSuffix(QStringLiteral(" s"));
-		spKeyDisplaySec->setToolTip(T("Dialog.KeyDisplaySecTooltip"));
-		keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySec"), spKeyDisplaySec), 1);
-		btnKeyDisplayReset = new QPushButton(T("Dialog.KeyDisplayReset"), page);
-		btnKeyDisplayReset->setToolTip(T("Dialog.KeyDisplayResetTooltip"));
-		connect(btnKeyDisplayReset, &QPushButton::clicked, this, [this]() {
-			spKeyDisplaySize->setValue(64);
-			spKeyDisplayY->setValue(58);
-			spKeyDisplaySec->setValue(1.7);
-		});
-		keyDisplayRow->addWidget(btnKeyDisplayReset, 0, Qt::AlignBottom);
-		lay->addLayout(keyDisplayRow);
-
-		/* Keys that the key display never shows: a row of chips (click one to remove it) and a "+" to add one. */
-		auto *ignoreRow = new QHBoxLayout;
-		ignoreRow->setSpacing(6);
-		auto *ignoreLabel = new QLabel(T("Dialog.KeyIgnore"), page);
-		ignoreLabel->setToolTip(T("Dialog.KeyIgnoreTooltip"));
-		ignoreRow->addWidget(ignoreLabel);
-		keyIgnoreChips = new QHBoxLayout;
-		keyIgnoreChips->setSpacing(6);
-		ignoreRow->addLayout(keyIgnoreChips);
-		btnKeyIgnoreAdd = new QPushButton(page);
-		btnKeyIgnoreAdd->setIcon(strokeIcon(page, true));
-		btnKeyIgnoreAdd->setIconSize(QSize(14, 14));
-		btnKeyIgnoreAdd->setFixedSize(36, 30);
-		btnKeyIgnoreAdd->setToolTip(T("Dialog.KeyIgnoreAddTooltip"));
-		connect(btnKeyIgnoreAdd, &QPushButton::clicked, this, [this]() {
-			QDialog ask(this);
-			ask.setWindowTitle(T("Dialog.KeyIgnoreAskTitle"));
-			auto *v = new QVBoxLayout(&ask);
-			v->addWidget(new QLabel(T("Dialog.KeyIgnoreAsk"), &ask));
-			auto *edit = new QKeySequenceEdit(&ask);
-			/* Only one shortcut fits in the box: a further key press replaces the one already there. */
-			connect(edit, &QKeySequenceEdit::keySequenceChanged, edit, [edit](const QKeySequence &seq) {
-				if (seq.count() > 1)
-					edit->setKeySequence(QKeySequence(seq[seq.count() - 1].toCombined()));
-			});
-			v->addWidget(edit);
-			auto *ok = new QPushButton(T("Dialog.KeyIgnoreAdd"), &ask);
-			connect(ok, &QPushButton::clicked, &ask, &QDialog::accept);
-			v->addWidget(ok);
-			if (ask.exec() != QDialog::Accepted || edit->keySequence().isEmpty())
-				return;
-			const QKeyCombination combo = edit->keySequence()[edit->keySequence().count() - 1];
-			const int key = int(combo.key());
-			if (key == 0 || key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr ||
-			    key == Qt::Key_Shift || key == Qt::Key_Meta ||
-			    keyIgnoreQt.size() >= ZoominatorController::kMaxIgnoredKeys)
-				return;
-			const int combined = combo.toCombined(); /* key plus modifiers, so Alt+Z is not the same as Z */
-			if (keyIgnoreQt.contains(combined))
-				return;
-			keyIgnoreQt.append(combined);
-			rebuildKeyIgnoreChips();
-		});
-		ignoreRow->addWidget(btnKeyIgnoreAdd);
-		ignoreRow->addStretch(1);
-		lay->addLayout(ignoreRow);
-		connect(chkKeyDisplay, &QCheckBox::toggled, this, [this](bool on) {
-			chkKeyDisplayAll->setEnabled(on);
-			spKeyDisplaySize->setEnabled(on);
-			spKeyDisplayY->setEnabled(on);
-			spKeyDisplaySec->setEnabled(on);
-			btnKeyDisplayReset->setEnabled(on);
-			btnKeyIgnoreAdd->setEnabled(on);
-			rebuildKeyIgnoreChips();
-		});
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.Guide"));
-
-		chkGuide = new QCheckBox(T("Dialog.Guide"), page);
-		chkGuide->setToolTip(T("Dialog.GuideTooltip"));
-		lay->addWidget(chkGuide);
-		auto mkGuideSpin = [page](int hi, const QString &tip) {
-			auto *sp = new QSpinBox(page);
-			sp->setRange(0, hi);
-			sp->setSingleStep(5);
-			sp->setSuffix(T("Unit.Pixels"));
-			sp->setToolTip(tip);
-			return sp;
-		};
-		spGuideTop = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
-		spGuideBottom = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
-		spGuideLeft = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
-		spGuideRight = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
-		auto *guideRow = new QHBoxLayout;
-		guideRow->setSpacing(12);
-		guideRow->addWidget(mkField(T("Dialog.GuideTop"), spGuideTop), 1);
-		guideRow->addWidget(mkField(T("Dialog.GuideBottom"), spGuideBottom), 1);
-		guideRow->addWidget(mkField(T("Dialog.GuideLeft"), spGuideLeft), 1);
-		guideRow->addWidget(mkField(T("Dialog.GuideRight"), spGuideRight), 1);
-		lay->addLayout(guideRow);
-		connect(chkGuide, &QCheckBox::toggled, this, [this](bool on) {
-			for (QWidget *w : {(QWidget *)spGuideTop, (QWidget *)spGuideBottom, (QWidget *)spGuideLeft, (QWidget *)spGuideRight})
-				w->setEnabled(on);
-		});
-		lay->addSpacing(10);
-
-		addSection(lay, T("Dialog.Section.Developer"));
-
-		chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
-		lay->addWidget(chkDebug);
-
-		lay->addStretch(1);
-		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Advanced"));
-	}
-
-	{
-		auto *page = new QWidget;
-		auto *lay = new QVBoxLayout(page);
-		lay->setContentsMargins(20, 20, 20, 20);
-		lay->setSpacing(10);
-
-		auto *intro = new QLabel(T("Dialog.Presets.Intro"), page);
-		intro->setWordWrap(true);
-		lay->addWidget(intro);
-
-		for (int i = 0; i < 2; ++i) {
-			const bool horizontal = (i == 1);
-			addSection(lay, T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"), i == 0);
-			presetListLay[i] = new QVBoxLayout;
-			presetListLay[i]->setSpacing(6);
-			lay->addLayout(presetListLay[i]);
-
-			auto *btnAdd = new QPushButton(T("Dialog.Presets.Add"), page);
-			btnAdd->setToolTip(T("Dialog.Presets.AddTooltip"));
-			auto *addRow = new QHBoxLayout;
-			addRow->addWidget(btnAdd);
-			addRow->addStretch(1);
-			lay->addLayout(addRow);
-			connect(btnAdd, &QPushButton::clicked, this, [this, horizontal]() {
-				applyToController();
-				auto &ctl = ZoominatorController::instance();
-				int count = 0;
-				for (const auto &pi : ctl.listPresets())
-					count += (pi.horizontal == horizontal) ? 1 : 0;
-				const QString name = QString(T("Dialog.Presets.NewName")).arg(count + 1);
-				if (ctl.addPreset(name, horizontal).isEmpty()) {
-					lblStatus->setText(T("Dialog.PresetSaveFailed"));
-					return;
-				}
-				rebuildPresetRows();
-				lblStatus->setText(QString(T("Dialog.Presets.Added")).arg(name));
-			});
-		}
-		rebuildPresetRows();
-		addSection(lay, T("Dialog.Backup.Title"));
-		auto *backupHelp = new QLabel(T("Dialog.Backup.Help"), page);
-		backupHelp->setWordWrap(true);
-		lay->addWidget(backupHelp);
-		auto *btnExport = new QPushButton(T("Dialog.Backup.Export"), page);
-		btnExport->setToolTip(T("Dialog.Backup.ExportTooltip"));
-		auto *btnImport = new QPushButton(T("Dialog.Backup.Import"), page);
-		btnImport->setToolTip(T("Dialog.Backup.ImportTooltip"));
-		auto *backupRow = new QHBoxLayout;
-		backupRow->setSpacing(8);
-		backupRow->addWidget(btnExport);
-		backupRow->addWidget(btnImport);
-		backupRow->addStretch(1);
-		lay->addLayout(backupRow);
-		connect(btnExport, &QPushButton::clicked, this, [this]() {
-			applyToController();
-			const QString file = QFileDialog::getSaveFileName(
-				this, T("Dialog.Backup.Export"),
-				QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-					.filePath(QStringLiteral("zoominator-settings.json")),
-				QStringLiteral("JSON (*.json)"));
-			if (file.isEmpty())
-				return;
-			lblStatus->setText(ZoominatorController::instance().exportSettings(file)
-						   ? QString(T("Dialog.Backup.Exported")).arg(file)
-						   : QString(T("Dialog.Backup.Failed")));
-		});
-		connect(btnImport, &QPushButton::clicked, this, [this]() {
-			const QString file = QFileDialog::getOpenFileName(
-				this, T("Dialog.Backup.Import"),
-				QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation),
-				QStringLiteral("JSON (*.json)"));
-			if (file.isEmpty())
-				return;
-			if (ZoominatorController::instance().importSettings(file)) {
-				loadFromController();
-				lblStatus->setText(T("Dialog.Backup.Imported"));
-			} else {
-				lblStatus->setText(T("Dialog.Backup.Failed"));
-			}
-		});
-		lay->addStretch(1);
-
-		tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Presets"));
-	}
-
-	{
-		auto *page = new QWidget;
-		auto *lay = new QVBoxLayout(page);
-		lay->setContentsMargins(20, 20, 20, 20);
-		lay->setSpacing(10);
-
-		auto *info = new QLabel(T("Dialog.SourcesHelp"), page);
-		info->setWordWrap(true);
-		lay->addWidget(info);
-
-		lstSources = new QListWidget(page);
-		lstSources->setAlternatingRowColors(true);
-		lstSources->setSortingEnabled(false);
-		lay->addWidget(lstSources, 1);
-
-		tabWidget->addTab(page, T("Dialog.Tab.Sources"));
-	}
+	buildSourcesTab();
 
 	root->addWidget(tabWidget, 1);
 
@@ -1539,6 +305,1330 @@ void ZoominatorDialog::buildUi()
 		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
 		syncHaloFields();
 	}
+}
+
+void ZoominatorDialog::buildTargetTab()
+{
+	auto *page = new QWidget;
+	auto *lay = new QVBoxLayout(page);
+	lay->setContentsMargins(20, 20, 20, 20);
+	lay->setSpacing(0);
+
+	cmbSource = new QComboBox(page);
+	lay->addWidget(mkField(T("Dialog.TargetScreen"), cmbSource));
+	lay->addSpacing(16);
+
+	cmbMode = new QComboBox(page);
+	cmbMode->addItem(T("Dialog.Mode.Hold"), "hold");
+	cmbMode->addItem(T("Dialog.Mode.Toggle"), "toggle");
+	rowBehaviorWidget = mkField(T("Dialog.Behavior"), cmbMode);
+	lay->addWidget(rowBehaviorWidget);
+	lay->addSpacing(16);
+
+	auto *followHkRow = new QWidget(page);
+	{
+		auto *h = new QHBoxLayout(followHkRow);
+		h->setContentsMargins(0, 0, 0, 0);
+		h->setSpacing(6);
+		editFollowToggleHotkey = new QKeySequenceEdit(followHkRow);
+		btnClearFollowToggleHotkey = new QPushButton(T("Dialog.Clear"), followHkRow);
+		btnClearFollowToggleHotkey->setToolTip(T("Dialog.ClearFollowToggleTooltip"));
+		h->addWidget(editFollowToggleHotkey, 1);
+		h->addWidget(btnClearFollowToggleHotkey);
+	}
+	lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
+	lay->addSpacing(16);
+
+	lay->addStretch(1);
+	lay->addSpacing(16);
+
+	tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Target"));
+}
+
+void ZoominatorDialog::buildTriggerTab()
+{
+	auto *page = new QWidget;
+	auto *lay = new QVBoxLayout(page);
+	lay->setContentsMargins(20, 20, 20, 20);
+	lay->setSpacing(0);
+
+	cmbTrigger = new QComboBox(page);
+	cmbTrigger->addItem(T("Dialog.Trigger.Keyboard"), "keyboard");
+	cmbTrigger->addItem(T("Dialog.Trigger.MouseButton"), "mouse");
+	cmbTrigger->addItem(T("Dialog.Trigger.Auto"), "auto");
+	lay->addWidget(mkField(T("Dialog.TriggerType"), cmbTrigger));
+	lay->addSpacing(16);
+
+	rowHotkeyWidget = new QWidget(page);
+	{
+		auto *v = new QVBoxLayout(rowHotkeyWidget);
+		v->setContentsMargins(0, 0, 0, 0);
+		v->setSpacing(4);
+		v->addWidget(new QLabel(T("Dialog.Hotkey"), rowHotkeyWidget));
+		auto *h = new QHBoxLayout;
+		h->setSpacing(6);
+		editHotkey = new QKeySequenceEdit(rowHotkeyWidget);
+		btnClearHotkey = new QPushButton(T("Dialog.Clear"), rowHotkeyWidget);
+		btnClearHotkey->setToolTip(T("Dialog.ClearHotkeyTooltip"));
+		h->addWidget(editHotkey, 1);
+		h->addWidget(btnClearHotkey);
+		v->addLayout(h);
+	}
+	lay->addWidget(rowHotkeyWidget);
+
+	rowMouseWidget = new QWidget(page);
+	{
+		auto *v = new QVBoxLayout(rowMouseWidget);
+		v->setContentsMargins(0, 0, 0, 0);
+		v->setSpacing(4);
+		v->addWidget(new QLabel(T("Dialog.MouseButton"), rowMouseWidget));
+		cmbMouseBtn = new QComboBox(rowMouseWidget);
+		cmbMouseBtn->addItem(T("Dialog.Mouse.Left"), "left");
+		cmbMouseBtn->addItem(T("Dialog.Mouse.Right"), "right");
+		cmbMouseBtn->addItem(T("Dialog.Mouse.Middle"), "middle");
+		cmbMouseBtn->addItem("X1", "x1");
+		cmbMouseBtn->addItem("X2", "x2");
+		v->addWidget(cmbMouseBtn);
+	}
+	lay->addWidget(rowMouseWidget);
+	lay->addSpacing(16);
+
+	rowModifiersWidget = new QWidget(page);
+	{
+		auto *v = new QVBoxLayout(rowModifiersWidget);
+		v->setContentsMargins(0, 0, 0, 0);
+		v->setSpacing(6);
+		v->addWidget(new QLabel(T("Dialog.RequiredModifiers"), rowModifiersWidget));
+		auto *grid = new QGridLayout;
+		grid->setHorizontalSpacing(10);
+		grid->setVerticalSpacing(4);
+		chkCtrl = new QCheckBox(T("Dialog.Mod.CtrlAny"), rowModifiersWidget);
+		chkLeftCtrl = new QCheckBox(T("Dialog.Mod.LeftCtrl"), rowModifiersWidget);
+		chkRightCtrl = new QCheckBox(T("Dialog.Mod.RightCtrl"), rowModifiersWidget);
+		chkAlt = new QCheckBox(T("Dialog.Mod.AltAny"), rowModifiersWidget);
+		chkLeftAlt = new QCheckBox(T("Dialog.Mod.LeftAlt"), rowModifiersWidget);
+		chkRightAlt = new QCheckBox(T("Dialog.Mod.RightAlt"), rowModifiersWidget);
+		chkShift = new QCheckBox(T("Dialog.Mod.ShiftAny"), rowModifiersWidget);
+		chkLeftShift = new QCheckBox(T("Dialog.Mod.LeftShift"), rowModifiersWidget);
+		chkRightShift = new QCheckBox(T("Dialog.Mod.RightShift"), rowModifiersWidget);
+		chkWin = new QCheckBox(T("Dialog.Mod.MetaWinAny"), rowModifiersWidget);
+		chkLeftWin = new QCheckBox(T("Dialog.Mod.LeftMetaWin"), rowModifiersWidget);
+		chkRightWin = new QCheckBox(T("Dialog.Mod.RightMetaWin"), rowModifiersWidget);
+		grid->addWidget(chkCtrl, 0, 0);
+		grid->addWidget(chkLeftCtrl, 0, 1);
+		grid->addWidget(chkRightCtrl, 0, 2);
+		grid->addWidget(chkAlt, 1, 0);
+		grid->addWidget(chkLeftAlt, 1, 1);
+		grid->addWidget(chkRightAlt, 1, 2);
+		grid->addWidget(chkShift, 2, 0);
+		grid->addWidget(chkLeftShift, 2, 1);
+		grid->addWidget(chkRightShift, 2, 2);
+		grid->addWidget(chkWin, 3, 0);
+		grid->addWidget(chkLeftWin, 3, 1);
+		grid->addWidget(chkRightWin, 3, 2);
+		grid->addWidget(new QLabel(T("Dialog.ModifierHelp"), rowModifiersWidget), 4, 0, 1, 3);
+		grid->setColumnStretch(3, 1);
+		v->addLayout(grid);
+	}
+	lay->addWidget(rowModifiersWidget);
+
+	rowAutoWidget = new QWidget(page);
+	{
+		auto *v = new QVBoxLayout(rowAutoWidget);
+		v->setContentsMargins(0, 0, 0, 0);
+		v->setSpacing(8);
+		auto *help = new QLabel(T("Dialog.AutoHelp"), rowAutoWidget);
+		help->setWordWrap(true);
+		v->addWidget(help);
+		chkAutoClick = new QCheckBox(T("Dialog.AutoOnClick"), rowAutoWidget);
+		chkAutoTyping = new QCheckBox(T("Dialog.AutoOnTyping"), rowAutoWidget);
+		chkAutoTyping->setToolTip(T("Dialog.AutoOnTypingTooltip"));
+		chkCaretFollow = new QCheckBox(T("Dialog.CaretFollow"), rowAutoWidget);
+		chkCaretFollow->setToolTip(T("Dialog.CaretFollowTooltip"));
+#ifndef _WIN32
+		chkCaretFollow->setEnabled(false);
+#endif
+		spAutoHold = new QSpinBox(rowAutoWidget);
+		spAutoHold->setRange(300, 60000);
+		spAutoHold->setSingleStep(100);
+		spAutoHold->setSuffix(T("Unit.Milliseconds"));
+		spAutoHold->setToolTip(T("Dialog.AutoHoldTooltip"));
+		v->addWidget(chkAutoClick);
+		v->addWidget(chkAutoTyping);
+		v->addWidget(chkCaretFollow);
+		chkAutoZoomOut = new QCheckBox(T("Dialog.AutoZoomOut"), rowAutoWidget);
+		chkAutoZoomOut->setToolTip(T("Dialog.AutoZoomOutTooltip"));
+		v->addWidget(chkAutoZoomOut);
+		v->addWidget(mkField(T("Dialog.AutoHold"), spAutoHold));
+		connect(chkAutoZoomOut, &QCheckBox::toggled, spAutoHold, &QWidget::setEnabled);
+#ifdef _WIN32
+		chkCaretFollow->setEnabled(chkAutoTyping->isChecked());
+		connect(chkAutoTyping, &QCheckBox::toggled, chkCaretFollow, &QWidget::setEnabled);
+#endif
+
+	}
+	lay->addWidget(rowAutoWidget);
+
+	rowManualKeysWidget = new QWidget(page);
+	{
+		auto *v = new QVBoxLayout(rowManualKeysWidget);
+		v->setContentsMargins(0, 0, 0, 0);
+		v->setSpacing(8);
+		auto makeKeyRow = [&](QKeySequenceEdit *&edit, const char *label, const char *tip) {
+			auto *row = new QWidget(rowManualKeysWidget);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			edit = new QKeySequenceEdit(row);
+			edit->setToolTip(T(tip));
+			auto *clear = new QPushButton(T("Dialog.Clear"), row);
+			QKeySequenceEdit *e = edit;
+			connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+			h->addWidget(edit, 1);
+			h->addWidget(clear);
+			v->addWidget(mkField(T(label), row));
+		};
+		makeKeyRow(editManualZoomIn, "Dialog.ManualZoomIn", "Dialog.ManualZoomInTooltip");
+		makeKeyRow(editManualZoomOut, "Dialog.ManualZoomOut", "Dialog.ManualZoomOutTooltip");
+	}
+	lay->addSpacing(16);
+	lay->addWidget(rowManualKeysWidget);
+
+	lay->addStretch(1);
+	tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));
+
+	connect(cmbTrigger, &QComboBox::currentIndexChanged, this, [this](int) { updateTriggerRows(); });
+}
+
+void ZoominatorDialog::buildAdvancedTab()
+{
+	auto *page = new QWidget;
+	auto *lay = new QVBoxLayout(page);
+	lay->setContentsMargins(20, 8, 20, 20);
+	lay->setSpacing(0);
+
+	buildZoomSection(page, lay);
+	buildMouseFollowSection(page, lay);
+	buildCanvasSection(page, lay);
+	buildTilt3dSection(page, lay);
+	buildCursorHaloSection(page, lay);
+	buildFrameSection(page, lay);
+	buildCamRingSection(page, lay);
+	buildFocusSection(page, lay);
+	buildCountdownSection(page, lay);
+	buildStatusHudSection(page, lay);
+	buildSoundSection(page, lay);
+	buildCursorRingSection(page, lay);
+	buildKeyDisplaySection(page, lay);
+	buildGuideSection(page, lay);
+	buildDeveloperSection(page, lay);
+	lay->addStretch(1);
+	tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Advanced"));
+}
+
+void ZoominatorDialog::buildZoomSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Zoom"), true);
+
+	spZoom = new QDoubleSpinBox(page);
+	spZoom->setRange(0.0, 8.0);
+	spZoom->setSingleStep(0.05);
+	spZoom->setDecimals(2);
+	spZoom->setToolTip(T("Dialog.ZoomFactorTooltip"));
+
+	spIn = new QSpinBox(page);
+	spIn->setRange(0, 5000);
+	spIn->setSingleStep(10);
+	spIn->setSuffix(T("Unit.Milliseconds"));
+
+	spOut = new QSpinBox(page);
+	spOut->setRange(0, 5000);
+	spOut->setSingleStep(10);
+	spOut->setSuffix(T("Unit.Milliseconds"));
+
+	auto *zoomRow = new QHBoxLayout;
+	zoomRow->setSpacing(12);
+	zoomRow->addWidget(mkField(T("Dialog.ZoomFactor"), spZoom), 1);
+	zoomRow->addWidget(mkField(T("Dialog.AnimateIn"), spIn), 1);
+	zoomRow->addWidget(mkField(T("Dialog.AnimateOut"), spOut), 1);
+	lay->addLayout(zoomRow);
+	lay->addSpacing(12);
+
+	cmbEasing = new QComboBox(page);
+	cmbEasing->addItem(T("Dialog.Easing.Smooth"), "smooth");
+	cmbEasing->addItem(T("Dialog.Easing.EaseOut"), "ease_out");
+	cmbEasing->addItem(T("Dialog.Easing.Expo"), "expo");
+	cmbEasing->addItem(T("Dialog.Easing.Punch"), "punch");
+	cmbEasing->setToolTip(T("Dialog.EasingTooltip"));
+	auto *easingRow = new QHBoxLayout;
+	easingRow->setSpacing(12);
+	easingRow->addWidget(mkField(T("Dialog.Easing"), cmbEasing), 1);
+	easingRow->addStretch(2);
+	lay->addLayout(easingRow);
+	lay->addSpacing(12);
+
+	chkWheelZoom = new QCheckBox(T("Dialog.WheelZoom"), page);
+	chkWheelZoom->setToolTip(T("Dialog.WheelZoomTooltip"));
+	lay->addWidget(chkWheelZoom);
+
+	cmbWheelMod = new QComboBox(page);
+	cmbWheelMod->addItem(T("Dialog.WheelMod.Alt"), "alt");
+	cmbWheelMod->addItem(T("Dialog.WheelMod.Ctrl"), "ctrl");
+	cmbWheelMod->addItem(T("Dialog.WheelMod.Shift"), "shift");
+	spWheelStep = new QDoubleSpinBox(page);
+	spWheelStep->setRange(0.05, 2.0);
+	spWheelStep->setSingleStep(0.05);
+	spWheelStep->setDecimals(2);
+	spWheelMax = new QDoubleSpinBox(page);
+	spWheelMax->setRange(1.5, 20.0);
+	spWheelMax->setSingleStep(0.5);
+	spWheelMax->setDecimals(1);
+	spWheelExit = new QDoubleSpinBox(page);
+	spWheelExit->setRange(0.0, 19.0);
+	spWheelExit->setSpecialValueText(T("Dialog.WheelExitOff"));
+	spWheelExit->setSingleStep(0.1);
+	spWheelExit->setDecimals(1);
+	spWheelExit->setToolTip(T("Dialog.WheelExitTooltip"));
+	auto *wheelRow = new QHBoxLayout;
+	wheelRow->setSpacing(12);
+	wheelRow->addWidget(mkField(T("Dialog.WheelModifier"), cmbWheelMod), 1);
+	wheelRow->addWidget(mkField(T("Dialog.WheelStep"), spWheelStep), 1);
+	wheelRow->addWidget(mkField(T("Dialog.WheelMax"), spWheelMax), 1);
+	wheelRow->addWidget(mkField(T("Dialog.WheelExit"), spWheelExit), 1);
+	lay->addLayout(wheelRow);
+	for (QWidget *w : {(QWidget *)cmbWheelMod, (QWidget *)spWheelStep, (QWidget *)spWheelMax,
+			   (QWidget *)spWheelExit})
+		connect(chkWheelZoom, &QCheckBox::toggled, w, &QWidget::setEnabled);
+	lay->addSpacing(12);
+
+
+}
+
+void ZoominatorDialog::buildMouseFollowSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.MouseFollow"));
+
+	cmbZoomAnchor = new QComboBox(page);
+	cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorStatic"), "cursor_static");
+	cmbZoomAnchor->addItem(T("Dialog.ZoomAnchor.CursorFollow"), "cursor_follow");
+	cmbZoomAnchor->setToolTip(T("Dialog.ZoomAnchorTooltip"));
+
+	spFollowSpeed = new QDoubleSpinBox(page);
+	spFollowSpeed->setRange(0.1, 40.0);
+	spFollowSpeed->setSingleStep(0.5);
+	spFollowSpeed->setDecimals(1);
+
+	chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
+	chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
+
+	auto *followRow = new QHBoxLayout;
+	followRow->setSpacing(12);
+
+	followRow->addWidget(mkField(T("Dialog.ZoomAnchor"), cmbZoomAnchor), 1);
+	followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
+	lay->addLayout(followRow);
+
+	lay->addWidget(chkCenterFocus);
+
+	/* Smoothing only means something while the anchor
+	 * actually tracks the cursor. */
+	auto syncFollowOnlyFields = [this]() {
+		const bool follows = (cmbZoomAnchor->currentData().toString() == "cursor_follow");
+		spFollowSpeed->setEnabled(follows);
+	};
+	connect(cmbZoomAnchor, &QComboBox::currentIndexChanged, this,
+		[syncFollowOnlyFields](int) { syncFollowOnlyFields(); });
+	syncFollowOnlyFields();
+
+}
+
+void ZoominatorDialog::buildCanvasSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Canvas"));
+
+	auto *coverHelp = new QLabel(T("Dialog.PortraitCoverHelp"), page);
+	coverHelp->setWordWrap(true);
+	lay->addWidget(coverHelp);
+	chkPortraitCover = new QCheckBox(T("Dialog.PortraitCover"), page);
+	chkPortraitCover->setToolTip(T("Dialog.PortraitCoverTooltip"));
+	lay->addWidget(chkPortraitCover);
+
+	chkIdleFollowX = new QCheckBox(T("Dialog.IdleFollowX"), page);
+	chkIdleFollowX->setToolTip(T("Dialog.IdleFollowXTooltip"));
+	lay->addWidget(chkIdleFollowX);
+
+}
+
+void ZoominatorDialog::buildTilt3dSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Tilt3d"));
+	auto *tiltHelp = new QLabel(T("Dialog.Tilt3dHelp"), page);
+	tiltHelp->setWordWrap(true);
+	lay->addWidget(tiltHelp);
+	chkTilt3d = new QCheckBox(T("Dialog.Tilt3d"), page);
+	chkTilt3d->setToolTip(T("Dialog.Tilt3dTooltip"));
+	lay->addWidget(chkTilt3d);
+	spTiltX = new QDoubleSpinBox(page);
+	spTiltX->setRange(0.0, 45.0);
+	spTiltX->setSingleStep(1.0);
+	spTiltX->setDecimals(1);
+	spTiltX->setSuffix(QStringLiteral("°"));
+	spTiltX->setToolTip(T("Dialog.Tilt3dXTooltip"));
+	spTiltY = new QDoubleSpinBox(page);
+	spTiltY->setRange(0.0, 45.0);
+	spTiltY->setSingleStep(1.0);
+	spTiltY->setDecimals(1);
+	spTiltY->setSuffix(QStringLiteral("°"));
+	spTiltY->setToolTip(T("Dialog.Tilt3dYTooltip"));
+	spTiltPersp = new QDoubleSpinBox(page);
+	spTiltPersp->setRange(0.8, 8.0);
+	spTiltPersp->setSingleStep(0.2);
+	spTiltPersp->setDecimals(1);
+	spTiltPersp->setToolTip(T("Dialog.Tilt3dPerspTooltip"));
+	auto *tiltRow = new QHBoxLayout;
+	tiltRow->setSpacing(12);
+	tiltRow->addWidget(mkField(T("Dialog.Tilt3dX"), spTiltX), 1);
+	tiltRow->addWidget(mkField(T("Dialog.Tilt3dY"), spTiltY), 1);
+	tiltRow->addWidget(mkField(T("Dialog.Tilt3dPersp"), spTiltPersp), 1);
+	lay->addLayout(tiltRow);
+	chkTiltInvert = new QCheckBox(T("Dialog.Tilt3dInvert"), page);
+	chkTiltInvert->setToolTip(T("Dialog.Tilt3dInvertTooltip"));
+	lay->addWidget(chkTiltInvert);
+	chkTiltInZoom = new QCheckBox(T("Dialog.Tilt3dInZoom"), page);
+	chkTiltInZoom->setToolTip(T("Dialog.Tilt3dInZoomTooltip"));
+	lay->addWidget(chkTiltInZoom);
+	for (QWidget *w : {(QWidget *)spTiltX, (QWidget *)spTiltY, (QWidget *)spTiltPersp, (QWidget *)chkTiltInvert,
+			   (QWidget *)chkTiltInZoom})
+		connect(chkTilt3d, &QCheckBox::toggled, w, &QWidget::setEnabled);
+
+}
+
+void ZoominatorDialog::buildCursorHaloSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.CursorHalo"));
+
+	chkShowCursorMarker = new QCheckBox(T("Dialog.ShowCursorHalo"), page);
+	chkShowCursorMarker->setToolTip(T("Dialog.ShowCursorHaloTooltip"));
+	chkShowMarkerWhenNotZoomed = new QCheckBox(T("Dialog.ShowHaloWhenNotZoomed"), page);
+	chkShowMarkerWhenNotZoomed->setToolTip(T("Dialog.ShowHaloWhenNotZoomedTooltip"));
+
+	lay->addWidget(chkShowCursorMarker);
+	lay->addSpacing(6);
+
+	spMarkerSize = new QSpinBox(page);
+	spMarkerSize->setRange(6, 256);
+	spMarkerSize->setSingleStep(2);
+	spMarkerSize->setSuffix(T("Unit.Pixels"));
+
+	spMarkerThickness = new QSpinBox(page);
+	spMarkerThickness->setRange(1, 64);
+	spMarkerThickness->setSingleStep(1);
+	spMarkerThickness->setSuffix(T("Unit.Pixels"));
+
+	btnMarkerColor = new ColorButton(page);
+	btnMarkerColor->setMinimumHeight(28);
+
+	auto *haloRow = new QHBoxLayout;
+	haloRow->setSpacing(12);
+	haloRow->addWidget(mkField(T("Dialog.HaloSize"), spMarkerSize), 1);
+	haloRow->addWidget(mkField(T("Dialog.RingThickness"), spMarkerThickness), 1);
+	haloRow->addWidget(mkField(T("Dialog.Color"), btnMarkerColor), 1);
+	lay->addLayout(haloRow);
+	lay->addSpacing(10);
+
+	lay->addWidget(chkShowMarkerWhenNotZoomed);
+	lay->addSpacing(4);
+	spMarkerIdleSize = new QSpinBox(page);
+	spMarkerIdleSize->setRange(6, 256);
+	spMarkerIdleSize->setSingleStep(2);
+	spMarkerIdleSize->setSuffix(T("Unit.Pixels"));
+	spMarkerIdleSize->setToolTip(T("Dialog.HaloIdleSizeTooltip"));
+	spMarkerIdleSize->setEnabled(chkShowMarkerWhenNotZoomed->isChecked());
+	auto *haloIdleRow = new QHBoxLayout;
+	haloIdleRow->setSpacing(12);
+	haloIdleRow->addWidget(mkField(T("Dialog.HaloIdleSize"), spMarkerIdleSize), 1);
+	haloIdleRow->addStretch(2);
+	lay->addLayout(haloIdleRow);
+	lay->addSpacing(6);
+	lay->addSpacing(4);
+	spMarkerOffX = new QSpinBox(page);
+	spMarkerOffX->setRange(-100, 100);
+	spMarkerOffX->setSuffix(T("Unit.Pixels"));
+	spMarkerOffX->setToolTip(T("Dialog.HaloOffsetTooltip"));
+	spMarkerOffY = new QSpinBox(page);
+	spMarkerOffY->setRange(-100, 100);
+	spMarkerOffY->setSuffix(T("Unit.Pixels"));
+	spMarkerOffY->setToolTip(T("Dialog.HaloOffsetTooltip"));
+	btnMarkerOffReset = new QPushButton(T("Dialog.HaloOffsetReset"), page);
+	btnMarkerOffReset->setToolTip(T("Dialog.HaloOffsetResetTooltip"));
+	connect(btnMarkerOffReset, &QPushButton::clicked, this, [this]() {
+		spMarkerOffX->setValue(6);
+		spMarkerOffY->setValue(10);
+	});
+	auto *haloOffRow = new QHBoxLayout;
+	haloOffRow->setSpacing(12);
+	haloOffRow->addWidget(mkField(T("Dialog.HaloOffsetX"), spMarkerOffX), 1);
+	haloOffRow->addWidget(mkField(T("Dialog.HaloOffsetY"), spMarkerOffY), 1);
+	haloOffRow->addWidget(btnMarkerOffReset, 0, Qt::AlignBottom);
+	lay->addLayout(haloOffRow);
+
+}
+
+void ZoominatorDialog::buildFrameSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Frame"));
+
+	chkFrame = new QCheckBox(T("Dialog.FrameEnable"), page);
+	chkFrame->setToolTip(T("Dialog.FrameEnableTooltip"));
+	lay->addWidget(chkFrame);
+	lay->addSpacing(6);
+
+	btnFrameColor = new ColorButton(page);
+	btnFrameColor->setMinimumHeight(28);
+	btnFrameColor->setToolTip(T("Dialog.FrameColorTooltip"));
+	btnFrameBg = new ColorButton(page);
+	btnFrameBg->setMinimumHeight(28);
+	btnFrameBg->setToolTip(T("Dialog.FrameBgTooltip"));
+
+	cmbFrameBgMode = new QComboBox(page);
+	cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Solid"), 0);
+	cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Linear"), 1);
+	cmbFrameBgMode->addItem(T("Dialog.FrameBgMode.Radial"), 2);
+	cmbFrameBgMode->setToolTip(T("Dialog.FrameBgModeTooltip"));
+	btnFrameBg2 = new ColorButton(page);
+	btnFrameBg2->setMinimumHeight(28);
+	btnFrameBg2->setToolTip(T("Dialog.FrameBg2Tooltip"));
+	spFrameBgAngle = new QSpinBox(page);
+	spFrameBgAngle->setRange(0, 360);
+	spFrameBgAngle->setSingleStep(15);
+	spFrameBgAngle->setSuffix(QString::fromUtf8("\xC2\xB0"));
+	spFrameBgAngle->setToolTip(T("Dialog.FrameBgAngleTooltip"));
+
+	/* The three colour buttons sit side by side; the background style and angle come under them. */
+	auto *frameColorRow = new QHBoxLayout;
+	frameColorRow->setSpacing(12);
+	frameColorRow->addWidget(mkField(T("Dialog.FrameColor"), btnFrameColor), 1);
+	frameColorRow->addWidget(mkField(T("Dialog.FrameBg"), btnFrameBg), 1);
+	frameColorRow->addWidget(mkField(T("Dialog.FrameBg2"), btnFrameBg2), 1);
+	lay->addLayout(frameColorRow);
+
+	auto *frameGradRow = new QHBoxLayout;
+	frameGradRow->setSpacing(12);
+	frameGradRow->addWidget(mkField(T("Dialog.FrameBgMode"), cmbFrameBgMode), 1);
+	frameGradRow->addWidget(mkField(T("Dialog.FrameBgAngle"), spFrameBgAngle), 1);
+	frameGradRow->addStretch(1);
+	lay->addLayout(frameGradRow);
+
+	spFrameBorder = new QSpinBox(page);
+	spFrameBorder->setRange(0, 80);
+	spFrameBorder->setSuffix(T("Unit.Pixels"));
+	spFrameBorder->setToolTip(T("Dialog.FrameBorderTooltip"));
+	spFrameRadius = new QSpinBox(page);
+	spFrameRadius->setRange(0, 400);
+	spFrameRadius->setSingleStep(2);
+	spFrameRadius->setSuffix(T("Unit.Pixels"));
+	spFrameRadius->setToolTip(T("Dialog.FrameRadiusTooltip"));
+	spFrameGlow = new QSpinBox(page);
+	spFrameGlow->setRange(0, 200);
+	spFrameGlow->setSingleStep(4);
+	spFrameGlow->setSuffix(T("Unit.Pixels"));
+	spFrameGlow->setToolTip(T("Dialog.FrameGlowTooltip"));
+	spFrameGlowPct = new QSpinBox(page);
+	spFrameGlowPct->setRange(0, 100);
+	spFrameGlowPct->setSingleStep(5);
+	spFrameGlowPct->setSuffix(T("Unit.Percent"));
+	spFrameGlowPct->setToolTip(T("Dialog.FrameGlowStrengthTooltip"));
+
+	auto *frameShapeRow = new QHBoxLayout;
+	frameShapeRow->setSpacing(12);
+	frameShapeRow->addWidget(mkField(T("Dialog.FrameBorder"), spFrameBorder), 1);
+	frameShapeRow->addWidget(mkField(T("Dialog.FrameRadius"), spFrameRadius), 1);
+	frameShapeRow->addWidget(mkField(T("Dialog.FrameGlow"), spFrameGlow), 1);
+	frameShapeRow->addWidget(mkField(T("Dialog.FrameGlowStrength"), spFrameGlowPct), 1);
+	lay->addLayout(frameShapeRow);
+
+	chkFrameBgRainbow = new QCheckBox(T("Dialog.FrameBgRainbow"), page);
+	chkFrameBgRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+	chkFrameBorderRainbow = new QCheckBox(T("Dialog.FrameBorderRainbow"), page);
+	chkFrameBorderRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+	spFrameRainbowSec = new QSpinBox(page);
+	spFrameRainbowSec->setRange(2, 120);
+	spFrameRainbowSec->setSuffix(QStringLiteral(" s"));
+	spFrameRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+	lay->addLayout(mkRainbowRow({chkFrameBgRainbow, chkFrameBorderRainbow}, spFrameRainbowSec));
+
+	lay->addSpacing(10);
+
+	auto syncFrameFields = [this]() {
+		const bool on = chkFrame->isChecked();
+		/* A rainbow replaces the colours it covers, so those fields are not used. */
+		const bool bgColours = on && !chkFrameBgRainbow->isChecked();
+		btnFrameColor->setEnabled(on && !chkFrameBorderRainbow->isChecked());
+		btnFrameBg->setEnabled(bgColours);
+		cmbFrameBgMode->setEnabled(bgColours);
+		btnFrameBg2->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() != 0);
+		spFrameBgAngle->setEnabled(bgColours && cmbFrameBgMode->currentData().toInt() == 1);
+		spFrameBorder->setEnabled(on);
+		spFrameRadius->setEnabled(on);
+		spFrameGlow->setEnabled(on);
+		spFrameGlowPct->setEnabled(on);
+		chkFrameBgRainbow->setEnabled(on);
+		chkFrameBorderRainbow->setEnabled(on);
+		const bool anyRainbow = on && (chkFrameBgRainbow->isChecked() || chkFrameBorderRainbow->isChecked());
+		spFrameRainbowSec->setEnabled(anyRainbow);
+	};
+	connect(chkFrame, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+	connect(chkFrameBgRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+	connect(chkFrameBorderRainbow, &QCheckBox::toggled, this, [syncFrameFields](bool) { syncFrameFields(); });
+	connect(cmbFrameBgMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+		[syncFrameFields](int) { syncFrameFields(); });
+	syncFrameFields();
+
+}
+
+void ZoominatorDialog::buildCamRingSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.CamRing"));
+
+	chkCamRing = new QCheckBox(T("Dialog.CamRingEnable"), page);
+	chkCamRing->setToolTip(T("Dialog.CamRingEnableTooltip"));
+	lay->addWidget(chkCamRing);
+	lay->addSpacing(6);
+
+	cmbCamSource = new QComboBox(page);
+	cmbCamSource->setToolTip(T("Dialog.CamSourceTooltip"));
+	btnCamColor = new ColorButton(page);
+	btnCamColor->setMinimumHeight(28);
+	btnCamColor->setToolTip(T("Dialog.CamColorTooltip"));
+
+	auto *camTopRow = new QHBoxLayout;
+	camTopRow->setSpacing(12);
+	camTopRow->addWidget(mkField(T("Dialog.CamSource"), cmbCamSource), 2);
+	camTopRow->addWidget(mkField(T("Dialog.CamColor"), btnCamColor), 1);
+	lay->addLayout(camTopRow);
+
+	spCamRing = new QSpinBox(page);
+	spCamRing->setRange(0, 60);
+	spCamRing->setSuffix(T("Unit.Pixels"));
+	spCamRing->setToolTip(T("Dialog.CamRingTooltip"));
+	spCamGlow = new QSpinBox(page);
+	spCamGlow->setRange(0, 150);
+	spCamGlow->setSingleStep(4);
+	spCamGlow->setSuffix(T("Unit.Pixels"));
+	spCamGlow->setToolTip(T("Dialog.CamGlowTooltip"));
+	spCamGlowPct = new QSpinBox(page);
+	spCamGlowPct->setRange(0, 100);
+	spCamGlowPct->setSingleStep(5);
+	spCamGlowPct->setSuffix(T("Unit.Percent"));
+	spCamGlowPct->setToolTip(T("Dialog.CamGlowStrengthTooltip"));
+	auto *camShapeRow = new QHBoxLayout;
+	camShapeRow->setSpacing(12);
+	camShapeRow->addWidget(mkField(T("Dialog.CamRing"), spCamRing), 1);
+	camShapeRow->addWidget(mkField(T("Dialog.CamGlow"), spCamGlow), 1);
+	camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
+	lay->addLayout(camShapeRow);
+
+	chkCamRainbow = new QCheckBox(T("Dialog.CamRainbow"), page);
+	chkCamRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+	spCamRainbowSec = new QSpinBox(page);
+	spCamRainbowSec->setRange(2, 120);
+	spCamRainbowSec->setSuffix(QStringLiteral(" s"));
+	spCamRainbowSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+	lay->addLayout(mkRainbowRow({chkCamRainbow}, spCamRainbowSec));
+	lay->addSpacing(6);
+
+	chkCamLayout = new QCheckBox(T("Dialog.CamLayout"), page);
+	chkCamLayout->setToolTip(T("Dialog.CamLayoutTooltip"));
+	lay->addWidget(chkCamLayout);
+
+	auto mkPosSpin = [page](const QString &tip) {
+		auto *sp = new QSpinBox(page);
+		sp->setRange(-20000, 20000);
+		sp->setSingleStep(10);
+		sp->setSuffix(T("Unit.Pixels"));
+		sp->setToolTip(tip);
+		return sp;
+	};
+	auto mkSizeSpin = [page](const QString &tip) {
+		auto *sp = new QSpinBox(page);
+		sp->setRange(20, 8000);
+		sp->setSingleStep(10);
+		sp->setSuffix(T("Unit.Pixels"));
+		sp->setToolTip(tip);
+		return sp;
+	};
+	spCamIdleX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
+	spCamIdleY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
+	spCamIdleSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
+	spCamZoomX = mkPosSpin(T("Dialog.CamLayoutXTooltip"));
+	spCamZoomY = mkPosSpin(T("Dialog.CamLayoutYTooltip"));
+	spCamZoomSize = mkSizeSpin(T("Dialog.CamLayoutSizeTooltip"));
+	btnCamIdleTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+	btnCamIdleTake->setCheckable(true);
+	btnCamIdleTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
+	btnCamZoomTake = new QPushButton(T("Dialog.CamLayoutTake"), page);
+	btnCamZoomTake->setCheckable(true);
+	btnCamZoomTake->setToolTip(T("Dialog.CamLayoutTakeTooltip"));
+
+	auto *idleRow = new QHBoxLayout;
+	idleRow->setSpacing(12);
+	idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleX"), spCamIdleX), 1);
+	idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleY"), spCamIdleY), 1);
+	idleRow->addWidget(mkField(T("Dialog.CamLayoutIdleSize"), spCamIdleSize), 1);
+	idleRow->addWidget(mkField(" ", btnCamIdleTake), 1);
+	lay->addLayout(idleRow);
+
+	auto *camZoomedRow = new QHBoxLayout;
+	camZoomedRow->setSpacing(12);
+	camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomX"), spCamZoomX), 1);
+	camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomY"), spCamZoomY), 1);
+	camZoomedRow->addWidget(mkField(T("Dialog.CamLayoutZoomSize"), spCamZoomSize), 1);
+	camZoomedRow->addWidget(mkField(" ", btnCamZoomTake), 1);
+	lay->addLayout(camZoomedRow);
+	lay->addSpacing(10);
+
+	/* While one "Follow OBS" button is on, the numbers of its row track the
+	 * webcam as it is dragged or resized in OBS. Only one row follows at a
+	 * time, and it stops when the tab changes, the dialog hides or the
+	 * layout is switched off. */
+	auto *camFollowTimer = new QTimer(this);
+	camFollowTimer->setInterval(200);
+	auto stopFollow = [this, camFollowTimer]() {
+		camFollowTimer->stop();
+		btnCamIdleTake->setChecked(false);
+		btnCamZoomTake->setChecked(false);
+	};
+	connect(camFollowTimer, &QTimer::timeout, this, [this, camFollowTimer, stopFollow]() {
+		const bool idleRow = btnCamIdleTake->isChecked();
+		if (!isVisible() || tabWidget->currentIndex() != camFollowTimer->property("tab").toInt() ||
+		    !chkCamLayout->isChecked() || !chkCamRing->isChecked() ||
+		    (!idleRow && !btnCamZoomTake->isChecked())) {
+			stopFollow();
+			return;
+		}
+		int px = 0, py = 0, ps = 0;
+		if (!ZoominatorController::instance().readCamLayout(px, py, ps))
+			return; /* not readable right now; keep the old numbers */
+		QSpinBox *x = idleRow ? spCamIdleX : spCamZoomX;
+		QSpinBox *y = idleRow ? spCamIdleY : spCamZoomY;
+		QSpinBox *size = idleRow ? spCamIdleSize : spCamZoomSize;
+		if (x->value() != px)
+			x->setValue(px);
+		if (y->value() != py)
+			y->setValue(py);
+		if (size->value() != ps)
+			size->setValue(ps);
+	});
+	auto onFollowToggled = [this, camFollowTimer](QPushButton *self, QPushButton *other, bool on) {
+		if (on) {
+			other->setChecked(false);
+			int px = 0, py = 0, ps = 0;
+			if (!ZoominatorController::instance().readCamLayout(px, py, ps)) {
+				lblStatus->setText(T("Dialog.CamLayoutTakeFailed"));
+				self->setChecked(false);
+				return;
+			}
+			lblStatus->setText(T("Dialog.CamLayoutFollowing"));
+			camFollowTimer->setProperty("tab", tabWidget->currentIndex());
+			camFollowTimer->start();
+		} else if (!other->isChecked()) {
+			camFollowTimer->stop();
+		}
+	};
+	connect(btnCamIdleTake, &QPushButton::toggled, this,
+		[=](bool on) { onFollowToggled(btnCamIdleTake, btnCamZoomTake, on); });
+	connect(btnCamZoomTake, &QPushButton::toggled, this,
+		[=](bool on) { onFollowToggled(btnCamZoomTake, btnCamIdleTake, on); });
+
+	auto syncCamFields = [this]() {
+		const bool on = chkCamRing->isChecked();
+		const bool lay = on && chkCamLayout->isChecked();
+		chkCamLayout->setEnabled(on);
+		chkCamRainbow->setEnabled(on);
+		spCamRainbowSec->setEnabled(on && chkCamRainbow->isChecked());
+		if (!lay) {
+			btnCamIdleTake->setChecked(false);
+			btnCamZoomTake->setChecked(false);
+		}
+		for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
+				   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
+				   (QWidget *)btnCamIdleTake, (QWidget *)btnCamZoomTake})
+			w->setEnabled(lay);
+		cmbCamSource->setEnabled(on);
+		btnCamColor->setEnabled(on && !chkCamRainbow->isChecked());
+		spCamRing->setEnabled(on);
+		spCamGlow->setEnabled(on);
+		spCamGlowPct->setEnabled(on);
+	};
+	connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+	connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+	connect(chkCamRainbow, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+	syncCamFields();
+
+}
+
+void ZoominatorDialog::buildFocusSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Focus"));
+
+	chkFocus = new QCheckBox(T("Dialog.FocusEnable"), page);
+	chkFocus->setToolTip(T("Dialog.FocusEnableTooltip"));
+	lay->addWidget(chkFocus);
+	chkFocusWhenNotZoomed = new QCheckBox(T("Dialog.FocusWhenNotZoomed"), page);
+	chkFocusWhenNotZoomed->setToolTip(T("Dialog.FocusWhenNotZoomedTooltip"));
+	lay->addSpacing(6);
+
+	{
+		auto *row = new QWidget(page);
+		auto *h = new QHBoxLayout(row);
+		h->setContentsMargins(0, 0, 0, 0);
+		h->setSpacing(6);
+		editFocusToggle = new QKeySequenceEdit(row);
+		editFocusToggle->setToolTip(T("Dialog.FocusToggleHotkeyTooltip"));
+		auto *clear = new QPushButton(T("Dialog.Clear"), row);
+		QKeySequenceEdit *e = editFocusToggle;
+		connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+		h->addWidget(editFocusToggle, 1);
+		h->addWidget(clear);
+		lay->addWidget(mkField(T("Dialog.FocusToggleHotkey"), row));
+		lay->addSpacing(6);
+	}
+	{
+		auto *row = new QWidget(page);
+		auto *h = new QHBoxLayout(row);
+		h->setContentsMargins(0, 0, 0, 0);
+		h->setSpacing(6);
+		editFocusOn = new QKeySequenceEdit(row);
+		editFocusOn->setToolTip(T("Dialog.FocusOnHotkeyTooltip"));
+		auto *clear = new QPushButton(T("Dialog.Clear"), row);
+		QKeySequenceEdit *e = editFocusOn;
+		connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+		h->addWidget(editFocusOn, 1);
+		h->addWidget(clear);
+		lay->addWidget(mkField(T("Dialog.FocusOnHotkey"), row));
+		lay->addSpacing(6);
+	}
+	{
+		auto *row = new QWidget(page);
+		auto *h = new QHBoxLayout(row);
+		h->setContentsMargins(0, 0, 0, 0);
+		h->setSpacing(6);
+		editFocusOff = new QKeySequenceEdit(row);
+		editFocusOff->setToolTip(T("Dialog.FocusOffHotkeyTooltip"));
+		auto *clear = new QPushButton(T("Dialog.Clear"), row);
+		QKeySequenceEdit *e = editFocusOff;
+		connect(clear, &QPushButton::clicked, this, [e]() { e->setKeySequence(QKeySequence()); });
+		h->addWidget(editFocusOff, 1);
+		h->addWidget(clear);
+		lay->addWidget(mkField(T("Dialog.FocusOffHotkey"), row));
+		lay->addSpacing(6);
+	}
+
+	cmbFocusStyle = new QComboBox(page);
+	cmbFocusStyle->addItem(T("Dialog.FocusStyle.Dim"), "dim");
+	cmbFocusStyle->addItem(T("Dialog.FocusStyle.Blur"), "blur");
+	cmbFocusStyle->addItem(T("Dialog.FocusStyle.BlurDim"), "blur_dim");
+	cmbFocusStyle->setToolTip(T("Dialog.FocusStyleTooltip"));
+
+	spFocusBlur = new QSpinBox(page);
+	spFocusBlur->setRange(0, 60);
+	spFocusBlur->setSingleStep(2);
+	spFocusBlur->setSuffix(T("Unit.Pixels"));
+	spFocusBlur->setToolTip(T("Dialog.FocusBlurTooltip"));
+
+	auto *styleRow = new QHBoxLayout;
+	styleRow->setSpacing(12);
+	styleRow->addWidget(mkField(T("Dialog.FocusStyle"), cmbFocusStyle), 1);
+	styleRow->addWidget(mkField(T("Dialog.FocusBlur"), spFocusBlur), 1);
+	lay->addLayout(styleRow);
+
+	spFocusDim = new QSpinBox(page);
+	spFocusDim->setRange(0, 100);
+	spFocusDim->setSingleStep(5);
+	spFocusDim->setSuffix(QStringLiteral(" %"));
+	spFocusDim->setToolTip(T("Dialog.FocusDimTooltip"));
+
+	spFocusCone = new QSpinBox(page);
+	spFocusCone->setRange(0, 100);
+	spFocusCone->setSingleStep(5);
+	spFocusCone->setSuffix(QStringLiteral(" %"));
+	spFocusCone->setToolTip(T("Dialog.FocusConeTooltip"));
+
+	auto *focusRow = new QHBoxLayout;
+	focusRow->setSpacing(12);
+	focusRow->addWidget(mkField(T("Dialog.FocusDim"), spFocusDim), 1);
+	focusRow->addWidget(mkField(T("Dialog.FocusCone"), spFocusCone), 1);
+	lay->addLayout(focusRow);
+	lay->addSpacing(6);
+
+	spFocusRadius = new QSpinBox(page);
+	spFocusRadius->setRange(40, 2000);
+	spFocusRadius->setSingleStep(10);
+	spFocusRadius->setSuffix(T("Unit.Pixels"));
+	spFocusRadius->setToolTip(T("Dialog.FocusRadiusTooltip"));
+	spFocusIdleRadius = new QSpinBox(page);
+	spFocusIdleRadius->setRange(40, 2000);
+	spFocusIdleRadius->setSingleStep(10);
+	spFocusIdleRadius->setSuffix(T("Unit.Pixels"));
+	spFocusIdleRadius->setToolTip(T("Dialog.FocusIdleRadiusTooltip"));
+	/* One under the other: the zoomed size, then "show when not zoomed" with its own size below it. */
+	auto *focusSizeRow = new QHBoxLayout;
+	focusSizeRow->setSpacing(12);
+	focusSizeRow->addWidget(mkField(T("Dialog.FocusRadius"), spFocusRadius), 1);
+	focusSizeRow->addStretch(1);
+	lay->addLayout(focusSizeRow);
+	lay->addSpacing(6);
+	lay->addWidget(chkFocusWhenNotZoomed);
+	lay->addSpacing(4);
+	auto *focusIdleRow = new QHBoxLayout;
+	focusIdleRow->setSpacing(12);
+	focusIdleRow->addWidget(mkField(T("Dialog.FocusIdleRadius"), spFocusIdleRadius), 1);
+	focusIdleRow->addStretch(1);
+	lay->addLayout(focusIdleRow);
+	lay->addSpacing(10);
+
+	auto syncFocusFields = [this]() {
+		const bool on = chkFocus->isChecked();
+		const QString style = cmbFocusStyle->currentData().toString();
+		chkFocusWhenNotZoomed->setEnabled(on);
+		cmbFocusStyle->setEnabled(on);
+		spFocusBlur->setEnabled(on && style != QLatin1String("dim"));
+		spFocusDim->setEnabled(on && style != QLatin1String("blur"));
+		spFocusIdleRadius->setEnabled(on && chkFocusWhenNotZoomed->isChecked());
+		spFocusCone->setEnabled(on);
+		spFocusRadius->setEnabled(on);
+	};
+	syncFocusFieldsFn = syncFocusFields;
+	connect(chkFocus, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
+	connect(chkFocusWhenNotZoomed, &QCheckBox::toggled, this, [syncFocusFields](bool) { syncFocusFields(); });
+	connect(cmbFocusStyle, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+		[syncFocusFields](int) { syncFocusFields(); });
+	syncFocusFields();
+
+}
+
+void ZoominatorDialog::buildCountdownSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Countdown"));
+
+	auto *cdHelp = new QLabel(T("Dialog.CountdownHelp"), page);
+	cdHelp->setWordWrap(true);
+	lay->addWidget(cdHelp);
+	spCountdown = new QSpinBox(page);
+	spCountdown->setRange(1, 10);
+	spCountdown->setSuffix(QStringLiteral(" s"));
+	spCountdown->setToolTip(T("Dialog.CountdownTooltip"));
+	lay->addWidget(mkField(T("Dialog.Countdown"), spCountdown));
+	chkCountdownDefault = new QCheckBox(T("Dialog.CountdownDefault"), page);
+	chkCountdownDefault->setToolTip(T("Dialog.CountdownDefaultTooltip"));
+	lay->addWidget(chkCountdownDefault);
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildStatusHudSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.StatusHud"));
+
+	auto *hudHelp = new QLabel(T("Dialog.StatusHudHelp"), page);
+	hudHelp->setWordWrap(true);
+	lay->addWidget(hudHelp);
+	chkStatusHud = new QCheckBox(T("Dialog.StatusHud"), page);
+	chkStatusHud->setToolTip(T("Dialog.StatusHudTooltip"));
+	lay->addWidget(chkStatusHud);
+	cmbStatusHudCorner = new QComboBox(page);
+	cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopLeft"), 0);
+	cmbStatusHudCorner->addItem(T("Dialog.StatusHud.TopRight"), 1);
+	cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomLeft"), 2);
+	cmbStatusHudCorner->addItem(T("Dialog.StatusHud.BottomRight"), 3);
+	spRecLimit = new QSpinBox(page);
+	spRecLimit->setRange(0, 600);
+	spRecLimit->setSingleStep(5);
+	spRecLimit->setSuffix(QStringLiteral(" s"));
+	spRecLimit->setSpecialValueText(T("Dialog.RecLimitOff"));
+	spRecLimit->setToolTip(T("Dialog.RecLimitTooltip"));
+	auto *hudRow = new QHBoxLayout;
+	hudRow->setSpacing(12);
+	hudRow->addWidget(mkField(T("Dialog.StatusHudCorner"), cmbStatusHudCorner), 1);
+	hudRow->addWidget(mkField(T("Dialog.RecLimit"), spRecLimit), 1);
+	lay->addLayout(hudRow);
+	connect(chkStatusHud, &QCheckBox::toggled, this, [this](bool on) {
+		cmbStatusHudCorner->setEnabled(on);
+		spRecLimit->setEnabled(on);
+	});
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildSoundSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Sound"));
+
+	QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
+	chkSoundEnabled = new QCheckBox(T("Dialog.SoundEnable"), page);
+	chkSoundEnabled->setToolTip(T("Dialog.SoundEnableTooltip"));
+	lay->addWidget(chkSoundEnabled);
+	lay->addSpacing(6);
+
+	{
+		static const char *labels[3] = {"Dialog.SoundZoomIn", "Dialog.SoundZoomOut", "Dialog.SoundTyping"};
+		for (int i = 0; i < 3; ++i) {
+			auto *row = new QWidget(page);
+			auto *h = new QHBoxLayout(row);
+			h->setContentsMargins(0, 0, 0, 0);
+			h->setSpacing(6);
+			editSoundName[i] = new QLineEdit(row);
+			editSoundName[i]->setReadOnly(true);
+			auto *browse = new QPushButton(T("Dialog.SoundBrowse"), row);
+			auto *def = new QPushButton(T("Dialog.SoundDefault"), row);
+			def->setToolTip(T("Dialog.SoundDefaultTooltip"));
+			auto *play = new QPushButton(T("Dialog.SoundPlay"), row);
+			spSoundVolume[i] = new QSpinBox(row);
+			spSoundVolume[i]->setRange(0, 100);
+			spSoundVolume[i]->setSingleStep(5);
+			spSoundVolume[i]->setSuffix(T("Unit.Percent"));
+			spSoundVolume[i]->setToolTip(T("Dialog.SoundVolumeTooltip"));
+			h->addWidget(editSoundName[i], 1);
+			h->addWidget(browse);
+			h->addWidget(def);
+			h->addWidget(play);
+			h->addWidget(spSoundVolume[i]);
+			chkSoundOn[i] = new QCheckBox(T(labels[i]), page);
+			chkSoundOn[i]->setToolTip(T("Dialog.SoundOnTooltip"));
+			lay->addWidget(chkSoundOn[i]);
+			lay->addWidget(row);
+			lay->addSpacing(8);
+			soundRowWidget[i] = row;
+
+			connect(browse, &QPushButton::clicked, this, [this, i]() { browseSound(i); });
+			connect(def, &QPushButton::clicked, this, [this, i]() { resetSound(i); });
+			connect(play, &QPushButton::clicked, this, [this, i]() { playSoundPreview(i); });
+		}
+	}
+
+	cmbSoundTypingMode = new QComboBox(page);
+	cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Tick"), "tick");
+	cmbSoundTypingMode->addItem(T("Dialog.SoundTypingMode.Loop"), "loop");
+	cmbSoundTypingMode->setToolTip(T("Dialog.SoundTypingModeTooltip"));
+	lay->addWidget(mkField(T("Dialog.SoundTypingMode"), cmbSoundTypingMode));
+	/* The master switch greys everything below it; each sound's own switch
+	 * greys that sound's controls. */
+	auto syncSoundFields = [this, soundRowWidget]() {
+		const bool master = chkSoundEnabled->isChecked();
+		for (int i = 0; i < 3; ++i) {
+			chkSoundOn[i]->setEnabled(master);
+			soundRowWidget[i]->setEnabled(master && chkSoundOn[i]->isChecked());
+		}
+		cmbSoundTypingMode->setEnabled(master && chkSoundOn[2]->isChecked());
+	};
+	connect(chkSoundEnabled, &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
+	for (int i = 0; i < 3; ++i)
+		connect(chkSoundOn[i], &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
+	syncSoundFields();
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildCursorRingSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.CursorRing"));
+
+	chkCursorRing = new QCheckBox(T("Dialog.CursorRing"), page);
+	chkCursorRing->setToolTip(T("Dialog.CursorRingTooltip"));
+	lay->addWidget(chkCursorRing);
+	chkCursorRingIdle = new QCheckBox(T("Dialog.CursorRingIdle"), page);
+	chkCursorRingIdle->setToolTip(T("Dialog.CursorRingIdleTooltip"));
+	lay->addWidget(chkCursorRingIdle);
+
+	spCursorRingSize = new QSpinBox(page);
+	spCursorRingSize->setRange(20, 400);
+	spCursorRingSize->setSingleStep(5);
+	spCursorRingSize->setSuffix(T("Unit.Pixels"));
+	spCursorRingSize->setToolTip(T("Dialog.CursorRingSizeTooltip"));
+	spCursorRingPx = new QSpinBox(page);
+	spCursorRingPx->setRange(1, 40);
+	spCursorRingPx->setSuffix(T("Unit.Pixels"));
+	spCursorRingPx->setToolTip(T("Dialog.CursorRingThicknessTooltip"));
+	btnCursorRingColor = new ColorButton(page);
+	btnCursorRingColor->setMinimumHeight(28);
+	btnCursorRingColor->setToolTip(T("Dialog.CursorRingColorTooltip"));
+	auto *cursorRingRow = new QHBoxLayout;
+	cursorRingRow->setSpacing(12);
+	cursorRingRow->addWidget(mkField(T("Dialog.CursorRingSize"), spCursorRingSize), 1);
+	cursorRingRow->addWidget(mkField(T("Dialog.CursorRingThickness"), spCursorRingPx), 1);
+	cursorRingRow->addWidget(mkField(T("Dialog.CursorRingColor"), btnCursorRingColor), 1);
+	lay->addLayout(cursorRingRow);
+
+	chkCursorRingRainbow = new QCheckBox(T("Dialog.CursorRingRainbow"), page);
+	chkCursorRingRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
+	spCursorRingSec = new QSpinBox(page);
+	spCursorRingSec->setRange(2, 120);
+	spCursorRingSec->setSuffix(QStringLiteral(" s"));
+	spCursorRingSec->setToolTip(T("Dialog.FrameRainbowSecTooltip"));
+	lay->addLayout(mkRainbowRow({chkCursorRingRainbow}, spCursorRingSec));
+
+	auto syncCursorRingFields = [this]() {
+		const bool on = chkCursorRing->isChecked();
+		const bool rb = chkCursorRingRainbow->isChecked();
+		chkCursorRingIdle->setEnabled(on);
+		spCursorRingSize->setEnabled(on);
+		spCursorRingPx->setEnabled(on);
+		btnCursorRingColor->setEnabled(on && !rb);
+		chkCursorRingRainbow->setEnabled(on);
+		spCursorRingSec->setEnabled(on && rb);
+	};
+	connect(chkCursorRing, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
+	connect(chkCursorRingRainbow, &QCheckBox::toggled, this, [syncCursorRingFields](bool) { syncCursorRingFields(); });
+	syncCursorRingFields();
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildKeyDisplaySection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.KeyDisplay"));
+
+	chkKeyDisplay = new QCheckBox(T("Dialog.KeyDisplay"), page);
+	chkKeyDisplay->setToolTip(T("Dialog.KeyDisplayTooltip"));
+	lay->addWidget(chkKeyDisplay);
+	chkKeyDisplayAll = new QCheckBox(T("Dialog.KeyDisplayAll"), page);
+	chkKeyDisplayAll->setToolTip(T("Dialog.KeyDisplayAllTooltip"));
+	lay->addWidget(chkKeyDisplayAll);
+	spKeyDisplaySize = new QSpinBox(page);
+	spKeyDisplaySize->setRange(24, 160);
+	spKeyDisplaySize->setSingleStep(4);
+	spKeyDisplaySize->setSuffix(T("Unit.Pixels"));
+	spKeyDisplaySize->setToolTip(T("Dialog.KeyDisplaySizeTooltip"));
+	spKeyDisplayY = new QSpinBox(page);
+	spKeyDisplayY->setRange(5, 95);
+	spKeyDisplayY->setSuffix(T("Unit.Percent"));
+	spKeyDisplayY->setToolTip(T("Dialog.KeyDisplayYTooltip"));
+	auto *keyDisplayRow = new QHBoxLayout;
+	keyDisplayRow->setSpacing(12);
+	keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySize"), spKeyDisplaySize), 1);
+	keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplayY"), spKeyDisplayY), 1);
+	spKeyDisplaySec = new QDoubleSpinBox(page);
+	spKeyDisplaySec->setRange(0.5, 10.0);
+	spKeyDisplaySec->setDecimals(1);
+	spKeyDisplaySec->setSingleStep(0.1);
+	spKeyDisplaySec->setSuffix(QStringLiteral(" s"));
+	spKeyDisplaySec->setToolTip(T("Dialog.KeyDisplaySecTooltip"));
+	keyDisplayRow->addWidget(mkField(T("Dialog.KeyDisplaySec"), spKeyDisplaySec), 1);
+	btnKeyDisplayReset = new QPushButton(T("Dialog.KeyDisplayReset"), page);
+	btnKeyDisplayReset->setToolTip(T("Dialog.KeyDisplayResetTooltip"));
+	connect(btnKeyDisplayReset, &QPushButton::clicked, this, [this]() {
+		spKeyDisplaySize->setValue(64);
+		spKeyDisplayY->setValue(58);
+		spKeyDisplaySec->setValue(1.7);
+	});
+	keyDisplayRow->addWidget(btnKeyDisplayReset, 0, Qt::AlignBottom);
+	lay->addLayout(keyDisplayRow);
+
+	/* Keys that the key display never shows: a row of chips (click one to remove it) and a "+" to add one. */
+	auto *ignoreRow = new QHBoxLayout;
+	ignoreRow->setSpacing(6);
+	auto *ignoreLabel = new QLabel(T("Dialog.KeyIgnore"), page);
+	ignoreLabel->setToolTip(T("Dialog.KeyIgnoreTooltip"));
+	ignoreRow->addWidget(ignoreLabel);
+	keyIgnoreChips = new QHBoxLayout;
+	keyIgnoreChips->setSpacing(6);
+	ignoreRow->addLayout(keyIgnoreChips);
+	btnKeyIgnoreAdd = new QPushButton(page);
+	btnKeyIgnoreAdd->setIcon(strokeIcon(page, true));
+	btnKeyIgnoreAdd->setIconSize(QSize(14, 14));
+	btnKeyIgnoreAdd->setFixedSize(36, 30);
+	btnKeyIgnoreAdd->setToolTip(T("Dialog.KeyIgnoreAddTooltip"));
+	connect(btnKeyIgnoreAdd, &QPushButton::clicked, this, [this]() {
+		QDialog ask(this);
+		ask.setWindowTitle(T("Dialog.KeyIgnoreAskTitle"));
+		auto *v = new QVBoxLayout(&ask);
+		v->addWidget(new QLabel(T("Dialog.KeyIgnoreAsk"), &ask));
+		auto *edit = new QKeySequenceEdit(&ask);
+		/* Only one shortcut fits in the box: a further key press replaces the one already there. */
+		connect(edit, &QKeySequenceEdit::keySequenceChanged, edit, [edit](const QKeySequence &seq) {
+			if (seq.count() > 1)
+				edit->setKeySequence(QKeySequence(seq[seq.count() - 1].toCombined()));
+		});
+		v->addWidget(edit);
+		auto *ok = new QPushButton(T("Dialog.KeyIgnoreAdd"), &ask);
+		connect(ok, &QPushButton::clicked, &ask, &QDialog::accept);
+		v->addWidget(ok);
+		if (ask.exec() != QDialog::Accepted || edit->keySequence().isEmpty())
+			return;
+		const QKeyCombination combo = edit->keySequence()[edit->keySequence().count() - 1];
+		const int key = int(combo.key());
+		if (key == 0 || key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr ||
+		    key == Qt::Key_Shift || key == Qt::Key_Meta ||
+		    keyIgnoreQt.size() >= ZoominatorController::kMaxIgnoredKeys)
+			return;
+		const int combined = combo.toCombined(); /* key plus modifiers, so Alt+Z is not the same as Z */
+		if (keyIgnoreQt.contains(combined))
+			return;
+		keyIgnoreQt.append(combined);
+		rebuildKeyIgnoreChips();
+	});
+	ignoreRow->addWidget(btnKeyIgnoreAdd);
+	ignoreRow->addStretch(1);
+	lay->addLayout(ignoreRow);
+	connect(chkKeyDisplay, &QCheckBox::toggled, this, [this](bool on) {
+		chkKeyDisplayAll->setEnabled(on);
+		spKeyDisplaySize->setEnabled(on);
+		spKeyDisplayY->setEnabled(on);
+		spKeyDisplaySec->setEnabled(on);
+		btnKeyDisplayReset->setEnabled(on);
+		btnKeyIgnoreAdd->setEnabled(on);
+		rebuildKeyIgnoreChips();
+	});
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildGuideSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Guide"));
+
+	chkGuide = new QCheckBox(T("Dialog.Guide"), page);
+	chkGuide->setToolTip(T("Dialog.GuideTooltip"));
+	lay->addWidget(chkGuide);
+	auto mkGuideSpin = [page](int hi, const QString &tip) {
+		auto *sp = new QSpinBox(page);
+		sp->setRange(0, hi);
+		sp->setSingleStep(5);
+		sp->setSuffix(T("Unit.Pixels"));
+		sp->setToolTip(tip);
+		return sp;
+	};
+	spGuideTop = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
+	spGuideBottom = mkGuideSpin(1500, T("Dialog.GuideMarginTooltip"));
+	spGuideLeft = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
+	spGuideRight = mkGuideSpin(500, T("Dialog.GuideMarginTooltip"));
+	auto *guideRow = new QHBoxLayout;
+	guideRow->setSpacing(12);
+	guideRow->addWidget(mkField(T("Dialog.GuideTop"), spGuideTop), 1);
+	guideRow->addWidget(mkField(T("Dialog.GuideBottom"), spGuideBottom), 1);
+	guideRow->addWidget(mkField(T("Dialog.GuideLeft"), spGuideLeft), 1);
+	guideRow->addWidget(mkField(T("Dialog.GuideRight"), spGuideRight), 1);
+	lay->addLayout(guideRow);
+	connect(chkGuide, &QCheckBox::toggled, this, [this](bool on) {
+		for (QWidget *w : {(QWidget *)spGuideTop, (QWidget *)spGuideBottom, (QWidget *)spGuideLeft, (QWidget *)spGuideRight})
+			w->setEnabled(on);
+	});
+	lay->addSpacing(10);
+
+}
+
+void ZoominatorDialog::buildDeveloperSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.Developer"));
+
+	chkDebug = new QCheckBox(T("Dialog.EnableDebugLogging"), page);
+	lay->addWidget(chkDebug);
+
+}
+
+void ZoominatorDialog::buildPresetsTab()
+{
+	auto *page = new QWidget;
+	auto *lay = new QVBoxLayout(page);
+	lay->setContentsMargins(20, 20, 20, 20);
+	lay->setSpacing(10);
+
+	auto *intro = new QLabel(T("Dialog.Presets.Intro"), page);
+	intro->setWordWrap(true);
+	lay->addWidget(intro);
+
+	for (int i = 0; i < 2; ++i) {
+		const bool horizontal = (i == 1);
+		addSection(lay, T(horizontal ? "Dialog.Presets.Horizontal" : "Dialog.Presets.Vertical"), i == 0);
+		presetListLay[i] = new QVBoxLayout;
+		presetListLay[i]->setSpacing(6);
+		lay->addLayout(presetListLay[i]);
+
+		auto *btnAdd = new QPushButton(T("Dialog.Presets.Add"), page);
+		btnAdd->setToolTip(T("Dialog.Presets.AddTooltip"));
+		auto *addRow = new QHBoxLayout;
+		addRow->addWidget(btnAdd);
+		addRow->addStretch(1);
+		lay->addLayout(addRow);
+		connect(btnAdd, &QPushButton::clicked, this, [this, horizontal]() {
+			applyToController();
+			auto &ctl = ZoominatorController::instance();
+			int count = 0;
+			for (const auto &pi : ctl.listPresets())
+				count += (pi.horizontal == horizontal) ? 1 : 0;
+			const QString name = QString(T("Dialog.Presets.NewName")).arg(count + 1);
+			if (ctl.addPreset(name, horizontal).isEmpty()) {
+				lblStatus->setText(T("Dialog.PresetSaveFailed"));
+				return;
+			}
+			rebuildPresetRows();
+			lblStatus->setText(QString(T("Dialog.Presets.Added")).arg(name));
+		});
+	}
+	rebuildPresetRows();
+	addSection(lay, T("Dialog.Backup.Title"));
+	auto *backupHelp = new QLabel(T("Dialog.Backup.Help"), page);
+	backupHelp->setWordWrap(true);
+	lay->addWidget(backupHelp);
+	auto *btnExport = new QPushButton(T("Dialog.Backup.Export"), page);
+	btnExport->setToolTip(T("Dialog.Backup.ExportTooltip"));
+	auto *btnImport = new QPushButton(T("Dialog.Backup.Import"), page);
+	btnImport->setToolTip(T("Dialog.Backup.ImportTooltip"));
+	auto *backupRow = new QHBoxLayout;
+	backupRow->setSpacing(8);
+	backupRow->addWidget(btnExport);
+	backupRow->addWidget(btnImport);
+	backupRow->addStretch(1);
+	lay->addLayout(backupRow);
+	connect(btnExport, &QPushButton::clicked, this, [this]() {
+		applyToController();
+		const QString file = QFileDialog::getSaveFileName(
+			this, T("Dialog.Backup.Export"),
+			QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+				.filePath(QStringLiteral("zoominator-settings.json")),
+			QStringLiteral("JSON (*.json)"));
+		if (file.isEmpty())
+			return;
+		lblStatus->setText(ZoominatorController::instance().exportSettings(file)
+					   ? QString(T("Dialog.Backup.Exported")).arg(file)
+					   : QString(T("Dialog.Backup.Failed")));
+	});
+	connect(btnImport, &QPushButton::clicked, this, [this]() {
+		const QString file = QFileDialog::getOpenFileName(
+			this, T("Dialog.Backup.Import"),
+			QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation),
+			QStringLiteral("JSON (*.json)"));
+		if (file.isEmpty())
+			return;
+		if (ZoominatorController::instance().importSettings(file)) {
+			loadFromController();
+			lblStatus->setText(T("Dialog.Backup.Imported"));
+		} else {
+			lblStatus->setText(T("Dialog.Backup.Failed"));
+		}
+	});
+	lay->addStretch(1);
+
+	tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Presets"));
+}
+
+void ZoominatorDialog::buildSourcesTab()
+{
+	auto *page = new QWidget;
+	auto *lay = new QVBoxLayout(page);
+	lay->setContentsMargins(20, 20, 20, 20);
+	lay->setSpacing(10);
+
+	auto *info = new QLabel(T("Dialog.SourcesHelp"), page);
+	info->setWordWrap(true);
+	lay->addWidget(info);
+
+	lstSources = new QListWidget(page);
+	lstSources->setAlternatingRowColors(true);
+	lstSources->setSortingEnabled(false);
+	lay->addWidget(lstSources, 1);
+
+	tabWidget->addTab(page, T("Dialog.Tab.Sources"));
 }
 
 /* A "+" or a cross drawn with two strokes, so it looks the same on every font and size. */
