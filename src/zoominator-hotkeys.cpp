@@ -288,9 +288,20 @@ void ZoominatorController::rebuildTriggersFromSettings()
 	{
 		int n = 0;
 		for (int qk : keyDisplayIgnoreQt) {
-			const int vk = qtKeyToVk(qk);
-			if (vk != 0 && n < kMaxIgnoredKeys)
+			const int vk = qtKeyToVk(qk & ~int(Qt::KeyboardModifierMask));
+			if (vk != 0 && n < kMaxIgnoredKeys) {
+				int mods = 0;
+				if (qk & Qt::ControlModifier)
+					mods |= 1;
+				if (qk & Qt::AltModifier)
+					mods |= 2;
+				if (qk & Qt::ShiftModifier)
+					mods |= 4;
+				if (qk & Qt::MetaModifier)
+					mods |= 8;
+				keyIgnoreMods[n].store(mods);
 				keyIgnoreVk[n++].store(vk);
+			}
 		}
 		keyIgnoreCount.store(n);
 	}

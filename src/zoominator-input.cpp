@@ -240,8 +240,9 @@ void ZoominatorController::handleKeyForDisplay(int vk)
 	const bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 	const bool shortcut = ctrl || alt || win;
 	const int ignored = keyIgnoreCount.load();
+	const int heldMods = (ctrl ? 1 : 0) | (alt ? 2 : 0) | (shift ? 4 : 0) | (win ? 8 : 0);
 	for (int i = 0; i < ignored; ++i) {
-		if (keyIgnoreVk[i].load() == vk)
+		if (keyIgnoreVk[i].load() == vk && keyIgnoreMods[i].load() == heldMods)
 			return;
 	}
 	if (!shortcut && !keyDisplayAll)

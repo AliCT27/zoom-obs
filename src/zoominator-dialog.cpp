@@ -1321,12 +1321,16 @@ void ZoominatorDialog::buildUi()
 			v->addWidget(ok);
 			if (ask.exec() != QDialog::Accepted || edit->keySequence().isEmpty())
 				return;
-			const int key = int(edit->keySequence()[0].key());
+			const QKeyCombination combo = edit->keySequence()[0];
+			const int key = int(combo.key());
 			if (key == 0 || key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr ||
-			    key == Qt::Key_Shift || key == Qt::Key_Meta || keyIgnoreQt.contains(key) ||
+			    key == Qt::Key_Shift || key == Qt::Key_Meta ||
 			    keyIgnoreQt.size() >= ZoominatorController::kMaxIgnoredKeys)
 				return;
-			keyIgnoreQt.append(key);
+			const int combined = combo.toCombined(); /* key plus modifiers, so Alt+Z is not the same as Z */
+			if (keyIgnoreQt.contains(combined))
+				return;
+			keyIgnoreQt.append(combined);
 			rebuildKeyIgnoreChips();
 		});
 		ignoreRow->addWidget(btnKeyIgnoreAdd);
