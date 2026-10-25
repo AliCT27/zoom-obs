@@ -239,6 +239,11 @@ void ZoominatorController::handleKeyForDisplay(int vk)
 	const bool win = (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
 	const bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 	const bool shortcut = ctrl || alt || win;
+	const int ignored = keyIgnoreCount.load();
+	for (int i = 0; i < ignored; ++i) {
+		if (keyIgnoreVk[i].load() == vk)
+			return;
+	}
 	if (!shortcut && !keyDisplayAll)
 		return;
 	const QString name = key_display_name(vk);

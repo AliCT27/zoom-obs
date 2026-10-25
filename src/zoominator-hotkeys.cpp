@@ -285,6 +285,15 @@ ZoominatorController::HotkeyBinding ZoominatorController::makeHotkeyBinding(cons
 void ZoominatorController::rebuildTriggersFromSettings()
 {
 	autoSuspended = false;
+	{
+		int n = 0;
+		for (int qk : keyDisplayIgnoreQt) {
+			const int vk = qtKeyToVk(qk);
+			if (vk != 0 && n < kMaxIgnoredKeys)
+				keyIgnoreVk[n++].store(vk);
+		}
+		keyIgnoreCount.store(n);
+	}
 	manualZoomInBinding = makeHotkeyBinding(manualZoomInSequence);
 	manualZoomOutBinding = makeHotkeyBinding(manualZoomOutSequence);
 	focusToggleBinding = makeHotkeyBinding(focusToggleSequence);

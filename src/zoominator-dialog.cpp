@@ -1289,12 +1289,50 @@ void ZoominatorDialog::buildUi()
 		});
 		keyDisplayRow->addWidget(btnKeyDisplayReset, 0, Qt::AlignBottom);
 		lay->addLayout(keyDisplayRow);
+
+		/* Keys that the key display never shows: a row of chips (click one to remove it) and a "+" to add one. */
+		auto *ignoreRow = new QHBoxLayout;
+		ignoreRow->setSpacing(6);
+		auto *ignoreLabel = new QLabel(T("Dialog.KeyIgnore"), page);
+		ignoreLabel->setToolTip(T("Dialog.KeyIgnoreTooltip"));
+		ignoreRow->addWidget(ignoreLabel);
+		keyIgnoreChips = new QHBoxLayout;
+		keyIgnoreChips->setSpacing(6);
+		ignoreRow->addLayout(keyIgnoreChips);
+		btnKeyIgnoreAdd = new QPushButton(QStringLiteral("+"), page);
+		btnKeyIgnoreAdd->setFixedWidth(32);
+		btnKeyIgnoreAdd->setToolTip(T("Dialog.KeyIgnoreAddTooltip"));
+		connect(btnKeyIgnoreAdd, &QPushButton::clicked, this, [this]() {
+			QDialog ask(this);
+			ask.setWindowTitle(T("Dialog.KeyIgnoreAskTitle"));
+			auto *v = new QVBoxLayout(&ask);
+			v->addWidget(new QLabel(T("Dialog.KeyIgnoreAsk"), &ask));
+			auto *edit = new QKeySequenceEdit(&ask);
+			v->addWidget(edit);
+			auto *ok = new QPushButton(T("Dialog.KeyIgnoreAdd"), &ask);
+			connect(ok, &QPushButton::clicked, &ask, &QDialog::accept);
+			v->addWidget(ok);
+			if (ask.exec() != QDialog::Accepted || edit->keySequence().isEmpty())
+				return;
+			const int key = int(edit->keySequence()[0].key());
+			if (key == 0 || key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr ||
+			    key == Qt::Key_Shift || key == Qt::Key_Meta || keyIgnoreQt.contains(key) ||
+			    keyIgnoreQt.size() >= ZoominatorController::kMaxIgnoredKeys)
+				return;
+			keyIgnoreQt.append(key);
+			rebuildKeyIgnoreChips();
+		});
+		ignoreRow->addWidget(btnKeyIgnoreAdd);
+		ignoreRow->addStretch(1);
+		lay->addLayout(ignoreRow);
 		connect(chkKeyDisplay, &QCheckBox::toggled, this, [this](bool on) {
 			chkKeyDisplayAll->setEnabled(on);
 			spKeyDisplaySize->setEnabled(on);
 			spKeyDisplayY->setEnabled(on);
 			spKeyDisplaySec->setEnabled(on);
 			btnKeyDisplayReset->setEnabled(on);
+			btnKeyIgnoreAdd->setEnabled(on);
+			rebuildKeyIgnoreChips();
 		});
 		lay->addSpacing(10);
 
@@ -1484,6 +1522,25 @@ void ZoominatorDialog::buildUi()
 		connect(chkShowCursorMarker, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
 		connect(chkShowMarkerWhenNotZoomed, &QCheckBox::toggled, this, [syncHaloFields](bool) { syncHaloFields(); });
 		syncHaloFields();
+	}
+}
+
+void ZoominatorDialog::rebuildKeyIgnoreChips()
+{
+	while (QLayoutItem *it = keyIgnoreChips->takeAt(0)) {
+		delete it->widget();
+		delete it;
+	}
+	for (int key : keyIgnoreQt) {
+		auto *chip = new QPushButton(QKeySequence(key).toString(QKeySequence::NativeText) + QStringLiteral(" \u00D7"),
+					     this);
+		chip->setToolTip(T("Dialog.KeyIgnoreRemoveTooltip"));
+		chip->setEnabled(chkKeyDisplay->isChecked());
+		connect(chip, &QPushButton::clicked, this, [this, key]() {
+			keyIgnoreQt.removeAll(key);
+			rebuildKeyIgnoreChips();
+		});
+		keyIgnoreChips->addWidget(chip);
 	}
 }
 
@@ -1827,6 +1884,9 @@ void ZoominatorDialog::loadFromController()
 		spKeyDisplayY->setEnabled(c.keyDisplayEnabled);
 		spKeyDisplaySec->setEnabled(c.keyDisplayEnabled);
 		btnKeyDisplayReset->setEnabled(c.keyDisplayEnabled);
+		btnKeyIgnoreAdd->setEnabled(c.keyDisplayEnabled);
+		keyIgnoreQt = c.keyDisplayIgnoreQt;
+		rebuildKeyIgnoreChips();
 		chkGuide->setChecked(c.guideEnabled);
 		spGuideTop->setValue(c.guideTopPx);
 		spGuideBottom->setValue(c.guideBottomPx);
@@ -1984,6 +2044,7 @@ void ZoominatorDialog::applyToController()
 	c.keyDisplaySize = spKeyDisplaySize->value();
 	c.keyDisplayYPct = spKeyDisplayY->value();
 	c.keyDisplaySec = spKeyDisplaySec->value();
+	c.keyDisplayIgnoreQt = keyIgnoreQt;
 	c.guideEnabled = chkGuide->isChecked();
 	c.guideTopPx = spGuideTop->value();
 	c.guideBottomPx = spGuideBottom->value();

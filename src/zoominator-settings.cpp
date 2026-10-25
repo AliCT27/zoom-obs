@@ -489,6 +489,13 @@ void ZoominatorController::loadSettings()
 	focusSoftness = beamSoftnessForCone(focusCone, focusRadius);
 	camSourceName = getStr("cam_source");
 	manualZoomInSequence = getStr("manual_zoom_in_hotkey");
+	keyDisplayIgnoreQt.clear();
+	for (const QString &part : getStr("key_display_ignore").split(' ', Qt::SkipEmptyParts)) {
+		bool ok = false;
+		const int qk = part.toInt(&ok);
+		if (ok && qk > 0 && !keyDisplayIgnoreQt.contains(qk) && keyDisplayIgnoreQt.size() < kMaxIgnoredKeys)
+			keyDisplayIgnoreQt.append(qk);
+	}
 	manualZoomOutSequence = getStr("manual_zoom_out_hotkey");
 	focusToggleSequence = getStr("focus_toggle_hotkey");
 	{
@@ -1000,6 +1007,12 @@ void ZoominatorController::saveSettings()
 	obs_data_set_string(data, "focus_style", focusStyleToString(focusStyle).toUtf8().constData());
 	obs_data_set_string(data, "cam_source", camSourceName.toUtf8().constData());
 	obs_data_set_string(data, "manual_zoom_in_hotkey", manualZoomInSequence.toUtf8().constData());
+	{
+		QStringList ign;
+		for (int qk : keyDisplayIgnoreQt)
+			ign << QString::number(qk);
+		obs_data_set_string(data, "key_display_ignore", ign.join(' ').toUtf8().constData());
+	}
 	obs_data_set_string(data, "manual_zoom_out_hotkey", manualZoomOutSequence.toUtf8().constData());
 	obs_data_set_string(data, "focus_toggle_hotkey", focusToggleSequence.toUtf8().constData());
 	obs_data_set_bool(data, "sound_enabled", soundEnabled);
