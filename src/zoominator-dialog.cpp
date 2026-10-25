@@ -1315,13 +1315,18 @@ void ZoominatorDialog::buildUi()
 			auto *v = new QVBoxLayout(&ask);
 			v->addWidget(new QLabel(T("Dialog.KeyIgnoreAsk"), &ask));
 			auto *edit = new QKeySequenceEdit(&ask);
+			/* Only one shortcut fits in the box: a further key press replaces the one already there. */
+			connect(edit, &QKeySequenceEdit::keySequenceChanged, edit, [edit](const QKeySequence &seq) {
+				if (seq.count() > 1)
+					edit->setKeySequence(QKeySequence(seq[seq.count() - 1].toCombined()));
+			});
 			v->addWidget(edit);
 			auto *ok = new QPushButton(T("Dialog.KeyIgnoreAdd"), &ask);
 			connect(ok, &QPushButton::clicked, &ask, &QDialog::accept);
 			v->addWidget(ok);
 			if (ask.exec() != QDialog::Accepted || edit->keySequence().isEmpty())
 				return;
-			const QKeyCombination combo = edit->keySequence()[0];
+			const QKeyCombination combo = edit->keySequence()[edit->keySequence().count() - 1];
 			const int key = int(combo.key());
 			if (key == 0 || key == Qt::Key_Control || key == Qt::Key_Alt || key == Qt::Key_AltGr ||
 			    key == Qt::Key_Shift || key == Qt::Key_Meta ||
