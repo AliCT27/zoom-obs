@@ -1,1 +1,1 @@
-# Zoominator – Smart Scene Zoom & Follow for OBS Studio
+# Zoom OBS – Smart Scene Zoom & Follow for OBS Studio
