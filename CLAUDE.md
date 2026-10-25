@@ -19,13 +19,14 @@ first for threads, files and where things go.
 - Build: run the `Dispatch` workflow on the branch (`gh workflow run Dispatch --ref <branch> -f job=build`).
   The build is the only compile check (no local Windows toolchain). If the run fails before any step starts, it is
   a billing/quota problem on the GitHub account, not the code.
-- Open the PR with the REST API (`gh api repos/AliCT27/zoominator-custom/pulls ...`); GraphQL (`gh pr create`) is
+- Open the PR with the REST API (`gh api repos/AliCT27/zoom-obs/pulls ...`); GraphQL (`gh pr create`) is
   blocked. Then tell him which PR to merge.
 - After merging he runs Dispatch on `main` and copies `obs-plugins` and `data` into `C:\Program Files\obs-studio\`.
   He knows this: after a finished change just say which PR to merge. Do not repeat the Dispatch/copy steps, and do not
   say whether `data` is needed. Mention only something unusual (for example a log line he must send back).
-- The repo is `AliCT27/zoominator-custom` (it was renamed from `zoominator-private`; old names redirect for git
-  but the API proxy refuses the redirect, so always use the new name).
+- The repo is `AliCT27/zoom-obs` (it was renamed from `zoominator-private`, then `zoominator-custom`; old names redirect
+  for git but the API proxy refuses the redirect, so always use the new name). A new session may need `add_repo` with
+  `access: push` for the new name before `gh api` works.
 - Never push to or open PRs against the upstream (mmlTools) repo. Only this repo. No tokens or secrets in chat or
   files; the repo is public.
 - A stop-hook may warn about "unpushed commits" right after a push; check `git ls-remote origin <branch>` first.
