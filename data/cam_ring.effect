@@ -1,14 +1,16 @@
-// Zoominator webcam ring: shows the source as a circle with a solid ring and a
+// Zoominator webcam ring: shows the source as a circle (or a rounded square) with a solid ring and a
 // soft glow around it. Used as a filter on the webcam source.
 //
-// size_px is the source size in pixels. The circle is centred in the source and
-// shows the centre square of the picture (as tall as the source is high).
+// size_px is the source size in pixels. The shape is centred in the source and shows the centre square
+// of the picture (as tall as the source is high). corner_px is the corner radius of that square: radius_px
+// gives a circle, 0 gives sharp corners.
 
 uniform float4x4 ViewProj;
 uniform texture2d image;
 
 uniform float2 size_px;
 uniform float radius_px;
+uniform float corner_px;
 uniform float border_px;
 uniform float glow_px;
 uniform float glow_strength;
@@ -48,8 +50,11 @@ float4 PSRing(VertInOut vert_in) : TARGET
 	float2 p = vert_in.uv * size_px;
 	float2 c = size_px * 0.5;
 
-	// Negative inside the circle, positive outside.
-	float d = length(p - c) - radius_px;
+	// Negative inside the shape, positive outside (distance to a rounded square; a circle when the corner
+	// radius equals the half side).
+	float cr = clamp(corner_px, 0.0, radius_px);
+	float2 q = abs(p - c) - (radius_px - cr);
+	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - cr;
 
 	// The circle shows the centre square of the picture.
 	float k = min(size_px.x, size_px.y) / max(2.0 * radius_px, 1.0);

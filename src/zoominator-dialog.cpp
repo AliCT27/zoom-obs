@@ -45,6 +45,7 @@ void signal_handler_disconnect(struct signal_handler *handler, const char *signa
 #include <QScreen>
 #include <QScrollArea>
 #include <QSet>
+#include <QSlider>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTimer>
@@ -928,6 +929,23 @@ void ZoominatorDialog::buildCamRingSection(QWidget *page, QVBoxLayout *lay)
 	camShapeRow->addWidget(mkField(T("Dialog.CamGlowStrength"), spCamGlowPct), 1);
 	lay->addLayout(camShapeRow);
 
+	/* Corner roundness: a slider and a number that follow each other, from sharp square corners to a circle. */
+	spCamCorner = new QSpinBox(page);
+	spCamCorner->setRange(0, 100);
+	spCamCorner->setSingleStep(5);
+	spCamCorner->setSuffix(T("Unit.Percent"));
+	spCamCorner->setToolTip(T("Dialog.CamCornerTooltip"));
+	slCamCorner = new QSlider(Qt::Horizontal, page);
+	slCamCorner->setRange(0, 100);
+	slCamCorner->setToolTip(T("Dialog.CamCornerTooltip"));
+	connect(slCamCorner, &QSlider::valueChanged, spCamCorner, &QSpinBox::setValue);
+	connect(spCamCorner, qOverload<int>(&QSpinBox::valueChanged), slCamCorner, &QSlider::setValue);
+	auto *camCornerRow = new QHBoxLayout;
+	camCornerRow->setSpacing(12);
+	camCornerRow->addWidget(mkField(T("Dialog.CamCorner"), spCamCorner), 1);
+	camCornerRow->addWidget(slCamCorner, 2, Qt::AlignBottom);
+	lay->addLayout(camCornerRow);
+
 	chkCamRainbow = new QCheckBox(T("Dialog.CamRainbow"), page);
 	chkCamRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
 	spCamRainbowSec = new QSpinBox(page);
@@ -1059,6 +1077,8 @@ void ZoominatorDialog::buildCamRingSection(QWidget *page, QVBoxLayout *lay)
 		spCamRing->setEnabled(on);
 		spCamGlow->setEnabled(on);
 		spCamGlowPct->setEnabled(on);
+		spCamCorner->setEnabled(on);
+		slCamCorner->setEnabled(on);
 	};
 	connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 	connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
@@ -2018,6 +2038,7 @@ void ZoominatorDialog::loadFromController()
 		spCamRing->setValue(c.camRingPx);
 		spCamGlow->setValue(c.camGlowPx);
 		spCamGlowPct->setValue(c.camGlowPct);
+		spCamCorner->setValue(c.camCornerPct);
 		chkCamLayout->setChecked(c.camLayoutEnabled);
 		chkCamRainbow->setChecked(c.camRainbow);
 		spCamRainbowSec->setValue(c.camRainbowSec);
@@ -2035,6 +2056,8 @@ void ZoominatorDialog::loadFromController()
 		spCamRing->setEnabled(c.camRingEnabled);
 		spCamGlow->setEnabled(c.camRingEnabled);
 		spCamGlowPct->setEnabled(c.camRingEnabled);
+		spCamCorner->setEnabled(c.camRingEnabled);
+		slCamCorner->setEnabled(c.camRingEnabled);
 		chkCamLayout->setEnabled(c.camRingEnabled);
 		for (QWidget *w : {(QWidget *)spCamIdleX, (QWidget *)spCamIdleY, (QWidget *)spCamIdleSize,
 				   (QWidget *)spCamZoomX, (QWidget *)spCamZoomY, (QWidget *)spCamZoomSize,
@@ -2200,6 +2223,7 @@ void ZoominatorDialog::applyToController()
 	c.camRingPx = spCamRing->value();
 	c.camGlowPx = spCamGlow->value();
 	c.camGlowPct = spCamGlowPct->value();
+	c.camCornerPct = spCamCorner->value();
 	c.camLayoutEnabled = chkCamLayout->isChecked();
 	c.camRainbow = chkCamRainbow->isChecked();
 	c.camRainbowSec = spCamRainbowSec->value();

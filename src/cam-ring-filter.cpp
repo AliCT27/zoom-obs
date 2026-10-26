@@ -23,6 +23,7 @@ struct RingData {
 	gs_effect_t *effect = nullptr;
 	gs_eparam_t *pSize = nullptr;
 	gs_eparam_t *pRadius = nullptr;
+	gs_eparam_t *pCorner = nullptr;
 	gs_eparam_t *pBorder = nullptr;
 	gs_eparam_t *pGlow = nullptr;
 	gs_eparam_t *pGlowStrength = nullptr;
@@ -61,7 +62,8 @@ void loadEffect(RingData *d)
 		d->pGlow = gs_effect_get_param_by_name(d->effect, "glow_px");
 		d->pGlowStrength = gs_effect_get_param_by_name(d->effect, "glow_strength");
 		d->pColor = gs_effect_get_param_by_name(d->effect, "ring_color");
-		/* Optional: an older shader without these just has a plain ring. */
+		/* Optional: an older shader without these just has a plain circle and ring. */
+		d->pCorner = gs_effect_get_param_by_name(d->effect, "corner_px");
 		d->pHue = gs_effect_get_param_by_name(d->effect, "hue");
 		d->pFlow = gs_effect_get_param_by_name(d->effect, "flow");
 		if (!d->pSize || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength || !d->pColor) {
@@ -136,6 +138,8 @@ void videoRender(void *data, gs_effect_t *)
 	vec2_set(&size, (float)w, (float)h);
 	gs_effect_set_vec2(d->pSize, &size);
 	gs_effect_set_float(d->pRadius, radius);
+	if (d->pCorner)
+		gs_effect_set_float(d->pCorner, radius * std::clamp(s.corner, 0.0f, 1.0f));
 	gs_effect_set_float(d->pBorder, ring);
 	gs_effect_set_float(d->pGlow, glow);
 	gs_effect_set_float(d->pGlowStrength, s.glowStrength);

@@ -42,6 +42,7 @@ void ZoominatorController::refreshCamRing()
 		st.ringPx = (float)std::clamp(camRingPx, 0, 60);
 		st.glowPx = (float)std::clamp(camGlowPx, 0, 150);
 		st.glowStrength = (float)std::clamp(camGlowPct, 0, 100) / 100.0f;
+		st.corner = (float)std::clamp(camCornerPct, 0, 100) / 100.0f;
 		st.rainbow = camRainbow;
 		st.rainbowSec = (float)std::clamp(camRainbowSec, 2, 120);
 		zoominator_camring::setStyle(camFilter, st);
