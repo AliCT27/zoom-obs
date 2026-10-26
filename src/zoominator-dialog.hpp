@@ -14,6 +14,7 @@ class QLineEdit;
 class QLabel;
 class QListWidget;
 class QPushButton;
+class QSlider;
 class QSpinBox;
 class QTabWidget;
 class QVBoxLayout;
@@ -152,6 +153,8 @@ private:
 	QSpinBox *spCamRainbowSec = nullptr;
 	QSpinBox *spCamGlow = nullptr;
 	QSpinBox *spCamGlowPct = nullptr;
+	QSpinBox *spCamCorner = nullptr;
+	QSlider *slCamCorner = nullptr;
 	QCheckBox *chkCamLayout = nullptr;
 	QSpinBox *spCamIdleX = nullptr;
 	QSpinBox *spCamIdleY = nullptr;

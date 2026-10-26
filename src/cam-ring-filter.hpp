@@ -2,7 +2,7 @@
 
 #include <obs-module.h>
 
-/* A video filter that turns a webcam source into a circle with a ring and a soft
+/* A video filter that turns a webcam source into a circle (or a rounded square) with a ring and a soft
  * glow around it. The controller attaches it to the chosen source while the
  * option is on and removes it again when it is turned off. */
 namespace zoominator_camring {
@@ -12,6 +12,7 @@ struct Style {
 	float ringPx = 5.0f;
 	float glowPx = 24.0f;
 	float glowStrength = 0.8f;
+	float corner = 1.0f;      /* 1 = circle, 0 = sharp square corners */
 	bool rainbow = false;     /* ring and glow colour cycle round the colour wheel */
 	float rainbowSec = 10.0f; /* seconds for one full turn */
 };

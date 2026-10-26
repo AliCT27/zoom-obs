@@ -198,6 +198,7 @@ public:
 	int camRingPx = 6;
 	int camGlowPx = 28;
 	int camGlowPct = 80;
+	int camCornerPct = 100;         /* webcam corner roundness: 100 = circle, 0 = square */
 	bool camRainbow = false; /* ring and glow cycle round the colour wheel */
 	int camRainbowSec = 10;  /* seconds for one full turn */
 	/* Webcam placed by numbers: centre and outer diameter in canvas pixels, for

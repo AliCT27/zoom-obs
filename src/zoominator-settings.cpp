@@ -158,6 +158,7 @@ constexpr ScalarSetting kScalarSettings[] = {
 	{"cam_ring_px", nullptr, &ZoominatorController::camRingPx, nullptr, nullptr, 6, 0, 60},
 	{"cam_glow_px", nullptr, &ZoominatorController::camGlowPx, nullptr, nullptr, 28, 0, 150},
 	{"cam_glow_pct", nullptr, &ZoominatorController::camGlowPct, nullptr, nullptr, 80, 0, 100},
+	{"cam_corner_pct", nullptr, &ZoominatorController::camCornerPct, nullptr, nullptr, 100, 0, 100},
 	{"cam_rainbow", &ZoominatorController::camRainbow, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"cam_rainbow_sec", nullptr, &ZoominatorController::camRainbowSec, nullptr, nullptr, 10, 2, 120},
 	{"cam_layout_enabled", &ZoominatorController::camLayoutEnabled, nullptr, nullptr, nullptr, 0, 0, 1},
