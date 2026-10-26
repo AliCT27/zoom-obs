@@ -1813,20 +1813,49 @@ void ZoominatorDialog::populateSources()
 	cmbSource->clear();
 	cmbSource->addItem(T("Dialog.SelectScreen"), "");
 
-	const auto screens = QGuiApplication::screens();
-	for (int i = 0; i < screens.size(); ++i) {
-		auto *screen = screens[i];
-		if (!screen)
-			continue;
+	/* List the screens in physical order (left to right, then top to bottom) and say where each one is: the names
+	 * Qt gives are not enough to tell two identical monitors apart. The stored key (position and size) is unchanged. */
+	auto screens = QGuiApplication::screens();
+	screens.erase(std::remove(screens.begin(), screens.end(), nullptr), screens.end());
+	std::stable_sort(screens.begin(), screens.end(), [](const QScreen *a, const QScreen *b) {
+		const QRect ga = a->geometry(), gb = b->geometry();
+		return ga.x() != gb.x() ? ga.x() < gb.x() : ga.y() < gb.y();
+	});
+
+	const QScreen *primary = QGuiApplication::primaryScreen();
+	const QScreen *obsScreen = nullptr;
+	if (auto *mainWindow = reinterpret_cast<QWidget *>(obs_frontend_get_main_window()))
+		obsScreen = mainWindow->screen();
+
+	const int count = (int)screens.size();
+	for (int i = 0; i < count; ++i) {
+		const QScreen *screen = screens[i];
 		const QRect g = screen->geometry();
 		const QString key = QStringLiteral("%1,%2,%3,%4").arg(g.x()).arg(g.y()).arg(g.width()).arg(g.height());
-		const QString label = QStringLiteral("%1: %2×%3 @ (%4, %5)")
-					      .arg(screen->name())
-					      .arg(g.width())
-					      .arg(g.height())
-					      .arg(g.x())
-					      .arg(g.y());
-		cmbSource->addItem(label, key);
+
+		QString place;
+		if (count <= 1)
+			place = T("Dialog.Screen.Only");
+		else if (i == 0)
+			place = T("Dialog.Screen.Left");
+		else if (i == count - 1)
+			place = T("Dialog.Screen.Right");
+		else if (count == 3)
+			place = T("Dialog.Screen.Center");
+		else
+			place = QString(T("Dialog.Screen.FromLeft")).arg(i + 1);
+
+		QStringList parts;
+		parts << QStringLiteral("%1 (%2/%3)").arg(place).arg(i + 1).arg(count);
+		parts << screen->name();
+		parts << QStringLiteral("%1\u00D7%2 @ (%3, %4)").arg(g.width()).arg(g.height()).arg(g.x()).arg(g.y());
+		if (screen == primary)
+			parts << T("Dialog.Screen.Primary");
+		if (screen == obsScreen)
+			parts << T("Dialog.Screen.ObsWindow");
+
+		cmbSource->addItem(parts.join(QStringLiteral("  \u00B7  ")), key);
+		cmbSource->setItemData(cmbSource->count() - 1, T("Dialog.TargetScreenTooltip"), Qt::ToolTipRole);
 	}
 
 	int idx = cmbSource->findData(cur);
