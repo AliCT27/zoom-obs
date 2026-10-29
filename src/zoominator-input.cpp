@@ -411,8 +411,13 @@ LRESULT CALLBACK ZoominatorController::mouse_hook_proc(int nCode, WPARAM wParam,
 			return 1;
 		}
 
-		if (down)
+		if (down) {
 			g_ctl->captureMarkerClickPosition();
+			QMetaObject::invokeMethod(g_ctl, [] {
+				if (g_ctl)
+					g_ctl->onClickSound();
+			}, Qt::QueuedConnection);
+		}
 
 		if (down && g_ctl->triggerType == "auto" && g_ctl->autoOnClick)
 			g_ctl->onAutoActivity();

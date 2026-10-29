@@ -242,5 +242,8 @@ inline obs_sceneitem_t *find_scene_item_for_source(obs_scene_t *scene, obs_sourc
 
 int qtKeyToVk(int qtKey); /* zoominator-hotkeys.cpp */
 
+/* True while the OBS main window or one of its dialogs has focus (Windows only). Defined in zoominator-triggers.cpp. */
+bool obs_window_is_foreground();
+
 /* Defined in zoominator-marker.cpp. */
 void cleanup_legacy_marker_items_all_scenes(obs_source_t *currentMarkerSource = nullptr);

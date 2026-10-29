@@ -47,7 +47,7 @@ void ZoominatorController::onTriggerUp()
  * plugin's) has focus, so clicking Start/Stop Recording or the settings dialog
  * does not trigger the automatic zoom. Windows only; other platforms report
  * false and keep the old behaviour. */
-static bool obs_window_is_foreground()
+bool obs_window_is_foreground()
 {
 #ifdef _WIN32
 	QWidget *mainWin = reinterpret_cast<QWidget *>(obs_frontend_get_main_window());

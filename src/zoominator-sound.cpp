@@ -1,4 +1,4 @@
-/* Sound effects: short sounds for zoom in, zoom out and typing.
+/* Sound effects: short sounds for zoom in, zoom out, typing and mouse clicks.
  *
  * Each sound is a hidden-from-scenes ffmpeg_source set as a global output
  * channel, so it is mixed straight into the recording like Desktop Audio and
@@ -12,15 +12,17 @@
 #include <QDir>
 
 namespace {
-constexpr int kSoundChannel[3] = {58, 59, 60};
-const char *kSoundSourceName[3] = {"Zoominator Sound: Zoom In", "Zoominator Sound: Zoom Out",
-				   "Zoominator Sound: Typing"};
+constexpr int kSoundChannel[ZoominatorController::kSoundSlots] = {58, 59, 60, 61};
+const char *kSoundSourceName[ZoominatorController::kSoundSlots] = {"Zoominator Sound: Zoom In", "Zoominator Sound: Zoom Out",
+				   "Zoominator Sound: Typing", "Zoominator Sound: Click"};
 const char *kDefaultFile(int slot, bool loop)
 {
 	if (slot == 0)
 		return "sounds/zoom_in.wav";
 	if (slot == 1)
 		return "sounds/zoom_out.wav";
+	if (slot == 3)
+		return "sounds/click.wav";
 	return loop ? "sounds/typing_loop.wav" : "sounds/typing_tick.wav";
 }
 } // namespace
@@ -52,7 +54,7 @@ QString ZoominatorController::effectiveSoundFile(int slot) const
 void ZoominatorController::releaseSoundSources()
 {
 	soundTypingLooping = false;
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < kSoundSlots; ++i) {
 		if (!soundSrc[i])
 			continue;
 		obs_set_output_source((uint32_t)kSoundChannel[i], nullptr);
@@ -65,10 +67,10 @@ void ZoominatorController::releaseSoundSources()
 
 void ZoominatorController::ensureSoundSources()
 {
-	if (!soundEnabled && !soundSrc[0] && !soundSrc[1] && !soundSrc[2])
+	if (!soundEnabled && !soundSrc[0] && !soundSrc[1] && !soundSrc[2] && !soundSrc[3])
 		return;
 
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < kSoundSlots; ++i) {
 		const QString path = effectiveSoundFile(i);
 		const QString loopKey = (i == 2 && soundTypingMode == "loop") ? QStringLiteral("1") : QStringLiteral("0");
 
@@ -124,7 +126,7 @@ void ZoominatorController::ensureSoundSources()
 
 void ZoominatorController::previewSound(int slot)
 {
-	if (slot < 0 || slot > 2)
+	if (slot < 0 || slot >= kSoundSlots)
 		return;
 	const bool was = soundEnabled;
 	soundEnabled = true;
@@ -192,4 +194,22 @@ void ZoominatorController::onTypingSound()
 		return;
 	soundTypingLastMs = now;
 	obs_source_media_restart(soundSrc[2]);
+}
+
+/* A mouse button went down somewhere. Called from the mouse hook, so the work is queued to the main thread. */
+void ZoominatorController::onClickSound()
+{
+	if (!soundEnabled || shuttingDown || !soundOn[3])
+		return;
+	/* Clicks in OBS itself (Start Recording, this dialog) are not part of the video. */
+	if (obs_window_is_foreground())
+		return;
+	const qint64 now = QDateTime::currentMSecsSinceEpoch();
+	if (now - soundClickLastMs < 40)
+		return;
+	soundClickLastMs = now;
+	ensureSoundSources();
+	if (!soundSrc[3])
+		return;
+	obs_source_media_restart(soundSrc[3]);
 }

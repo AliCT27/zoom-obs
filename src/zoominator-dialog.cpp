@@ -1284,15 +1284,16 @@ void ZoominatorDialog::buildSoundSection(QWidget *page, QVBoxLayout *lay)
 {
 	addSection(lay, T("Dialog.Section.Sound"));
 
-	QWidget *soundRowWidget[3] = {nullptr, nullptr, nullptr};
+	QWidget *soundRowWidget[ZoominatorController::kSoundSlots] = {nullptr, nullptr, nullptr, nullptr};
 	chkSoundEnabled = new QCheckBox(T("Dialog.SoundEnable"), page);
 	chkSoundEnabled->setToolTip(T("Dialog.SoundEnableTooltip"));
 	lay->addWidget(chkSoundEnabled);
 	lay->addSpacing(6);
 
 	{
-		static const char *labels[3] = {"Dialog.SoundZoomIn", "Dialog.SoundZoomOut", "Dialog.SoundTyping"};
-		for (int i = 0; i < 3; ++i) {
+		static const char *labels[ZoominatorController::kSoundSlots] = {"Dialog.SoundZoomIn", "Dialog.SoundZoomOut",
+										  "Dialog.SoundTyping", "Dialog.SoundClick"};
+		for (int i = 0; i < ZoominatorController::kSoundSlots; ++i) {
 			auto *row = new QWidget(page);
 			auto *h = new QHBoxLayout(row);
 			h->setContentsMargins(0, 0, 0, 0);
@@ -1335,14 +1336,14 @@ void ZoominatorDialog::buildSoundSection(QWidget *page, QVBoxLayout *lay)
 	 * greys that sound's controls. */
 	auto syncSoundFields = [this, soundRowWidget]() {
 		const bool master = chkSoundEnabled->isChecked();
-		for (int i = 0; i < 3; ++i) {
+		for (int i = 0; i < ZoominatorController::kSoundSlots; ++i) {
 			chkSoundOn[i]->setEnabled(master);
 			soundRowWidget[i]->setEnabled(master && chkSoundOn[i]->isChecked());
 		}
 		cmbSoundTypingMode->setEnabled(master && chkSoundOn[2]->isChecked());
 	};
 	connect(chkSoundEnabled, &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < ZoominatorController::kSoundSlots; ++i)
 		connect(chkSoundOn[i], &QCheckBox::toggled, this, [syncSoundFields](bool) { syncSoundFields(); });
 	syncSoundFields();
 	lay->addSpacing(10);
@@ -2105,7 +2106,7 @@ void ZoominatorDialog::loadFromController()
 		spRecLimit->setValue(c.recLimitSec);
 		spRecLimit->setEnabled(c.showStatusHud);
 		chkSoundEnabled->setChecked(c.soundEnabled);
-		for (int i = 0; i < 3; ++i) {
+		for (int i = 0; i < ZoominatorController::kSoundSlots; ++i) {
 			chkSoundOn[i]->setChecked(c.soundOn[i]);
 			spSoundVolume[i]->setValue(c.soundVolume[i]);
 			editSoundName[i]->setText(c.soundFile[i].isEmpty() ? T("Dialog.SoundBuiltIn") : c.soundName[i]);
@@ -2260,7 +2261,7 @@ void ZoominatorDialog::applyToController()
 	c.statusHudCorner = cmbStatusHudCorner->currentData().toInt();
 	c.recLimitSec = spRecLimit->value();
 	c.soundEnabled = chkSoundEnabled->isChecked();
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < ZoominatorController::kSoundSlots; ++i) {
 		c.soundVolume[i] = spSoundVolume[i]->value();
 		c.soundOn[i] = chkSoundOn[i]->isChecked();
 	}
@@ -2459,7 +2460,8 @@ void ZoominatorDialog::applyPreset(const QString &id, bool horizontal)
 	lblStatus->setText(QString(T(horizontal ? "Dialog.Presets.AppliedHorizontal" : "Dialog.Presets.AppliedVertical")) + note);
 }
 
-static const char *kSoundBase[3] = {"zoom_in", "zoom_out", "typing"};
+static_assert(ZoominatorController::kSoundSlots == 4, "the dialog keeps four sound rows");
+static const char *kSoundBase[ZoominatorController::kSoundSlots] = {"zoom_in", "zoom_out", "typing", "click"};
 
 static void removeSoundFiles(const QString &dir, int slot)
 {
