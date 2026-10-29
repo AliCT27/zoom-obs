@@ -85,6 +85,7 @@ public:
 	void previewSound(int slot);
 	void playSound(int slot);
 	void onTypingSound();
+	void onClickSound();
 
 	/* "My preset": a snapshot of every setting except the machine-specific ones
 	 * (target screen, ticked sources, recovery data). saveUserPreset() saves what
@@ -241,10 +242,11 @@ public:
 	/* Sound effects. Files the user picked are copied into the plugin's config
 	 * folder (sounds/); empty means the bundled default. */
 	bool soundEnabled = false;
-	bool soundOn[3] = {true, true, true}; /* each sound can be switched off on its own */
-	QString soundFile[3]; /* 0 = zoom in, 1 = zoom out, 2 = typing */
-	QString soundName[3]; /* original file name, for display */
-	int soundVolume[3] = {80, 80, 60};
+	static constexpr int kSoundSlots = 4;
+	bool soundOn[kSoundSlots] = {true, true, true, true}; /* each sound can be switched off on its own */
+	QString soundFile[kSoundSlots]; /* 0 = zoom in, 1 = zoom out, 2 = typing, 3 = mouse click */
+	QString soundName[kSoundSlots]; /* original file name, for display */
+	int soundVolume[kSoundSlots] = {80, 80, 60, 70};
 	QString soundTypingMode = QStringLiteral("tick"); /* "tick" or "loop" */
 	QString focusOnSequence;
 	QString focusOffSequence;
@@ -679,9 +681,10 @@ private:
 	HotkeyBinding manualZoomInBinding;
 	HotkeyBinding manualZoomOutBinding;
 	HotkeyBinding focusToggleBinding;
-	obs_source_t *soundSrc[3] = {nullptr, nullptr, nullptr};
-	QString soundSrcPath[3];
-	QString soundSrcLoop[3];
+	obs_source_t *soundSrc[kSoundSlots] = {nullptr, nullptr, nullptr, nullptr};
+	QString soundSrcPath[kSoundSlots];
+	QString soundSrcLoop[kSoundSlots];
+	qint64 soundClickLastMs = 0;
 	qint64 soundTypingLastMs = 0;
 	bool soundTypingLooping = false;
 	void typingLoopWatch();

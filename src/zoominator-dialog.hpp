@@ -211,9 +211,9 @@ private:
 	QComboBox *cmbStatusHudCorner = nullptr;
 	QSpinBox *spRecLimit = nullptr;
 	QCheckBox *chkSoundEnabled = nullptr;
-	QCheckBox *chkSoundOn[3] = {nullptr, nullptr, nullptr};
-	QLineEdit *editSoundName[3] = {nullptr, nullptr, nullptr};
-	QSpinBox *spSoundVolume[3] = {nullptr, nullptr, nullptr};
+	QCheckBox *chkSoundOn[4] = {nullptr, nullptr, nullptr, nullptr};
+	QLineEdit *editSoundName[4] = {nullptr, nullptr, nullptr, nullptr};
+	QSpinBox *spSoundVolume[4] = {nullptr, nullptr, nullptr, nullptr};
 	QComboBox *cmbSoundTypingMode = nullptr;
 
 	QListWidget *lstSources = nullptr;
