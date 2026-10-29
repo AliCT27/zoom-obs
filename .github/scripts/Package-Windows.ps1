@@ -69,8 +69,11 @@ function Package {
     $OutputName = "${ProductName}-${ProductVersion}-windows-${Target}"
     $InstallRoot = Resolve-Path -Path "${ProjectRoot}/release/${Configuration}"
     $StageRoot = "${ProjectRoot}/release/${OutputName}"
-    $PluginBinaryRoot = "${StageRoot}/obs-plugins/64bit"
-    $PluginDataRoot = "${StageRoot}/data/obs-plugins/${ProductName}"
+    # OBS 33+ layout for a plugin installed for all users: one folder holding the DLL and its data folder, copied
+    # to C:\ProgramData\obs-studio\plugins\. The old obs-plugins/64bit + data/obs-plugins layout still loads in
+    # OBS 33 but is marked Legacy there and stops loading in OBS 34.
+    $PluginBinaryRoot = "${StageRoot}/${ProductName}"
+    $PluginDataRoot = "${StageRoot}/${ProductName}/data"
 
     $RemoveArgs = @{
         ErrorAction = 'SilentlyContinue'
