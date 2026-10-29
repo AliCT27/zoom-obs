@@ -21,7 +21,9 @@ first for threads, files and where things go.
   a billing/quota problem on the GitHub account, not the code.
 - Open the PR with the REST API (`gh api repos/AliCT27/zoom-obs/pulls ...`); GraphQL (`gh pr create`) is
   blocked. Then tell him which PR to merge.
-- After merging he runs Dispatch on `main` and copies `obs-plugins` and `data` into `C:\Program Files\obs-studio\`.
+- After merging he runs Dispatch on `main` and copies the `zoominator` folder (DLL plus `data`) from the artifact into
+  `C:\ProgramData\obs-studio\plugins\` (the OBS 33 layout; the old `Program Files\obs-studio\obs-plugins` + `data`
+  layout is marked Legacy in OBS 33 and stops loading in OBS 34, so it must be removed to avoid a double load).
   He knows this: after a finished change just say which PR to merge. Do not repeat the Dispatch/copy steps, and do not
   say whether `data` is needed. Mention only something unusual (for example a log line he must send back).
 - The repo is `AliCT27/zoom-obs` (it was renamed from `zoominator-private`, then `zoominator-custom`; old names redirect
