@@ -319,6 +319,8 @@ void ZoominatorDialog::buildTargetTab()
 	lay->addWidget(mkField(T("Dialog.TargetScreen"), cmbSource));
 	lay->addSpacing(16);
 
+	buildOutputScreenSection(page, lay);
+
 	cmbMode = new QComboBox(page);
 	cmbMode->addItem(T("Dialog.Mode.Hold"), "hold");
 	cmbMode->addItem(T("Dialog.Mode.Toggle"), "toggle");
@@ -521,7 +523,6 @@ void ZoominatorDialog::buildAdvancedTab()
 	buildSoundSection(page, lay);
 	buildCursorRingSection(page, lay);
 	buildKeyDisplaySection(page, lay);
-	buildOutputScreenSection(page, lay);
 	buildGuideSection(page, lay);
 	buildDeveloperSection(page, lay);
 	lay->addStretch(1);
@@ -1915,10 +1916,6 @@ void ZoominatorDialog::populateSources()
 void ZoominatorDialog::buildOutputScreenSection(QWidget *page, QVBoxLayout *lay)
 {
 	addSection(lay, T("Dialog.Section.OutputScreen"));
-
-	auto *hint = new QLabel(T("Dialog.OutputScreenHint"), page);
-	hint->setWordWrap(true);
-	lay->addWidget(hint);
 
 	cmbOutputScreen = new QComboBox(page);
 	cmbOutputScreen->setToolTip(T("Dialog.OutputScreenTooltip"));
