@@ -201,8 +201,15 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 
 	if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED)
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->refreshFrame(); });
-	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING)
+	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->installRecordButtonFilter(); });
+		/* Give the second screen (for example a phone used as a monitor) a moment to appear first. */
+		if (!ctl->projectorScreenKey.isEmpty())
+			QTimer::singleShot(2000, ctl, [ctl]() {
+				if (!ctl->shuttingDown)
+					ctl->openOutputProjector();
+			});
+	}
 
 	/* The safe-zone guide must never reach a recording, a stream or the virtual camera. These events come before
 	 * any frame is output, so hide it right here. */
@@ -258,3 +265,23 @@ void ZoominatorController::clearRecoveryActive()
 		saveSettings();
 }
 
+
+bool ZoominatorController::openOutputProjector()
+{
+	if (projectorScreenKey.isEmpty())
+		return false;
+
+	/* obs_frontend_open_projector wants an index into QGuiApplication::screens() (Qt's own order, not sorted). */
+	const auto screens = QGuiApplication::screens();
+	for (int i = 0; i < (int)screens.size(); ++i) {
+		if (!screens[i])
+			continue;
+		const QRect g = screens[i]->geometry();
+		const QString key = QStringLiteral("%1,%2,%3,%4").arg(g.x()).arg(g.y()).arg(g.width()).arg(g.height());
+		if (key == projectorScreenKey) {
+			obs_frontend_open_projector("Preview", i, nullptr, nullptr);
+			return true;
+		}
+	}
+	return false;
+}

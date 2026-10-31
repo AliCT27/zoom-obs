@@ -521,6 +521,7 @@ void ZoominatorDialog::buildAdvancedTab()
 	buildSoundSection(page, lay);
 	buildCursorRingSection(page, lay);
 	buildKeyDisplaySection(page, lay);
+	buildOutputScreenSection(page, lay);
 	buildGuideSection(page, lay);
 	buildDeveloperSection(page, lay);
 	lay->addStretch(1);
@@ -1826,16 +1827,11 @@ void ZoominatorDialog::populateSourcesTab()
 	}
 }
 
-void ZoominatorDialog::populateSources()
+/* Screens in physical order (left to right, then top to bottom), each with a label that says where it is: the names
+ * Qt gives are not enough to tell two identical monitors apart. The key (position and size) is what gets stored. */
+static QList<QPair<QString, QString>> labelledScreens()
 {
-	const QString cur = cmbSource->currentData().toString();
-
-	cmbSource->blockSignals(true);
-	cmbSource->clear();
-	cmbSource->addItem(T("Dialog.SelectScreen"), "");
-
-	/* List the screens in physical order (left to right, then top to bottom) and say where each one is: the names
-	 * Qt gives are not enough to tell two identical monitors apart. The stored key (position and size) is unchanged. */
+	QList<QPair<QString, QString>> out;
 	auto screens = QGuiApplication::screens();
 	screens.erase(std::remove(screens.begin(), screens.end(), nullptr), screens.end());
 	std::stable_sort(screens.begin(), screens.end(), [](const QScreen *a, const QScreen *b) {
@@ -1875,8 +1871,27 @@ void ZoominatorDialog::populateSources()
 		if (screen == obsScreen)
 			parts << T("Dialog.Screen.ObsWindow");
 
-		cmbSource->addItem(parts.join(QStringLiteral("  \u00B7  ")), key);
+		out.append({parts.join(QStringLiteral("  \u00B7  ")), key});
+	}
+	return out;
+}
+
+void ZoominatorDialog::populateSources()
+{
+	const QString cur = cmbSource->currentData().toString();
+	const QString curOut = cmbOutputScreen->currentData().toString();
+
+	cmbSource->blockSignals(true);
+	cmbSource->clear();
+	cmbSource->addItem(T("Dialog.SelectScreen"), "");
+	cmbOutputScreen->blockSignals(true);
+	cmbOutputScreen->clear();
+	cmbOutputScreen->addItem(T("Dialog.OutputScreenOff"), "");
+
+	for (const auto &entry : labelledScreens()) {
+		cmbSource->addItem(entry.first, entry.second);
 		cmbSource->setItemData(cmbSource->count() - 1, T("Dialog.TargetScreenTooltip"), Qt::ToolTipRole);
+		cmbOutputScreen->addItem(entry.first, entry.second);
 	}
 
 	int idx = cmbSource->findData(cur);
@@ -1884,8 +1899,44 @@ void ZoominatorDialog::populateSources()
 		idx = cmbSource->findData(ZoominatorController::instance().screenKey);
 	if (idx >= 0)
 		cmbSource->setCurrentIndex(idx);
-
 	cmbSource->blockSignals(false);
+
+	/* A saved screen that is not connected right now stays in the list, so saving the dialog does not forget it. */
+	QString wantOut = curOut.isEmpty() ? ZoominatorController::instance().projectorScreenKey : curOut;
+	int oi = cmbOutputScreen->findData(wantOut);
+	if (oi < 0 && !wantOut.isEmpty()) {
+		cmbOutputScreen->addItem(QString(T("Dialog.OutputScreenMissing")).arg(wantOut), wantOut);
+		oi = cmbOutputScreen->count() - 1;
+	}
+	cmbOutputScreen->setCurrentIndex(oi >= 0 ? oi : 0);
+	cmbOutputScreen->blockSignals(false);
+}
+
+void ZoominatorDialog::buildOutputScreenSection(QWidget *page, QVBoxLayout *lay)
+{
+	addSection(lay, T("Dialog.Section.OutputScreen"));
+
+	auto *hint = new QLabel(T("Dialog.OutputScreenHint"), page);
+	hint->setWordWrap(true);
+	lay->addWidget(hint);
+
+	cmbOutputScreen = new QComboBox(page);
+	cmbOutputScreen->setToolTip(T("Dialog.OutputScreenTooltip"));
+	lay->addWidget(mkField(T("Dialog.OutputScreen"), cmbOutputScreen));
+
+	auto *btnOpen = new QPushButton(T("Dialog.OutputScreenOpen"), page);
+	lblOutputScreenStatus = new QLabel(page);
+	lblOutputScreenStatus->setWordWrap(true);
+	auto *row = new QHBoxLayout;
+	row->addWidget(btnOpen);
+	row->addWidget(lblOutputScreenStatus, 1);
+	lay->addLayout(row);
+	connect(btnOpen, &QPushButton::clicked, this, [this]() {
+		applyToController();
+		const bool ok = ZoominatorController::instance().openOutputProjector();
+		lblOutputScreenStatus->setText(T(ok ? "Dialog.OutputScreenOpened" : "Dialog.OutputScreenNotConnected"));
+	});
+	lay->addSpacing(10);
 }
 
 void ZoominatorDialog::refreshLists()
@@ -2132,6 +2183,7 @@ void ZoominatorDialog::applyToController()
 	auto &c = ZoominatorController::instance();
 
 	c.screenKey = cmbSource->currentData().toString();
+	c.projectorScreenKey = cmbOutputScreen->currentData().toString();
 	c.hotkeyMode = cmbMode->currentData().toString();
 	c.followToggleHotkeySequence = editFollowToggleHotkey->keySequence().toString(QKeySequence::NativeText);
 	c.manualZoomInSequence = editManualZoomIn->keySequence().toString(QKeySequence::NativeText);

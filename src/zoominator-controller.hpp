@@ -38,6 +38,7 @@ class ZoominatorController final : public QObject {
 	Q_OBJECT
 
 public:
+	bool openOutputProjector(); /* opens the OBS preview projector on projectorScreenKey; false if the screen is absent */
 	/* Where the zoom is anchored: on the cursor and held still, or following it. */
 	enum class ZoomAnchorMode {
 		CursorStatic,
@@ -128,6 +129,7 @@ public:
 	void rebuildRuntimeHooks();
 
 	QString screenKey;
+	QString projectorScreenKey; /* screen where the OBS preview projector opens at OBS start (empty = off) */
 	QString hotkeySequence;
 	QString hotkeyMode;
 	QString followToggleHotkeySequence;

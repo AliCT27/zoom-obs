@@ -237,6 +237,7 @@ void save_scalar_settings(const ZoominatorController &c, obs_data_t *data)
 void ZoominatorController::loadSettings()
 {
 	screenKey.clear();
+	projectorScreenKey.clear();
 
 	hotkeySequence = QStringLiteral("Ctrl+F1");
 	hotkeyMode = QStringLiteral("hold");
@@ -315,6 +316,7 @@ void ZoominatorController::loadSettings()
 		return v ? QString::fromUtf8(v) : QString();
 	};
 
+	projectorScreenKey = getStr("projector_screen_key");
 	screenKey = getStr("screen_key");
 	if (screenKey.isEmpty())
 		screenKey = getStr("source_name");
@@ -906,6 +908,7 @@ void ZoominatorController::saveSettings()
 
 	obs_data_t *data = obs_data_create();
 	obs_data_set_string(data, "screen_key", screenKey.toUtf8().constData());
+	obs_data_set_string(data, "projector_screen_key", projectorScreenKey.toUtf8().constData());
 	obs_data_set_string(data, "hotkey", hotkeySequence.toUtf8().constData());
 	obs_data_set_string(data, "hotkey_mode", hotkeyMode.toUtf8().constData());
 	obs_data_set_string(data, "follow_toggle_hotkey", followToggleHotkeySequence.toUtf8().constData());
