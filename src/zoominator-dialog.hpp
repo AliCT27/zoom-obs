@@ -64,6 +64,7 @@ private:
 	void buildSoundSection(QWidget *page, QVBoxLayout *lay);
 	void buildCursorRingSection(QWidget *page, QVBoxLayout *lay);
 	void buildKeyDisplaySection(QWidget *page, QVBoxLayout *lay);
+	void buildOutputScreenSection(QWidget *page, QVBoxLayout *lay);
 	void buildGuideSection(QWidget *page, QVBoxLayout *lay);
 	void buildDeveloperSection(QWidget *page, QVBoxLayout *lay);
 	void buildPresetsTab();
@@ -78,6 +79,8 @@ private:
 	QTabWidget *tabWidget = nullptr;
 
 	QComboBox *cmbSource = nullptr;
+	QComboBox *cmbOutputScreen = nullptr;
+	QLabel *lblOutputScreenStatus = nullptr;
 	QComboBox *cmbMode = nullptr;
 	QKeySequenceEdit *editFollowToggleHotkey = nullptr;
 	QPushButton *btnClearFollowToggleHotkey = nullptr;
