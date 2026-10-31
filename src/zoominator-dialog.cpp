@@ -328,20 +328,6 @@ void ZoominatorDialog::buildTargetTab()
 	lay->addWidget(rowBehaviorWidget);
 	lay->addSpacing(16);
 
-	auto *followHkRow = new QWidget(page);
-	{
-		auto *h = new QHBoxLayout(followHkRow);
-		h->setContentsMargins(0, 0, 0, 0);
-		h->setSpacing(6);
-		editFollowToggleHotkey = new QKeySequenceEdit(followHkRow);
-		btnClearFollowToggleHotkey = new QPushButton(T("Dialog.Clear"), followHkRow);
-		btnClearFollowToggleHotkey->setToolTip(T("Dialog.ClearFollowToggleTooltip"));
-		h->addWidget(editFollowToggleHotkey, 1);
-		h->addWidget(btnClearFollowToggleHotkey);
-	}
-	lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
-	lay->addSpacing(16);
-
 	lay->addStretch(1);
 	lay->addSpacing(16);
 
@@ -496,6 +482,20 @@ void ZoominatorDialog::buildTriggerTab()
 	}
 	lay->addSpacing(16);
 	lay->addWidget(rowManualKeysWidget);
+
+	auto *followHkRow = new QWidget(page);
+	{
+		auto *h = new QHBoxLayout(followHkRow);
+		h->setContentsMargins(0, 0, 0, 0);
+		h->setSpacing(6);
+		editFollowToggleHotkey = new QKeySequenceEdit(followHkRow);
+		btnClearFollowToggleHotkey = new QPushButton(T("Dialog.Clear"), followHkRow);
+		btnClearFollowToggleHotkey->setToolTip(T("Dialog.ClearFollowToggleTooltip"));
+		h->addWidget(editFollowToggleHotkey, 1);
+		h->addWidget(btnClearFollowToggleHotkey);
+	}
+	lay->addWidget(mkField(T("Dialog.FollowToggleHotkey"), followHkRow));
+	lay->addSpacing(16);
 
 	lay->addStretch(1);
 	tabWidget->addTab(wrapScrollable(page), T("Dialog.Tab.Trigger"));
