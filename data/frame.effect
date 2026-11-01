@@ -86,6 +86,15 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float2 q = abs(pl - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
+	// The 3D camera filter can only draw inside the rectangle of its own source (the flat screen), so a turned screen that
+	// reaches past it is cut there. Cut the frame there too, so the border sits on the edge of what is really drawn
+	// instead of leaving a black strip between the two.
+	if (tilt.z > 0.0) {
+		float2 qf = abs(p - center) - half_size;
+		float df = length(max(qf, float2(0.0, 0.0))) + min(max(qf.x, qf.y), 0.0);
+		d = max(d, df);
+	}
+
 	// With flow on, the turn also depends on where the pixel is: it follows the angle round the centre of the frame, so the
 	// whole spectrum turns like a wheel, for the border and for the background alike. A whole number of waves keeps the
 	// colour continuous where the angle wraps round.
