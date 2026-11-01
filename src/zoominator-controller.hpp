@@ -632,6 +632,7 @@ private:
 	QHash<QString, OrigState> recoveryTransforms;
 	bool pendingSettingsSave = false;
 	bool shuttingDown = false;
+	bool obsFinishedLoading = false; /* set on OBS_FRONTEND_EVENT_FINISHED_LOADING (main thread) */
 	bool recoveryActive = false;
 	bool restoringRecovery = false;
 	bool sceneContentBoundsValid = false;
