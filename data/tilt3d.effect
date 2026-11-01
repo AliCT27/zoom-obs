@@ -9,6 +9,7 @@ uniform float2 sheet_size;   // size of the flat screen on the canvas, canvas pi
 uniform float2 pivot;        // canvas pixel the screen turns about (stays where it is)
 uniform float2 angles;       // x = rotation around the vertical axis, y = around the horizontal axis (radians)
 uniform float dist_px;       // camera distance in canvas pixels
+uniform float overscan;      // how much larger than the source the drawn sheet is on every side (fraction of its size); 0 = exactly the source
 uniform float scl;           // output scale (< 1 keeps the turned sheet inside the frame, > 1 avoids gaps when zoomed)
 
 sampler_state tilt_sampler {
@@ -38,7 +39,8 @@ float4 PSTilt(VertInOut vert_in) : TARGET
 	float cb = cos(angles.y);
 
 	// where this output pixel is on the canvas, relative to the pivot
-	float2 p = (sheet_origin + vert_in.uv * sheet_size - pivot) / scl;
+	float2 on_canvas = sheet_origin + (vert_in.uv * (1.0 + 2.0 * overscan) - overscan) * sheet_size;
+	float2 p = (on_canvas - pivot) / scl;
 	float3 dir = float3(p.x, p.y, dist_px);
 	float3 n = float3(cb * sa, -sb, cb * ca);   // normal of the turned sheet
 	float denom = dot(dir, n);

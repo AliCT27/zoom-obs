@@ -15,6 +15,12 @@ static constexpr const char *kFilterId = "zoominator_tilt3d";
 static constexpr const char *kFilterName = "Zoominator 3D Tilt";
 static constexpr const char *kEffectFile = "tilt3d.effect";
 
+/* The turned (and, when zoomed, enlarged) screen can reach past the rectangle of its own source, and a filter can
+ * only draw inside that rectangle, so the picture was cut there while the Frame still followed the real edge (a black
+ * strip between the two). The filter therefore draws on a sheet this much larger on every side (a fraction of the
+ * source's width and height). */
+static constexpr float kOverscan = 0.6f;
+
 struct TiltData {
 	obs_source_t *context = nullptr;
 	gs_effect_t *effect = nullptr;
@@ -24,6 +30,7 @@ struct TiltData {
 	gs_eparam_t *pAngles = nullptr;
 	gs_eparam_t *pDist = nullptr;
 	gs_eparam_t *pScale = nullptr;
+	gs_eparam_t *pOverscan = nullptr;
 };
 
 namespace {
@@ -275,6 +282,8 @@ static void loadEffect(TiltData *d)
 		d->pAngles = gs_effect_get_param_by_name(d->effect, "angles");
 		d->pDist = gs_effect_get_param_by_name(d->effect, "dist_px");
 		d->pScale = gs_effect_get_param_by_name(d->effect, "scl");
+		/* Optional: an older shader just draws inside the source's own rectangle. */
+		d->pOverscan = gs_effect_get_param_by_name(d->effect, "overscan");
 		if (!d->pOrigin || !d->pSize || !d->pPivot || !d->pAngles || !d->pDist || !d->pScale) {
 			blog(LOG_WARNING, "[Zoominator] 3D tilt: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -324,7 +333,10 @@ static void videoRender(void *data, gs_effect_t *)
 		return;
 	}
 
-	if (!obs_source_process_filter_begin(d->context, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING))
+	/* Direct rendering lets the source draw its own rectangle with the effect, which cannot be made larger. */
+	const bool overscan = d->pOverscan != nullptr;
+	if (!obs_source_process_filter_begin(d->context, GS_RGBA,
+					     overscan ? OBS_NO_DIRECT_RENDERING : OBS_ALLOW_DIRECT_RENDERING))
 		return;
 
 	vec2 v{};
@@ -342,6 +354,18 @@ static void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_vec2(d->pAngles, &v);
 	gs_effect_set_float(d->pDist, pose.dist);
 	gs_effect_set_float(d->pScale, pose.scl);
+
+	if (overscan) {
+		gs_effect_set_float(d->pOverscan, kOverscan);
+		/* A larger sprite, moved up and left by the extra amount, so the source's own rectangle stays where it was. */
+		const float ew = (float)w * (1.0f + 2.0f * kOverscan);
+		const float eh = (float)h * (1.0f + 2.0f * kOverscan);
+		gs_matrix_push();
+		gs_matrix_translate3f(-(float)w * kOverscan, -(float)h * kOverscan, 0.0f);
+		obs_source_process_filter_end(d->context, d->effect, (uint32_t)ew, (uint32_t)eh);
+		gs_matrix_pop();
+		return;
+	}
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
