@@ -17,6 +17,10 @@ uniform float glow_strength;
 uniform float4 ring_color;
 uniform float hue;  // radians the rainbow ring is turned round the colour wheel (the animation)
 uniform float flow; // 1 = rainbow: the spectrum instead of the chosen colour, turning round the ring
+uniform float2 shadow_off;   // drop shadow offset in pixels (x right, y down)
+uniform float shadow_blur;   // pixels the shadow edge is softened by (each side of the edge)
+uniform float shadow_alpha;  // 0 = no shadow
+uniform float4 shadow_color;
 
 sampler_state textureSampler {
 	Filter    = Linear;
@@ -56,6 +60,10 @@ float4 PSRing(VertInOut vert_in) : TARGET
 	float2 q = abs(p - c) - (radius_px - cr);
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - cr;
 
+	// The same distance for the shadow: the shape (with its ring) moved by the offset.
+	float2 qs = abs(p - shadow_off - c) - (radius_px - cr);
+	float ds = length(max(qs, float2(0.0, 0.0))) + min(max(qs.x, qs.y), 0.0) - cr - border_px;
+
 	// The circle shows the centre square of the picture.
 	float k = min(size_px.x, size_px.y) / max(2.0 * radius_px, 1.0);
 	float2 suv = (c + (p - c) * k) / size_px;
@@ -81,8 +89,18 @@ float4 PSRing(VertInOut vert_in) : TARGET
 	float3 rc = ring_color.rgb;
 	if (flow > 0.5)
 		rc = spectrum(h);
-	float3 rgb = (pic.rgb * picA + rc * ringA * (1.0 - picA)) / max(outA, 0.0001);
-	return float4(rgb, outA);
+	float3 premul = pic.rgb * picA + rc * ringA * (1.0 - picA);
+
+	// The drop shadow goes behind the picture, the ring and the glow.
+	float shadowA = 0.0;
+	if (shadow_alpha > 0.001) {
+		float sb = max(shadow_blur, 0.5);
+		float s = 1.0 - smoothstep(-sb, sb, ds);
+		shadowA = shadow_alpha * s * (1.0 - outA);
+	}
+	float totalA = outA + shadowA;
+	float3 rgb = (premul + shadow_color.rgb * shadowA) / max(totalA, 0.0001);
+	return float4(rgb, totalA);
 }
 
 technique Draw

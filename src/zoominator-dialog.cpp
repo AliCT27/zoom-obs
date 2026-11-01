@@ -289,6 +289,7 @@ void ZoominatorDialog::buildUi()
 	connect(btnFrameBg, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg); });
 	connect(btnFrameBg2, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnFrameBg2); });
 	connect(btnCamColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamColor); });
+	connect(btnCamShadowColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCamShadowColor); });
 	connect(btnCursorRingColor, &QPushButton::clicked, this, [this]() { chooseFrameColor(btnCursorRingColor); });
 	{
 		auto syncHaloFields = [this]() {
@@ -948,6 +949,35 @@ void ZoominatorDialog::buildCamRingSection(QWidget *page, QVBoxLayout *lay)
 	camCornerRow->addWidget(slCamCorner, 2, Qt::AlignBottom);
 	lay->addLayout(camCornerRow);
 
+	/* Drop shadow behind the whole shape (picture, ring and glow). */
+	chkCamShadow = new QCheckBox(T("Dialog.CamShadow"), page);
+	chkCamShadow->setToolTip(T("Dialog.CamShadowTooltip"));
+	lay->addWidget(chkCamShadow);
+	btnCamShadowColor = new ColorButton(page);
+	btnCamShadowColor->setMinimumHeight(28);
+	btnCamShadowColor->setToolTip(T("Dialog.CamShadowColorTooltip"));
+	auto mkShadowSpin = [page](int lo, int hi, int step, const QString &suffix, const QString &tip) {
+		auto *sp = new QSpinBox(page);
+		sp->setRange(lo, hi);
+		sp->setSingleStep(step);
+		sp->setSuffix(suffix);
+		sp->setToolTip(tip);
+		return sp;
+	};
+	spCamShadowBlur = mkShadowSpin(0, 80, 4, T("Unit.Pixels"), T("Dialog.CamShadowBlurTooltip"));
+	spCamShadowX = mkShadowSpin(-60, 60, 2, T("Unit.Pixels"), T("Dialog.CamShadowXTooltip"));
+	spCamShadowY = mkShadowSpin(-60, 60, 2, T("Unit.Pixels"), T("Dialog.CamShadowYTooltip"));
+	spCamShadowPct = mkShadowSpin(0, 100, 5, T("Unit.Percent"), T("Dialog.CamShadowStrengthTooltip"));
+	auto *camShadowRow = new QHBoxLayout;
+	camShadowRow->setSpacing(12);
+	camShadowRow->addWidget(mkField(T("Dialog.CamShadowColor"), btnCamShadowColor), 1);
+	camShadowRow->addWidget(mkField(T("Dialog.CamShadowBlur"), spCamShadowBlur), 1);
+	camShadowRow->addWidget(mkField(T("Dialog.CamShadowX"), spCamShadowX), 1);
+	camShadowRow->addWidget(mkField(T("Dialog.CamShadowY"), spCamShadowY), 1);
+	camShadowRow->addWidget(mkField(T("Dialog.CamShadowStrength"), spCamShadowPct), 1);
+	lay->addLayout(camShadowRow);
+	lay->addSpacing(6);
+
 	chkCamRainbow = new QCheckBox(T("Dialog.CamRainbow"), page);
 	chkCamRainbow->setToolTip(T("Dialog.FrameRainbowTooltip"));
 	spCamRainbowSec = new QSpinBox(page);
@@ -1081,10 +1111,15 @@ void ZoominatorDialog::buildCamRingSection(QWidget *page, QVBoxLayout *lay)
 		spCamGlowPct->setEnabled(on);
 		spCamCorner->setEnabled(on);
 		slCamCorner->setEnabled(on);
+		chkCamShadow->setEnabled(on);
+		for (QWidget *w : {(QWidget *)btnCamShadowColor, (QWidget *)spCamShadowBlur, (QWidget *)spCamShadowX,
+				   (QWidget *)spCamShadowY, (QWidget *)spCamShadowPct})
+			w->setEnabled(on && chkCamShadow->isChecked());
 	};
 	connect(chkCamRing, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 	connect(chkCamLayout, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 	connect(chkCamRainbow, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
+	connect(chkCamShadow, &QCheckBox::toggled, this, [syncCamFields](bool) { syncCamFields(); });
 	syncCamFields();
 
 }
@@ -2088,6 +2123,16 @@ void ZoominatorDialog::loadFromController()
 		spCamGlow->setValue(c.camGlowPx);
 		spCamGlowPct->setValue(c.camGlowPct);
 		spCamCorner->setValue(c.camCornerPct);
+		chkCamShadow->setChecked(c.camShadow);
+		setColorButton(btnCamShadowColor, c.camShadowColor);
+		spCamShadowBlur->setValue(c.camShadowBlur);
+		spCamShadowX->setValue(c.camShadowX);
+		spCamShadowY->setValue(c.camShadowY);
+		spCamShadowPct->setValue(c.camShadowPct);
+		chkCamShadow->setEnabled(c.camRingEnabled);
+		for (QWidget *w : {(QWidget *)btnCamShadowColor, (QWidget *)spCamShadowBlur, (QWidget *)spCamShadowX,
+				   (QWidget *)spCamShadowY, (QWidget *)spCamShadowPct})
+			w->setEnabled(c.camRingEnabled && c.camShadow);
 		chkCamLayout->setChecked(c.camLayoutEnabled);
 		chkCamRainbow->setChecked(c.camRainbow);
 		spCamRainbowSec->setValue(c.camRainbowSec);
@@ -2274,6 +2319,12 @@ void ZoominatorDialog::applyToController()
 	c.camGlowPx = spCamGlow->value();
 	c.camGlowPct = spCamGlowPct->value();
 	c.camCornerPct = spCamCorner->value();
+	c.camShadow = chkCamShadow->isChecked();
+	c.camShadowColor = (uint32_t)btnCamShadowColor->property("rgba").toUInt();
+	c.camShadowBlur = spCamShadowBlur->value();
+	c.camShadowX = spCamShadowX->value();
+	c.camShadowY = spCamShadowY->value();
+	c.camShadowPct = spCamShadowPct->value();
 	c.camLayoutEnabled = chkCamLayout->isChecked();
 	c.camRainbow = chkCamRainbow->isChecked();
 	c.camRainbowSec = spCamRainbowSec->value();

@@ -202,6 +202,12 @@ public:
 	int camGlowPx = 28;
 	int camGlowPct = 80;
 	int camCornerPct = 100;         /* webcam corner roundness: 100 = circle, 0 = square */
+	bool camShadow = false;          /* drop shadow behind the webcam shape */
+	uint32_t camShadowColor = 0xFF000000;
+	int camShadowBlur = 24;
+	int camShadowX = 0;
+	int camShadowY = 12;
+	int camShadowPct = 50;
 	bool camRainbow = false; /* ring and glow cycle round the colour wheel */
 	int camRainbowSec = 10;  /* seconds for one full turn */
 	/* Webcam placed by numbers: centre and outer diameter in canvas pixels, for
