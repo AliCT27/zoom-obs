@@ -1,6 +1,8 @@
 /* Crash recovery: remembers original transforms so a crash mid-zoom can be undone. */
 
 #include "zoominator-internal.hpp"
+#include <QApplication>
+#include <QWidget>
 
 void ZoominatorController::loadRecoveryMap(obs_data_t *data)
 {
@@ -203,6 +205,7 @@ void ZoominatorController::frontendEventCallback(enum obs_frontend_event event, 
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->refreshFrame(); });
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
 		QTimer::singleShot(0, ctl, [ctl]() { ctl->installRecordButtonFilter(); });
+		ctl->obsFinishedLoading = true;
 		/* Give the second screen (for example a phone used as a monitor) a moment to appear first. */
 		if (!ctl->projectorScreenKey.isEmpty())
 			QTimer::singleShot(2000, ctl, [ctl]() {
@@ -279,6 +282,13 @@ bool ZoominatorController::openOutputProjector()
 		const QRect g = screens[i]->geometry();
 		const QString key = QStringLiteral("%1,%2,%3,%4").arg(g.x()).arg(g.y()).arg(g.width()).arg(g.height());
 		if (key == projectorScreenKey) {
+			/* Do not open a second one: OBS has no query for this, but its projectors are top-level widgets
+			 * (class OBSProjector), so look for one that is already showing on this screen. */
+			for (const QWidget *w : QApplication::topLevelWidgets()) {
+				if (w->isVisible() && w->screen() == screens[i] &&
+				    qstrcmp(w->metaObject()->className(), "OBSProjector") == 0)
+					return true;
+			}
 			obs_frontend_open_projector("Preview", i, nullptr, nullptr);
 			return true;
 		}

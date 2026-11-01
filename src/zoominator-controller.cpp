@@ -396,6 +396,16 @@ void ZoominatorController::initialize()
 	loadSettings();
 	rebuildTriggersFromSettings();
 	obs_frontend_add_event_callback(frontendEventCallback, this);
+	/* The output screen may be connected after OBS started (a phone used as a monitor, for example). Wait a moment,
+	 * because the system moves and resizes a new screen a few times, then open the projector there. */
+	connect(qApp, &QGuiApplication::screenAdded, this, [this](QScreen *) {
+		if (projectorScreenKey.isEmpty())
+			return;
+		QTimer::singleShot(1500, this, [this]() {
+			if (!shuttingDown && obsFinishedLoading)
+				openOutputProjector();
+		});
+	});
 	obs_add_tick_callback(videoTickCallback, this);
 	tickCallbackAdded = true;
 	frameTimer.start();
