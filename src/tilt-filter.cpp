@@ -356,6 +356,12 @@ static void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pScale, pose.scl);
 
 	if (overscan) {
+		static bool logged = false;
+		if (!logged) {
+			logged = true;
+			blog(LOG_INFO, "[Zoominator] 3D tilt: drawing on a sprite %.0f %% larger on every side (overscan)",
+			     (double)kOverscan * 100.0);
+		}
 		gs_effect_set_float(d->pOverscan, kOverscan);
 		/* A larger sprite, moved up and left by the extra amount, so the source's own rectangle stays where it was. */
 		const float ew = (float)w * (1.0f + 2.0f * kOverscan);
