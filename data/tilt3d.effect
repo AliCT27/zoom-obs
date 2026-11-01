@@ -10,6 +10,7 @@ uniform float2 pivot;        // canvas pixel the screen turns about (stays where
 uniform float2 angles;       // x = rotation around the vertical axis, y = around the horizontal axis (radians)
 uniform float dist_px;       // camera distance in canvas pixels
 uniform float debug_geom;    // diagnostic: 1 = draw outlines of the sprite and of the turned sheet
+uniform float overscan;      // how much larger than the source the drawn sheet is on every side (fraction of its size); 0 = exactly the source
 uniform float scl;           // output scale (< 1 keeps the turned sheet inside the frame, > 1 avoids gaps when zoomed)
 
 sampler_state tilt_sampler {
@@ -34,7 +35,7 @@ VertInOut VSDefault(VertInOut vert_in)
 float4 PSTilt(VertInOut vert_in) : TARGET
 {
 	if (debug_geom > 0.5) {
-		float2 e2 = min(vert_in.uv, 1.0 - vert_in.uv) * sheet_size;
+		float2 e2 = min(vert_in.uv, 1.0 - vert_in.uv) * sheet_size * (1.0 + 2.0 * overscan);
 		if (min(e2.x, e2.y) < 1.5)
 			return float4(1.0, 0.0, 1.0, 1.0); // magenta: the filter's own sprite (what it can draw in)
 	}
@@ -45,7 +46,8 @@ float4 PSTilt(VertInOut vert_in) : TARGET
 	float cb = cos(angles.y);
 
 	// where this output pixel is on the canvas, relative to the pivot
-	float2 p = (sheet_origin + vert_in.uv * sheet_size - pivot) / scl;
+	float2 on_canvas = sheet_origin + (vert_in.uv * (1.0 + 2.0 * overscan) - overscan) * sheet_size;
+	float2 p = (on_canvas - pivot) / scl;
 	float3 dir = float3(p.x, p.y, dist_px);
 	float3 n = float3(cb * sa, -sb, cb * ca);   // normal of the turned sheet
 	float denom = dot(dir, n);
