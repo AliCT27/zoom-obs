@@ -36,6 +36,10 @@ void setZoomProgress(float progress);
 void setSheet(float left, float top, float right, float bottom);
 /* Forgets the sheet and the angles. */
 void reset();
+/* Thread safe. Diagnostic: while on (the "debug logging" switch), the tilt filter and the Frame draw outlines of the
+ * flat screen, the turned screen and the filter's own sprite, so a mismatch between them can be seen. */
+void setDebugGeometry(bool on);
+bool debugGeometry();
 /* False when nothing is turned (no sheet, or angles ~ 0). */
 bool getPose(Pose &out);
 /* Where a point of the flat screen (canvas pixels) is shown once the screen is turned. */

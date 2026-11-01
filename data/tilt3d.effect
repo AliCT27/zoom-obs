@@ -9,6 +9,7 @@ uniform float2 sheet_size;   // size of the flat screen on the canvas, canvas pi
 uniform float2 pivot;        // canvas pixel the screen turns about (stays where it is)
 uniform float2 angles;       // x = rotation around the vertical axis, y = around the horizontal axis (radians)
 uniform float dist_px;       // camera distance in canvas pixels
+uniform float debug_geom;    // diagnostic: 1 = draw outlines of the sprite and of the turned sheet
 uniform float scl;           // output scale (< 1 keeps the turned sheet inside the frame, > 1 avoids gaps when zoomed)
 
 sampler_state tilt_sampler {
@@ -32,6 +33,12 @@ VertInOut VSDefault(VertInOut vert_in)
 
 float4 PSTilt(VertInOut vert_in) : TARGET
 {
+	if (debug_geom > 0.5) {
+		float2 e2 = min(vert_in.uv, 1.0 - vert_in.uv) * sheet_size;
+		if (min(e2.x, e2.y) < 1.5)
+			return float4(1.0, 0.0, 1.0, 1.0); // magenta: the filter's own sprite (what it can draw in)
+	}
+
 	float sa = sin(angles.x);
 	float ca = cos(angles.x);
 	float sb = sin(angles.y);
@@ -55,6 +62,8 @@ float4 PSTilt(VertInOut vert_in) : TARGET
 
 	float2 uv = (pivot + float2(x1, y2) - sheet_origin) / sheet_size;
 	float2 edge = min(uv, 1.0 - uv) * sheet_size;
+	if (debug_geom > 0.5 && abs(min(edge.x, edge.y)) < 1.5)
+		return float4(1.0, 1.0, 0.0, 1.0); // yellow: the edge of the turned sheet as the filter draws it
 	float cover = saturate(min(edge.x, edge.y) + 0.5);
 	if (cover <= 0.0)
 		return float4(0.0, 0.0, 0.0, 0.0);

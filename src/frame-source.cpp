@@ -49,6 +49,7 @@ struct FrameData {
 	gs_eparam_t *pFlowBg = nullptr;
 	gs_eparam_t *pFlowBorder = nullptr;
 	gs_eparam_t *pFlowWaves = nullptr;
+	gs_eparam_t *pDebug = nullptr;
 };
 
 const char *getName(void *)
@@ -90,6 +91,7 @@ void loadEffect(FrameData *d)
 		d->pFlowBg = gs_effect_get_param_by_name(d->effect, "flow_bg");
 		d->pFlowBorder = gs_effect_get_param_by_name(d->effect, "flow_border");
 		d->pFlowWaves = gs_effect_get_param_by_name(d->effect, "flow_waves");
+		d->pDebug = gs_effect_get_param_by_name(d->effect, "debug_geom"); /* optional */
 		if (!d->pCanvas || !d->pRect || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength ||
 		    !d->pBorderColor || !d->pBgColor || !d->pBgColor2 || !d->pBgMode || !d->pBgAngle) {
 			blog(LOG_WARNING, "[Zoominator] Frame: %s is missing expected parameters", kEffectFile);
@@ -213,6 +215,8 @@ void videoRender(void *data, gs_effect_t *)
 			gs_effect_set_float(d->pFlowBorder, s.rainbowBorder ? 1.0f : 0.0f);
 		if (d->pFlowWaves)
 			gs_effect_set_float(d->pFlowWaves, 1.0f);
+		if (d->pDebug)
+			gs_effect_set_float(d->pDebug, zoominator_tilt::debugGeometry() ? 1.0f : 0.0f);
 	}
 
 	while (gs_effect_loop(d->effect, "Draw"))

@@ -15,6 +15,7 @@ uniform float4x4 ViewProj;
 uniform float2 canvas_px;
 uniform float4 rect_px;
 uniform float4 tilt;     // yaw, pitch (radians), camera distance (px), sheet scale; distance 0 = flat
+uniform float debug_geom; // diagnostic: 1 = draw outlines of the flat and the turned screen
 uniform float2 tilt_pivot; // canvas pixel the screen turns about
 uniform float radius_px;
 uniform float border_px;
@@ -86,6 +87,10 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 	float2 q = abs(pl - center) - (half_size - float2(r, r));
 	float d = length(max(q, float2(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;
 
+	// Diagnostic outlines, drawn on top at the end: red = the flat screen rectangle, cyan = the turned screen's edge.
+	float2 qf = abs(p - center) - half_size;
+	float dflat = length(max(qf, float2(0.0, 0.0))) + min(max(qf.x, qf.y), 0.0);
+
 	// With flow on, the turn also depends on where the pixel is: it follows the angle round the centre of the frame, so the
 	// whole spectrum turns like a wheel, for the border and for the background alike. A whole number of waves keeps the
 	// colour continuous where the angle wraps round.
@@ -134,7 +139,14 @@ float4 PSFrame(VertInOut vert_in) : TARGET
 
 	// The window itself is transparent, with a one pixel soft edge.
 	float inside = saturate(0.5 - d);
-	return float4(col, 1.0 - inside);
+	float4 outc = float4(col, 1.0 - inside);
+	if (debug_geom > 0.5) {
+		if (abs(dflat) < 1.0)
+			outc = float4(1.0, 0.0, 0.0, 1.0); // red: the flat screen rectangle
+		if (abs(d) < 1.0)
+			outc = float4(0.0, 1.0, 1.0, 1.0); // cyan: the turned screen's edge as the Frame sees it
+	}
+	return outc;
 }
 
 technique Draw

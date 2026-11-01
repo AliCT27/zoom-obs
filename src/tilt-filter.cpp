@@ -24,6 +24,7 @@ struct TiltData {
 	gs_eparam_t *pAngles = nullptr;
 	gs_eparam_t *pDist = nullptr;
 	gs_eparam_t *pScale = nullptr;
+	gs_eparam_t *pDebug = nullptr;
 };
 
 namespace {
@@ -31,6 +32,7 @@ std::mutex g_mutex;
 float g_yaw = 0.0f, g_pitch = 0.0f, g_persp = 2.0f;
 bool g_keepZoomed = true;
 float g_zoomProgress = 0.0f;
+std::atomic<bool> g_debugGeometry{false};
 bool g_sheetValid = false;
 float g_sheet[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -57,6 +59,16 @@ void setAngles(float yaw, float pitch, float perspective, bool keepWhenZoomed)
 	g_yaw = yaw;
 	g_pitch = pitch;
 	g_persp = perspective;
+}
+
+void setDebugGeometry(bool on)
+{
+	g_debugGeometry.store(on, std::memory_order_relaxed);
+}
+
+bool debugGeometry()
+{
+	return g_debugGeometry.load(std::memory_order_relaxed);
 }
 
 void setZoomProgress(float progress)
@@ -275,6 +287,7 @@ static void loadEffect(TiltData *d)
 		d->pAngles = gs_effect_get_param_by_name(d->effect, "angles");
 		d->pDist = gs_effect_get_param_by_name(d->effect, "dist_px");
 		d->pScale = gs_effect_get_param_by_name(d->effect, "scl");
+		d->pDebug = gs_effect_get_param_by_name(d->effect, "debug_geom"); /* optional */
 		if (!d->pOrigin || !d->pSize || !d->pPivot || !d->pAngles || !d->pDist || !d->pScale) {
 			blog(LOG_WARNING, "[Zoominator] 3D tilt: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -342,6 +355,8 @@ static void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_vec2(d->pAngles, &v);
 	gs_effect_set_float(d->pDist, pose.dist);
 	gs_effect_set_float(d->pScale, pose.scl);
+	if (d->pDebug)
+		gs_effect_set_float(d->pDebug, debugGeometry() ? 1.0f : 0.0f);
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
