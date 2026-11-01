@@ -13,6 +13,12 @@ struct Style {
 	float glowPx = 24.0f;
 	float glowStrength = 0.8f;
 	float corner = 1.0f;      /* 1 = circle, 0 = sharp square corners */
+	bool shadow = false;      /* drop shadow behind the whole shape (picture, ring and glow) */
+	float shadowColor[3] = {0.0f, 0.0f, 0.0f};
+	float shadowBlurPx = 24.0f;
+	float shadowDx = 0.0f;    /* offset in pixels, x right, y down */
+	float shadowDy = 12.0f;
+	float shadowAlpha = 0.5f;
 	bool rainbow = false;     /* ring and glow colour cycle round the colour wheel */
 	float rainbowSec = 10.0f; /* seconds for one full turn */
 };

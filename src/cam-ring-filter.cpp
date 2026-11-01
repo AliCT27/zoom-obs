@@ -30,6 +30,10 @@ struct RingData {
 	gs_eparam_t *pColor = nullptr;
 	gs_eparam_t *pHue = nullptr;
 	gs_eparam_t *pFlow = nullptr;
+	gs_eparam_t *pShadowOff = nullptr;
+	gs_eparam_t *pShadowBlur = nullptr;
+	gs_eparam_t *pShadowAlpha = nullptr;
+	gs_eparam_t *pShadowColor = nullptr;
 
 	std::mutex mutex;
 	Style style;
@@ -66,6 +70,10 @@ void loadEffect(RingData *d)
 		d->pCorner = gs_effect_get_param_by_name(d->effect, "corner_px");
 		d->pHue = gs_effect_get_param_by_name(d->effect, "hue");
 		d->pFlow = gs_effect_get_param_by_name(d->effect, "flow");
+		d->pShadowOff = gs_effect_get_param_by_name(d->effect, "shadow_off");
+		d->pShadowBlur = gs_effect_get_param_by_name(d->effect, "shadow_blur");
+		d->pShadowAlpha = gs_effect_get_param_by_name(d->effect, "shadow_alpha");
+		d->pShadowColor = gs_effect_get_param_by_name(d->effect, "shadow_color");
 		if (!d->pSize || !d->pRadius || !d->pBorder || !d->pGlow || !d->pGlowStrength || !d->pColor) {
 			blog(LOG_WARNING, "[Zoominator] Webcam ring: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
@@ -121,10 +129,14 @@ void videoRender(void *data, gs_effect_t *)
 		s = d->style;
 	}
 
-	/* The ring and glow have to fit inside the source, so they take their room
-	 * from the circle rather than growing past the edge. */
+	/* The ring, glow and shadow have to fit inside the source, so they take their room
+	 * from the circle rather than growing past the edge. The shadow reaches as far as its
+	 * blur plus its offset beyond the ring. */
+	const bool shadowOn = s.shadow && d->pShadowAlpha && s.shadowAlpha > 0.001f;
+	const float shadowReach =
+		shadowOn ? s.ringPx + s.shadowBlurPx + std::max(std::fabs(s.shadowDx), std::fabs(s.shadowDy)) : 0.0f;
 	const float half = 0.5f * (float)std::min(w, h);
-	const float wantPad = s.ringPx + s.glowPx;
+	const float wantPad = std::max(s.ringPx + s.glowPx, shadowReach);
 	const float pad = std::min(wantPad, half * 0.6f);
 	const float scale = wantPad > 0.01f ? pad / wantPad : 0.0f;
 	const float ring = s.ringPx * scale;
@@ -154,6 +166,21 @@ void videoRender(void *data, gs_effect_t *)
 			gs_effect_set_float(d->pHue, s.rainbow ? (float)(turn * 6.283185307179586) : 0.0f);
 		if (d->pFlow)
 			gs_effect_set_float(d->pFlow, s.rainbow ? 1.0f : 0.0f);
+	}
+
+	if (d->pShadowAlpha) {
+		vec2 off;
+		vec2_set(&off, shadowOn ? s.shadowDx * scale : 0.0f, shadowOn ? s.shadowDy * scale : 0.0f);
+		if (d->pShadowOff)
+			gs_effect_set_vec2(d->pShadowOff, &off);
+		if (d->pShadowBlur)
+			gs_effect_set_float(d->pShadowBlur, s.shadowBlurPx * scale);
+		gs_effect_set_float(d->pShadowAlpha, shadowOn ? std::clamp(s.shadowAlpha, 0.0f, 1.0f) : 0.0f);
+		if (d->pShadowColor) {
+			vec4 sc;
+			vec4_set(&sc, s.shadowColor[0], s.shadowColor[1], s.shadowColor[2], 1.0f);
+			gs_effect_set_vec4(d->pShadowColor, &sc);
+		}
 	}
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
