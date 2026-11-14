@@ -213,7 +213,11 @@ void videoRender(void *data, gs_effect_t *)
 		return;
 	}
 
-	if (!obs_source_process_filter_begin(d->context, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING))
+	/* Not direct rendering: a screen capture draws itself with an opaque effect (its alpha channel is undefined), and
+	 * with direct rendering this effect would replace that one and read alpha 0, which shows as a black picture.
+	 * Rendering the source into a texture first gives the same opaque picture the rest of OBS sees. This only costs
+	 * anything while the effect is playing, otherwise the filter is skipped. */
+	if (!obs_source_process_filter_begin(d->context, GS_RGBA, OBS_NO_DIRECT_RENDERING))
 		return;
 
 	gs_effect_set_float(d->pProgress, (float)std::clamp(elapsed / dur, 0.0, 1.0));
