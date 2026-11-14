@@ -75,7 +75,8 @@ void loadEffect(DotsData *d)
 {
 	char *path = obs_module_file(kEffectFile);
 	if (!path) {
-		blog(LOG_WARNING, "[Zoominator] Dots overlay: could not locate %s (is the plugin data folder installed?)",
+		blog(LOG_WARNING,
+		     "[Zoominator] Dots overlay: could not locate %s (is the plugin data folder installed?)",
 		     kEffectFile);
 		return;
 	}
