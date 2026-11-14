@@ -1,0 +1,131 @@
+// Zoominator "Base44" transition: the outgoing picture breaks into a grid of dots (ball-action look), a soft diagonal
+// wave of colour pulses (several delayed passes in two colours) runs across the dots while the cells swap to the
+// incoming picture, then the dots grow together and give way to the clean incoming picture.
+//
+// Per cell the wave gives a local progress lt (0..1); the stages of a cell are:
+//   0.00-0.28  picture -> dots        0.45-0.65  dot colours change from A to B
+//   0.70-0.92  dots grow and merge    0.88-1.00  mosaic -> clean picture B
+// At t = 0 the output is exactly picture A and at t = 1 exactly picture B.
+
+uniform float4x4 ViewProj;
+uniform texture2d tex_a;
+uniform texture2d tex_b;
+uniform float progress;      // 0 = picture A, 1 = picture B
+
+uniform float2 size_px;      // canvas size in pixels
+uniform float cell_px;       // grid cell size in pixels
+uniform float dot_scale;     // dot diameter as a fraction of the cell while the picture is dots
+uniform float2 wave_dir;     // unit vector the wave travels along (canvas pixels, y down)
+uniform float wave_soft;     // width of the wave front as a fraction of the sweep
+uniform float jitter;        // random shift of each cell's timing, fraction of the sweep (block dissolve)
+uniform float passes;        // number of colour passes, 0..5
+uniform float pass_delay;    // start delay between two passes, fraction of the whole transition
+uniform float3 color_a;      // pass colour 1 (sRGB)
+uniform float3 color_b;      // pass colour 2 (sRGB)
+uniform float3 bg_color;     // what shows between the dots (sRGB)
+uniform float white_mix;     // how white the dots are in the middle of the transition
+
+sampler_state tex_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData vert_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv = vert_in.uv;
+	return vert_out;
+}
+
+float hash21(float2 p)
+{
+	p = frac(p * float2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return frac(p.x * p.y);
+}
+
+float3 to_linear(float3 c)
+{
+	return pow(max(c, float3(0.0, 0.0, 0.0)), float3(2.2, 2.2, 2.2));
+}
+
+// Local progress of one cell (g = its place in the sweep, 0..1) for a transition time tt.
+float cell_progress(float tt, float g, float soft)
+{
+	return saturate((tt * (1.0 + soft) - g) / soft);
+}
+
+float4 PSBase44(VertData vert_in) : TARGET
+{
+	float2 pix = vert_in.uv * size_px;
+	float2 cell = floor(pix / cell_px);
+	float2 cc = (cell + 0.5) * cell_px;            // cell centre, pixels
+	float2 cuv = min(cc / size_px, float2(1.0, 1.0));
+
+	// The place of this cell in the sweep (0 = first to change, 1 = last), shifted a little at random.
+	float ext = 0.5 * (abs(wave_dir.x) * size_px.x + abs(wave_dir.y) * size_px.y);
+	float g = dot(cc - 0.5 * size_px, wave_dir) / max(ext, 1.0) * 0.5 + 0.5;
+	g = saturate(g + (hash21(cell) - 0.5) * jitter);
+	float soft = max(wave_soft, 0.02);
+
+	float4 a_pix = tex_a.Sample(tex_sampler, vert_in.uv);
+	float4 b_pix = tex_b.Sample(tex_sampler, vert_in.uv);
+
+	float lt = cell_progress(progress, g, soft);
+	float s1 = smoothstep(0.00, 0.28, lt);
+	float s3 = smoothstep(0.45, 0.65, lt);
+	float s4 = smoothstep(0.70, 0.92, lt);
+	float s5 = smoothstep(0.88, 1.00, lt);
+
+	float r_full = cell_px * 0.75;                 // big enough to cover the whole cell
+	float r_dot = cell_px * 0.5 * dot_scale;
+	float r = lerp(r_full, r_dot, s1);
+	r = lerp(r, r_full, s4);
+
+	float d = length(pix - cc);
+	float dot_mask = saturate(r - d + 0.5);
+
+	float3 a_c = tex_a.Sample(tex_sampler, cuv).rgb;
+	float3 b_c = tex_b.Sample(tex_sampler, cuv).rgb;
+	float3 dot_col = lerp(a_c, b_c, s3);
+	float white = white_mix * smoothstep(0.10, 0.30, lt) * (1.0 - smoothstep(0.55, 0.80, lt));
+	dot_col = lerp(dot_col, float3(1.0, 1.0, 1.0), white);
+
+	float3 bg = to_linear(bg_color);
+	float3 base = lerp(lerp(a_pix.rgb, bg, s1), b_pix.rgb, s5);
+	float dot_alpha = smoothstep(0.00, 0.10, lt) * (1.0 - s5);
+	float3 col = lerp(base, dot_col, dot_mask * dot_alpha);
+
+	// Colour passes: the same wave again, each one a little later than the one before, as coloured dot pulses.
+	// A pass finishes at most when the whole transition does, so t = 1 is always the clean picture.
+	float span = max(1.0 - max(passes - 1.0, 0.0) * pass_delay, 0.2);
+	for (int i = 0; i < 5; i++) {
+		if ((float)i < passes) {
+			float ti = saturate((progress - (float)i * pass_delay) / span);
+			float lti = cell_progress(ti, g, soft);
+			float pulse = sin(3.14159265 * lti);
+			float ri = r_dot * (0.45 + 1.0 * pulse);
+			float m = saturate(ri - d + 0.5);
+			float3 pc = to_linear(((i % 2) == 0) ? color_a : color_b);
+			col += pc * m * pulse * 0.55;
+		}
+	}
+
+	return float4(saturate(col), 1.0);
+}
+
+technique Base44
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSBase44(vert_in);
+	}
+}
