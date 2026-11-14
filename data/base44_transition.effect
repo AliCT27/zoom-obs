@@ -15,7 +15,8 @@ uniform float progress;      // 0 = picture A, 1 = picture B
 uniform float2 size_px;      // canvas size in pixels
 uniform float cell_px;       // grid cell size in pixels
 uniform float dot_scale;     // dot diameter as a fraction of the cell while the picture is dots
-uniform float2 wave_dir;     // unit vector the wave travels along (canvas pixels, y down)
+uniform float wave_shape;    // 0 = diagonal sweep, 1 = circle from the centre out, 2 = circle from the edges in
+uniform float2 wave_dir;     // unit vector the diagonal wave travels along (canvas pixels, y down)
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep (block dissolve)
 uniform float passes;        // number of colour passes, 0..5
@@ -70,8 +71,15 @@ float4 PSBase44(VertData vert_in) : TARGET
 	float2 cuv = min(cc / size_px, float2(1.0, 1.0));
 
 	// The place of this cell in the sweep (0 = first to change, 1 = last), shifted a little at random.
-	float ext = 0.5 * (abs(wave_dir.x) * size_px.x + abs(wave_dir.y) * size_px.y);
-	float g = dot(cc - 0.5 * size_px, wave_dir) / max(ext, 1.0) * 0.5 + 0.5;
+	float g;
+	if (wave_shape < 0.5) {
+		float ext = 0.5 * (abs(wave_dir.x) * size_px.x + abs(wave_dir.y) * size_px.y);
+		g = dot(cc - 0.5 * size_px, wave_dir) / max(ext, 1.0) * 0.5 + 0.5;
+	} else {
+		// Distance from the centre, 0 in the middle and 1 in the corners, so the wave still ends with the transition.
+		float rr = saturate(length(cc - 0.5 * size_px) / max(0.5 * length(size_px), 1.0));
+		g = (wave_shape < 1.5) ? rr : 1.0 - rr;
+	}
 	g = saturate(g + (hash21(cell) - 0.5) * jitter);
 	float soft = max(wave_soft, 0.02);
 
