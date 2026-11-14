@@ -15,6 +15,7 @@ constexpr const char *kEffectFile = "base44_transition.effect";
 
 constexpr const char *kCell = "cell_px";
 constexpr const char *kDotSize = "dot_size_pct";
+constexpr const char *kShape = "wave_shape";
 constexpr const char *kAngle = "angle_deg";
 constexpr const char *kSoftness = "softness_pct";
 constexpr const char *kJitter = "jitter_pct";
@@ -35,6 +36,7 @@ struct Base44Data {
 	gs_eparam_t *pSize = nullptr;
 	gs_eparam_t *pCell = nullptr;
 	gs_eparam_t *pDotScale = nullptr;
+	gs_eparam_t *pShape = nullptr;
 	gs_eparam_t *pDir = nullptr;
 	gs_eparam_t *pSoft = nullptr;
 	gs_eparam_t *pJitter = nullptr;
@@ -47,6 +49,7 @@ struct Base44Data {
 
 	float cell = 48.0f;
 	float dotScale = 0.55f;
+	float shape = 0.0f;
 	float angleRad = 0.78539816f;
 	float soft = 0.35f;
 	float jitter = 0.2f;
@@ -92,6 +95,8 @@ void loadEffect(Base44Data *d)
 		d->pCell = gs_effect_get_param_by_name(d->effect, "cell_px");
 		d->pDotScale = gs_effect_get_param_by_name(d->effect, "dot_scale");
 		d->pDir = gs_effect_get_param_by_name(d->effect, "wave_dir");
+		/* Optional: an older shader only has the diagonal wave. */
+		d->pShape = gs_effect_get_param_by_name(d->effect, "wave_shape");
 		d->pSoft = gs_effect_get_param_by_name(d->effect, "wave_soft");
 		d->pJitter = gs_effect_get_param_by_name(d->effect, "jitter");
 		d->pPasses = gs_effect_get_param_by_name(d->effect, "passes");
@@ -118,6 +123,7 @@ void update(void *data, obs_data_t *settings)
 	auto *d = static_cast<Base44Data *>(data);
 	d->cell = (float)std::clamp<long long>(obs_data_get_int(settings, kCell), 8, 400);
 	d->dotScale = (float)std::clamp<long long>(obs_data_get_int(settings, kDotSize), 5, 100) / 100.0f;
+	d->shape = (float)std::clamp<long long>(obs_data_get_int(settings, kShape), 0, 2);
 	d->angleRad = (float)obs_data_get_int(settings, kAngle) * 3.14159265f / 180.0f;
 	d->soft = (float)std::clamp<long long>(obs_data_get_int(settings, kSoftness), 2, 100) / 100.0f;
 	d->jitter = (float)std::clamp<long long>(obs_data_get_int(settings, kJitter), 0, 100) / 100.0f;
@@ -155,6 +161,7 @@ void getDefaults(obs_data_t *settings)
 {
 	obs_data_set_default_int(settings, kCell, 48);
 	obs_data_set_default_int(settings, kDotSize, 55);
+	obs_data_set_default_int(settings, kShape, 0);
 	obs_data_set_default_int(settings, kAngle, 45);
 	obs_data_set_default_int(settings, kSoftness, 35);
 	obs_data_set_default_int(settings, kJitter, 20);
@@ -171,6 +178,11 @@ obs_properties_t *getProperties(void *)
 	obs_properties_t *props = obs_properties_create();
 	obs_properties_add_int_slider(props, kCell, obs_module_text("Base44.Cell"), 16, 160, 2);
 	obs_properties_add_int_slider(props, kDotSize, obs_module_text("Base44.DotSize"), 20, 100, 1);
+	obs_property_t *shape = obs_properties_add_list(props, kShape, obs_module_text("Base44.Shape"), OBS_COMBO_TYPE_LIST,
+							OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(shape, obs_module_text("Base44.Shape.Diagonal"), 0);
+	obs_property_list_add_int(shape, obs_module_text("Base44.Shape.CircleOut"), 1);
+	obs_property_list_add_int(shape, obs_module_text("Base44.Shape.CircleIn"), 2);
 	obs_properties_add_int_slider(props, kAngle, obs_module_text("Base44.Angle"), -180, 180, 5);
 	obs_properties_add_int_slider(props, kSoftness, obs_module_text("Base44.Softness"), 5, 80, 1);
 	obs_properties_add_int_slider(props, kJitter, obs_module_text("Base44.Jitter"), 0, 60, 1);
@@ -204,6 +216,8 @@ void renderCallback(void *data, gs_texture_t *a, gs_texture_t *b, float t, uint3
 	vec2 dir;
 	vec2_set(&dir, std::cos(d->angleRad), std::sin(d->angleRad));
 	gs_effect_set_vec2(d->pDir, &dir);
+	if (d->pShape)
+		gs_effect_set_float(d->pShape, d->shape);
 	gs_effect_set_float(d->pSoft, d->soft);
 	gs_effect_set_float(d->pJitter, d->jitter);
 	gs_effect_set_float(d->pPasses, d->passes);
