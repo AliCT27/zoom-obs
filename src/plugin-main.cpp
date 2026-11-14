@@ -6,7 +6,6 @@
 #include "focus-blur-filter.hpp"
 #include "tilt-filter.hpp"
 #include "dim-mask-filter.hpp"
-#include "base44-transition.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
@@ -38,7 +37,6 @@ bool obs_module_load(void)
 	zoominator_cursorfx::registerSource();
 	zoominator_keys::registerSource();
 	zoominator_camring::registerFilter();
-	zoominator_base44::registerTransition();
 	ZoominatorController::instance().initialize();
 
 	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.Zoominator"), open_dialog_cb, nullptr);
