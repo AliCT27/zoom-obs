@@ -1,0 +1,144 @@
+// Zoominator dots overlay: a video filter that plays a "dots" effect on top of the live picture, once, when it is
+// started (hotkey or button). The picture is covered by a grid of round dots, then the dots give way again to the
+// clean live picture. Whatever is on screen at the moment the dots are fully there is what shows afterwards, so it
+// hides a cut.
+//
+// There are two waves over the same grid. The cover wave (progress 0 .. 0.68) runs from one side to the other; the
+// reveal wave (progress 0.78 .. 1) runs back the opposite way. In between everything is covered for a moment.
+// Stages of one cell, on its local cover progress lt (0..1):
+//   0.05-0.30  a few cells pop up a coloured accent dot (blue, red, orange, teal)
+//   0.28-0.55  every cell gets a pastel dot (its picture colour, washed out) and the picture fades behind it
+//   0.55-0.85  the pastel dots take the true picture colour, the accents leave
+// and on its local reveal progress lr (0..1):
+//   0.00-0.50  the dots grow together into a mosaic of the picture
+//   0.40-1.00  the mosaic gives way to the clean picture
+// At progress = 0 and at progress = 1 the output is exactly the input picture.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+uniform float progress;      // 0..1, the animation
+uniform float2 size_px;      // source size in pixels
+uniform float cell_px;       // grid cell size in pixels
+uniform float dot_scale;     // dot diameter as a fraction of the cell
+uniform float2 wave_dir;     // unit vector the wave travels along (pixels, y down)
+uniform float wave_soft;     // width of the wave front as a fraction of the sweep
+uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
+uniform float accent;        // 0..1, how many cells show a coloured accent dot
+
+sampler_state tex_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData vert_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv = vert_in.uv;
+	return vert_out;
+}
+
+float hash21(float2 p)
+{
+	p = frac(p * float2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return frac(p.x * p.y);
+}
+
+float2 hash22(float2 p)
+{
+	float h = hash21(p);
+	return float2(h, hash21(p + h * 17.17 + 3.31));
+}
+
+float4 PSDots(VertData vert_in) : TARGET
+{
+	float4 src = image.Sample(tex_sampler, vert_in.uv);
+	if (progress <= 0.0 || progress >= 1.0)
+		return src;
+
+	float2 pix = vert_in.uv * size_px;
+	float2 cell = floor(pix / cell_px);
+	float2 cc = (cell + 0.5) * cell_px;
+	float2 cuv = min(cc / size_px, float2(1.0, 1.0));
+
+	// Place of this cell in the sweep (0 = first, 1 = last), shifted a little at random.
+	float ext = 0.5 * (abs(wave_dir.x) * size_px.x + abs(wave_dir.y) * size_px.y);
+	float gb = dot(cc - 0.5 * size_px, wave_dir) / max(ext, 1.0) * 0.5 + 0.5;
+	float2 h = hash22(cell);
+	float jit = (h.x - 0.5) * jitter;
+	float g_cover = saturate(gb + jit);
+	float g_reveal = saturate(1.0 - gb + jit);
+	float soft = max(wave_soft, 0.02);
+	float t_cover = saturate(progress / 0.68);
+	float t_reveal = saturate((progress - 0.78) / 0.22);
+	float lt = saturate((t_cover * (1.0 + soft) - g_cover) / soft);
+	float lr = saturate((t_reveal * (1.0 + soft) - g_reveal) / soft);
+
+	float s_acc_in = smoothstep(0.05, 0.30, lt);
+	float s_acc_out = smoothstep(0.60, 0.85, lt);
+	float s_pas = smoothstep(0.28, 0.55, lt);
+	float s_true = smoothstep(0.55, 0.85, lt);
+	float s_grow = smoothstep(0.00, 0.50, lr);
+	float s_end = smoothstep(0.40, 1.00, lr);
+
+	float d = length(pix - cc);
+	float r_dot = cell_px * 0.5 * dot_scale;
+	float r_full = cell_px * 0.80;
+
+	// Colour of the picture at the cell centre, washed out towards a warm pastel for the middle of the effect.
+	float3 pic = image.Sample(tex_sampler, cuv).rgb;
+	float luma = dot(pic, float3(0.299, 0.587, 0.114));
+	float3 pastel = lerp(float3(luma, luma, luma), pic, 0.55);
+	float3 tint = lerp(float3(0.97, 0.78, 0.68), float3(0.93, 0.68, 0.80), h.y);   // peach .. pink, per cell
+	pastel = lerp(pastel, tint, 0.62);
+	pastel = lerp(pastel, float3(1.0, 1.0, 1.0), 0.10);
+	float3 dot_col = lerp(pastel, pic, s_true);
+
+	// Pastel dot: grows from nothing while its cell is coming in, then fills the cell in the mosaic stage.
+	float r_pas = lerp(0.0, r_dot, s_pas);
+	r_pas = lerp(r_pas, r_full, s_grow);
+	float m_pas = saturate(r_pas - d + 0.5);
+
+	// Light, slightly warm filler between the dots while the picture is covered.
+	float cover = s_pas * (1.0 - s_end);
+	float3 filler = lerp(pic, float3(0.95, 0.92, 0.92), 0.85);
+	float3 base = lerp(src.rgb, filler, cover * 0.95);
+	float3 col = lerp(base, dot_col, m_pas);
+
+	// Coloured accent dot on a random subset of the cells.
+	float pick = h.y;
+	float3 acc_col = (pick < 0.25) ? float3(0.36, 0.76, 0.95)
+			: (pick < 0.55) ? float3(0.74, 0.14, 0.08)
+			: (pick < 0.80) ? float3(0.96, 0.46, 0.16)
+					: float3(0.12, 0.62, 0.52);
+	float has_acc = step(h.x, 0.18 + 0.65 * accent) * step(0.001, accent);
+	float acc_on = has_acc * s_acc_in * (1.0 - s_acc_out);
+	// A little pop: the accent dot overshoots its size on the way in.
+	float pop = 1.0 + 0.25 * sin(3.14159265 * saturate(lt / 0.30));
+	float m_acc = saturate(r_dot * pop - d + 0.5);
+	col = lerp(col, acc_col, m_acc * acc_on);
+
+	// The mosaic gives way to the clean picture; a tiny white dot lingers for a moment at the very end.
+	col = lerp(col, src.rgb, s_end);
+	float spark_on = (1.0 - smoothstep(0.80, 1.0, lr)) * smoothstep(0.30, 0.60, lr) * step(0.55, h.x);
+	float m_sp = saturate(cell_px * 0.10 - d + 0.5);
+	col = lerp(col, float3(1.0, 1.0, 1.0), m_sp * spark_on * 0.55);
+
+	return float4(saturate(col), src.a);
+}
+
+technique Dots
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSDots(vert_in);
+	}
+}
