@@ -1,5 +1,6 @@
 /* Core: lifecycle, zoom state machine, per-frame tick and the zoom transform. */
 
+#include "dots-overlay-filter.hpp"
 #include "zoominator-internal.hpp"
 #include "zoominator-hud.hpp"
 
@@ -410,6 +411,7 @@ void ZoominatorController::initialize()
 	tickCallbackAdded = true;
 	frameTimer.start();
 	registerCountdownHotkey();
+	zoominator_dots::startHotkey();
 	zoominator_caret::start();
 	QTimer::singleShot(1500, this, [this]() {
 		installHooks();
@@ -438,6 +440,7 @@ void ZoominatorController::shutdown()
 	frameTimer.stop();
 	hudTimer.stop();
 	unregisterCountdownHotkey();
+	zoominator_dots::stopHotkey();
 	if (hud) {
 		delete hud;
 		hud = nullptr;

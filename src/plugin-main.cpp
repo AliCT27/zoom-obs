@@ -3,6 +3,7 @@
 #include "cursor-fx-source.hpp"
 #include "key-display-source.hpp"
 #include "cam-ring-filter.hpp"
+#include "dots-overlay-filter.hpp"
 #include "focus-blur-filter.hpp"
 #include "tilt-filter.hpp"
 #include "dim-mask-filter.hpp"
@@ -37,6 +38,7 @@ bool obs_module_load(void)
 	zoominator_cursorfx::registerSource();
 	zoominator_keys::registerSource();
 	zoominator_camring::registerFilter();
+	zoominator_dots::registerFilter();
 	ZoominatorController::instance().initialize();
 
 	obs_frontend_add_tools_menu_item(obs_module_text("Menu.Tools.Zoominator"), open_dialog_cb, nullptr);
