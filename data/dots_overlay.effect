@@ -134,7 +134,7 @@ float4 PSDots(VertData vert_in) : TARGET
 	return float4(saturate(col), src.a);
 }
 
-technique Dots
+technique Draw
 {
 	pass
 	{
