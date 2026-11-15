@@ -21,7 +21,8 @@ uniform float progress;      // 0..1, the animation
 uniform float2 size_px;      // source size in pixels
 uniform float cell_px;       // grid cell size in pixels
 uniform float dot_scale;     // dot diameter as a fraction of the cell
-uniform float2 wave_dir;     // unit vector the wave travels along (pixels, y down)
+uniform float2 wave_dir;     // unit vector the cover wave travels along (pixels, y down); zero = from the centre
+uniform float2 wave_dir_out; // the same for the reveal wave; the cells it reaches first leave first
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
 uniform float accent;        // 0..1, how many cells show a coloured accent dot (pastel style)
@@ -66,6 +67,25 @@ float2 hash22(float2 p)
 	return float2(h, hash21(p + h * 17.17 + 3.31));
 }
 
+// Place of a cell in a straight sweep along dir (0 = reached first, 1 = last). Zero dir: a ring spreading from the centre.
+float front_lin(float2 cc, float2 dir)
+{
+	float ext = 0.5 * (abs(dir.x) * size_px.x + abs(dir.y) * size_px.y);
+	if (ext < 1.0)
+		return saturate(length(cc - 0.5 * size_px) / max(0.5 * length(size_px), 1.0));
+	return dot(cc - 0.5 * size_px, dir) / ext * 0.5 + 0.5;
+}
+
+// The same for curved fronts: circles around a point just outside the frame on the side the sweep starts from.
+float front_circ(float2 cc, float2 dir)
+{
+	float ext = 0.5 * (abs(dir.x) * size_px.x + abs(dir.y) * size_px.y);
+	float2 org = 0.5 * size_px - dir * ext * 1.05;
+	float gmax = max(max(length(org), length(org - float2(size_px.x, 0.0))),
+			 max(length(org - float2(0.0, size_px.y)), length(org - size_px)));
+	return saturate(length(cc - org) / max(gmax, 1.0));
+}
+
 // Layered style: colour of a dot while the picture is being covered, from its local cover progress lt (0..1).
 // White -> first colour -> hot colour (red, orange towards the far edge) -> peach. A few cells keep a colour.
 float3 cover_colour(float lt, float g, float2 h)
@@ -99,12 +119,12 @@ float4 PSDots(VertData vert_in) : TARGET
 	float2 cuv = min(cc / size_px, float2(1.0, 1.0));
 
 	// Place of this cell in the sweep (0 = first, 1 = last), shifted a little at random.
-	float ext = 0.5 * (abs(wave_dir.x) * size_px.x + abs(wave_dir.y) * size_px.y);
-	float gb = dot(cc - 0.5 * size_px, wave_dir) / max(ext, 1.0) * 0.5 + 0.5;
+	float gb = front_lin(cc, wave_dir);
+	float gb_out = front_lin(cc, wave_dir_out);
 	float2 h = hash22(cell);
 	float jit = (h.x - 0.5) * jitter;
 	float g_cover = saturate(gb + jit);
-	float g_reveal = saturate(1.0 - gb + jit);
+	float g_reveal = saturate(gb_out + jit);
 	float soft = max(wave_soft, 0.02);
 	float t_cover = saturate(progress / 0.68);
 	float t_reveal = saturate((progress - 0.78) / 0.22);
@@ -124,16 +144,14 @@ float4 PSDots(VertData vert_in) : TARGET
 
 	if (style > 0.5) {
 		// Flat dots of one colour each on a light grey field. The cover wave spreads from a point above the frame
-		// in curved fronts, a few cells running ahead of it. Then the reveal wave comes back from the far side:
+		// in curved fronts, a few cells running ahead of it. Then the reveal wave starts from the chosen side:
 		// the dots take a colour from the brightness of the live picture, grow into a mosaic of the picture and
 		// give way to the sharp picture.
-		float2 org = 0.5 * size_px - wave_dir * ext * 1.05;
-		float gmax = max(max(length(org), length(org - float2(size_px.x, 0.0))),
-				 max(length(org - float2(0.0, size_px.y)), length(org - size_px)));
-		float go = saturate(length(cc - org) / max(gmax, 1.0));
+		float go = front_circ(cc, wave_dir);
+		float go_out = front_circ(cc, wave_dir_out);
 		float pioneer = step(h.x, 0.25) * h.y;
 		float gc = saturate(go + jit * 0.35 - pioneer * 0.30);
-		float gr = saturate(1.0 - go + jit * 0.35);
+		float gr = saturate(go_out + jit * 0.35);
 		float tcv = saturate(progress / 0.55);
 		float trv = saturate((progress - 0.68) / 0.32);
 		float lc = saturate((tcv * (1.0 + soft) - gc) / soft);

@@ -22,11 +22,30 @@ constexpr const char *kEffectFile = "dots_overlay.effect";
 constexpr const char *kCell = "cell_px";
 constexpr const char *kDotSize = "dot_size_pct";
 constexpr const char *kDuration = "duration_ms";
-constexpr const char *kAngle = "angle_deg";
+constexpr const char *kEnter = "enter_from";
+constexpr const char *kExit = "exit_from";
 constexpr const char *kSoftness = "softness_pct";
 constexpr const char *kJitter = "jitter_pct";
 constexpr const char *kAccent = "accent_pct";
 constexpr const char *kStyle = "style";
+/* The sides a sweep can start from; the vector is the way it travels (pixels, y down), zero = from the centre. */
+constexpr const char *kSideNames[9] = {"DotsOverlay.Side.Top",        "DotsOverlay.Side.Bottom",
+				       "DotsOverlay.Side.Left",       "DotsOverlay.Side.Right",
+				       "DotsOverlay.Side.TopLeft",    "DotsOverlay.Side.TopRight",
+				       "DotsOverlay.Side.BottomLeft", "DotsOverlay.Side.BottomRight",
+				       "DotsOverlay.Side.Centre"};
+
+vec2 sideDir(int side)
+{
+	const float k = 0.70710678f;
+	static const float dirs[9][2] = {{0.0f, 1.0f}, {0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f}, {k, k},
+					 {-k, k},      {k, -k},       {-k, -k},     {0.0f, 0.0f}};
+	vec2 v;
+	const int i = std::clamp(side, 0, 8);
+	vec2_set(&v, dirs[i][0], dirs[i][1]);
+	return v;
+}
+
 constexpr int kColorCount = 7;
 constexpr const char *kColors[kColorCount] = {"wave_color1", "wave_color2", "wave_color3", "fill_color",
 					      "map_dark",    "map_mid",     "map_light"};
@@ -40,7 +59,7 @@ struct DotsData {
 	obs_source_t *context = nullptr;
 	gs_effect_t *effect = nullptr;
 	gs_eparam_t *pProgress = nullptr, *pSize = nullptr, *pCell = nullptr, *pDotScale = nullptr, *pDir = nullptr,
-		    *pSoft = nullptr, *pJitter = nullptr, *pAccent = nullptr, *pStyle = nullptr,
+		    *pDirOut = nullptr, *pSoft = nullptr, *pJitter = nullptr, *pAccent = nullptr, *pStyle = nullptr,
 		    *pColor[kColorCount] = {};
 
 	/* Written by the main thread (update), read by the graphics thread; plain floats, a torn read at worst shows one
@@ -48,7 +67,8 @@ struct DotsData {
 	std::atomic<float> cell{36.0f};
 	std::atomic<float> dotScale{0.75f};
 	std::atomic<float> durationSec{2.2f};
-	std::atomic<float> angleRad{1.9198622f};
+	std::atomic<int> enterSide{0}; /* 0 top, see sideDir */
+	std::atomic<int> exitSide{0};  /* 0 same as entry, 1 opposite, 2.. = side + 2 */
 	std::atomic<float> soft{0.35f};
 	std::atomic<float> jitter{0.30f};
 	std::atomic<float> accent{0.6f};
@@ -107,6 +127,7 @@ void loadEffect(DotsData *d)
 		d->pCell = gs_effect_get_param_by_name(d->effect, "cell_px");
 		d->pDotScale = gs_effect_get_param_by_name(d->effect, "dot_scale");
 		d->pDir = gs_effect_get_param_by_name(d->effect, "wave_dir");
+		d->pDirOut = gs_effect_get_param_by_name(d->effect, "wave_dir_out");
 		d->pSoft = gs_effect_get_param_by_name(d->effect, "wave_soft");
 		d->pJitter = gs_effect_get_param_by_name(d->effect, "jitter");
 		d->pAccent = gs_effect_get_param_by_name(d->effect, "accent");
@@ -118,8 +139,8 @@ void loadEffect(DotsData *d)
 			d->pColor[i] = gs_effect_get_param_by_name(d->effect, names[i]);
 			colorsOk = colorsOk && d->pColor[i];
 		}
-		if (!d->pProgress || !d->pSize || !d->pCell || !d->pDotScale || !d->pDir || !d->pSoft || !d->pJitter ||
-		    !d->pAccent || !d->pStyle || !colorsOk) {
+		if (!d->pProgress || !d->pSize || !d->pCell || !d->pDotScale || !d->pDir || !d->pDirOut || !d->pSoft ||
+		    !d->pJitter || !d->pAccent || !d->pStyle || !colorsOk) {
 			blog(LOG_WARNING, "[Zoominator] Dots overlay: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -137,7 +158,8 @@ void update(void *data, obs_data_t *settings)
 	d->cell = (float)std::clamp<long long>(obs_data_get_int(settings, kCell), 8, 400);
 	d->dotScale = (float)std::clamp<long long>(obs_data_get_int(settings, kDotSize), 20, 100) / 100.0f;
 	d->durationSec = (float)std::clamp<long long>(obs_data_get_int(settings, kDuration), 300, 10000) / 1000.0f;
-	d->angleRad = (float)obs_data_get_int(settings, kAngle) * 3.14159265f / 180.0f;
+	d->enterSide = (int)std::clamp<long long>(obs_data_get_int(settings, kEnter), 0, 8);
+	d->exitSide = (int)std::clamp<long long>(obs_data_get_int(settings, kExit), 0, 10);
 	d->soft = (float)std::clamp<long long>(obs_data_get_int(settings, kSoftness), 2, 100) / 100.0f;
 	d->jitter = (float)std::clamp<long long>(obs_data_get_int(settings, kJitter), 0, 100) / 100.0f;
 	d->accent = (float)std::clamp<long long>(obs_data_get_int(settings, kAccent), 0, 100) / 100.0f;
@@ -181,7 +203,8 @@ void getDefaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, kCell, 36);
 	obs_data_set_default_int(settings, kDotSize, 75);
 	obs_data_set_default_int(settings, kDuration, 2200);
-	obs_data_set_default_int(settings, kAngle, 110);
+	obs_data_set_default_int(settings, kEnter, 0);
+	obs_data_set_default_int(settings, kExit, 0);
 	obs_data_set_default_int(settings, kSoftness, 35);
 	obs_data_set_default_int(settings, kJitter, 30);
 	obs_data_set_default_int(settings, kAccent, 60);
@@ -208,7 +231,16 @@ obs_properties_t *getProperties(void *data)
 	obs_properties_add_int_slider(props, kDuration, obs_module_text("DotsOverlay.Duration"), 500, 6000, 50);
 	obs_properties_add_int_slider(props, kCell, obs_module_text("DotsOverlay.Cell"), 16, 160, 2);
 	obs_properties_add_int_slider(props, kDotSize, obs_module_text("DotsOverlay.DotSize"), 30, 100, 1);
-	obs_properties_add_int_slider(props, kAngle, obs_module_text("DotsOverlay.Angle"), -180, 180, 5);
+	obs_property_t *enter = obs_properties_add_list(props, kEnter, obs_module_text("DotsOverlay.Enter"),
+							OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	for (int i = 0; i < 9; ++i)
+		obs_property_list_add_int(enter, obs_module_text(kSideNames[i]), i);
+	obs_property_t *exit = obs_properties_add_list(props, kExit, obs_module_text("DotsOverlay.Exit"),
+						       OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(exit, obs_module_text("DotsOverlay.Exit.Same"), 0);
+	obs_property_list_add_int(exit, obs_module_text("DotsOverlay.Exit.Opposite"), 1);
+	for (int i = 0; i < 9; ++i)
+		obs_property_list_add_int(exit, obs_module_text(kSideNames[i]), i + 2);
 	obs_properties_add_int_slider(props, kSoftness, obs_module_text("DotsOverlay.Softness"), 5, 80, 1);
 	obs_properties_add_int_slider(props, kJitter, obs_module_text("DotsOverlay.Jitter"), 0, 60, 1);
 	obs_properties_add_int_slider(props, kAccent, obs_module_text("DotsOverlay.Accent"), 0, 100, 1);
@@ -265,10 +297,16 @@ void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_vec2(d->pSize, &size);
 	gs_effect_set_float(d->pCell, d->cell.load());
 	gs_effect_set_float(d->pDotScale, d->dotScale.load());
-	vec2 dir;
-	const float a = d->angleRad.load();
-	vec2_set(&dir, std::cos(a), std::sin(a));
-	gs_effect_set_vec2(d->pDir, &dir);
+	const int enterIdx = d->enterSide.load();
+	const int exitIdx = d->exitSide.load();
+	vec2 dirIn = sideDir(enterIdx);
+	vec2 dirOut = dirIn;
+	if (exitIdx == 1)
+		vec2_set(&dirOut, -dirIn.x, -dirIn.y);
+	else if (exitIdx >= 2)
+		dirOut = sideDir(exitIdx - 2);
+	gs_effect_set_vec2(d->pDir, &dirIn);
+	gs_effect_set_vec2(d->pDirOut, &dirOut);
 	gs_effect_set_float(d->pSoft, d->soft.load());
 	gs_effect_set_float(d->pJitter, d->jitter.load());
 	gs_effect_set_float(d->pAccent, d->accent.load());
