@@ -12,6 +12,7 @@
 // and on its local reveal progress lr (0..1):
 //   0.00-0.50  the dots grow together into a mosaic of the picture
 //   0.40-1.00  the mosaic gives way to the clean picture
+// The layered style does the same with flat single-colour dots, see the branch in PSDots.
 // At progress = 0 and at progress = 1 the output is exactly the input picture.
 
 uniform float4x4 ViewProj;
@@ -24,12 +25,14 @@ uniform float2 wave_dir;     // unit vector the wave travels along (pixels, y do
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
 uniform float accent;        // 0..1, how many cells show a coloured accent dot (pastel style)
-uniform float style;         // 0 = pastel, 1 = layered coloured passes
-uniform float pass_delay;    // layered: delay between two passes, fraction of the sweep
-uniform float4 color0;       // layered: colours of the four passes, outermost ring first
-uniform float4 color1;
+uniform float style;         // 0 = pastel, 1 = layered
+uniform float4 color0;       // layered: wave colours, first dots to show
+uniform float4 color1;       //   (blue, dark red, orange)
 uniform float4 color2;
-uniform float4 color3;
+uniform float4 color3;       // layered: colour the covered picture settles on (peach)
+uniform float4 color4;       // layered: colour map for the new picture, dark parts
+uniform float4 color5;       //   mid tones
+uniform float4 color6;       //   light parts
 
 sampler_state tex_sampler {
 	Filter   = Linear;
@@ -63,14 +66,25 @@ float2 hash22(float2 p)
 	return float2(h, hash21(p + h * 17.17 + 3.31));
 }
 
-// Layered style: one round dot of pass k. Later passes are a little smaller, so every colour stays visible as a ring.
-float layer_mask(float tc, float g, float k, float r_base, float r_full, float grow, float soft, float d)
+// Layered style: colour of a dot while the picture is being covered, from its local cover progress lt (0..1).
+// White -> first colour -> hot colour (red, orange towards the far edge) -> peach. A few cells keep a colour.
+float3 cover_colour(float lt, float g, float2 h)
 {
-	float l = saturate((tc - g - k * pass_delay) / soft);
-	float pop = 1.0 + 0.22 * sin(3.14159265 * l);
-	float r = r_base * (1.0 - 0.15 * k) * smoothstep(0.0, 0.6, l) * pop;
-	r = lerp(r, r_full, grow);
-	return saturate(r - d + 0.5) * step(0.001, l);
+	float3 hot = lerp(color1.rgb, color2.rgb, smoothstep(0.55, 0.95, g));
+	float3 c = float3(1.0, 1.0, 1.0);
+	c = (lt > 0.08) ? color0.rgb : c;
+	c = (lt > 0.30) ? hot : c;
+	c = (lt > 0.55) ? color3.rgb : c;
+	// leftovers that stay behind in the peach field
+	c = (lt > 0.55 && h.x > 0.90) ? hot : c;
+	c = (lt > 0.55 && h.x < 0.05) ? color0.rgb : c;
+	return c;
+}
+
+// Colour map for the new picture: dark -> mid -> light by luminance.
+float3 map_colour(float lum)
+{
+	return lerp(lerp(color4.rgb, color5.rgb, smoothstep(0.30, 0.38, lum)), color6.rgb, smoothstep(0.62, 0.70, lum));
 }
 
 float4 PSDots(VertData vert_in) : TARGET
@@ -109,18 +123,36 @@ float4 PSDots(VertData vert_in) : TARGET
 	float r_full = cell_px * 0.80;
 
 	if (style > 0.5) {
-		// Four colour passes, each one delayed after the one before, over a coloured gradient while the picture
-		// is covered. At the end every dot grows to fill its cell and the mosaic gives way to the clean picture.
-		float tc = t_cover * (1.0 + soft + 3.0 * pass_delay);
-		float l0 = saturate((tc - g_cover) / soft);
-		float cover2 = smoothstep(0.0, 0.35, l0) * (1.0 - s_end);
-		float3 fill = lerp(color1.rgb, color2.rgb, gb);
-		float3 col2 = lerp(src.rgb, lerp(float3(1.0, 1.0, 1.0), fill, 0.30), cover2 * 0.92);
-		col2 = lerp(col2, color0.rgb, layer_mask(tc, g_cover, 0.0, r_dot, r_full, s_grow, soft, d));
-		col2 = lerp(col2, color1.rgb, layer_mask(tc, g_cover, 1.0, r_dot, r_full, s_grow, soft, d));
-		col2 = lerp(col2, color2.rgb, layer_mask(tc, g_cover, 2.0, r_dot, r_full, s_grow, soft, d));
-		col2 = lerp(col2, color3.rgb, layer_mask(tc, g_cover, 3.0, r_dot, r_full, s_grow, soft, d));
-		col2 = lerp(col2, src.rgb, s_end);
+		// Flat dots of one colour each on a light grey field. The cover wave spreads from a point above the frame
+		// in curved fronts, a few cells running ahead of it. Then the reveal wave comes back from the far side:
+		// the dots take a colour from the brightness of the live picture, grow into a mosaic of the picture and
+		// give way to the sharp picture.
+		float2 org = 0.5 * size_px - wave_dir * ext * 1.05;
+		float gmax = max(max(length(org), length(org - float2(size_px.x, 0.0))),
+				 max(length(org - float2(0.0, size_px.y)), length(org - size_px)));
+		float go = saturate(length(cc - org) / max(gmax, 1.0));
+		float pioneer = step(h.x, 0.25) * h.y;
+		float gc = saturate(go + jit * 0.35 - pioneer * 0.30);
+		float gr = saturate(1.0 - go + jit * 0.35);
+		float tcv = saturate(progress / 0.55);
+		float trv = saturate((progress - 0.68) / 0.32);
+		float lc = saturate((tcv * (1.0 + soft) - gc) / soft);
+		float lrv = saturate((trv * (1.0 + soft) - gr) / soft);
+
+		float s_bg = smoothstep(0.0, 0.08, lc);
+		float3 pic2 = image.Sample(tex_sampler, cuv).rgb;
+		float lum = dot(pic2, float3(0.299, 0.587, 0.114));
+		float3 field = lerp(float3(0.92, 0.92, 0.92), color6.rgb, 0.25 * smoothstep(0.0, 0.3, lrv));
+
+		float3 dc = cover_colour(lc, go, h);
+		dc = lerp(dc, map_colour(lum), smoothstep(0.0, 0.2, lrv));
+		dc = lerp(dc, pic2, smoothstep(0.30, 0.65, lrv));
+		float r2 = lerp(r_dot, r_full, smoothstep(0.30, 0.65, lrv));
+
+		float3 col2 = lerp(src.rgb, field, s_bg);
+		float m2 = saturate(r2 - d + 0.5) * s_bg;
+		col2 = lerp(col2, dc, m2);
+		col2 = lerp(col2, src.rgb, smoothstep(0.60, 1.00, lrv));
 		return float4(saturate(col2), src.a);
 	}
 
