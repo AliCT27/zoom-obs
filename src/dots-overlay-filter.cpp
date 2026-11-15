@@ -3,6 +3,7 @@
 #include <obs-frontend-api.h>
 #include <graphics/graphics.h>
 #include <graphics/vec2.h>
+#include <graphics/vec4.h>
 #include <util/bmem.h>
 #include <util/platform.h>
 
@@ -25,13 +26,19 @@ constexpr const char *kAngle = "angle_deg";
 constexpr const char *kSoftness = "softness_pct";
 constexpr const char *kJitter = "jitter_pct";
 constexpr const char *kAccent = "accent_pct";
+constexpr const char *kStyle = "style";
+constexpr const char *kPassDelay = "pass_delay_pct";
+constexpr const char *kColors[4] = {"color1", "color2", "color3", "color4"};
+/* OBS colour settings are 0xAABBGGRR. White, blue, green, orange. */
+constexpr uint32_t kDefaultColors[4] = {0xFFFFFFFF, 0xFFFF7B2F, 0xFF6EDC3C, 0xFF1E8CFF};
 constexpr const char *kPlay = "play_now";
 
 struct DotsData {
 	obs_source_t *context = nullptr;
 	gs_effect_t *effect = nullptr;
 	gs_eparam_t *pProgress = nullptr, *pSize = nullptr, *pCell = nullptr, *pDotScale = nullptr, *pDir = nullptr,
-		    *pSoft = nullptr, *pJitter = nullptr, *pAccent = nullptr;
+		    *pSoft = nullptr, *pJitter = nullptr, *pAccent = nullptr, *pStyle = nullptr, *pPassDelay = nullptr,
+		    *pColor[4] = {nullptr, nullptr, nullptr, nullptr};
 
 	/* Written by the main thread (update), read by the graphics thread; plain floats, a torn read at worst shows one
 	 * odd frame. */
@@ -42,6 +49,9 @@ struct DotsData {
 	std::atomic<float> soft{0.35f};
 	std::atomic<float> jitter{0.30f};
 	std::atomic<float> accent{0.6f};
+	std::atomic<float> style{1.0f};
+	std::atomic<float> passDelay{0.12f};
+	std::atomic<uint32_t> colors[4] = {kDefaultColors[0], kDefaultColors[1], kDefaultColors[2], kDefaultColors[3]};
 
 	/* Start time of the running animation in os_gettime_ns(), 0 = not playing. */
 	std::atomic<uint64_t> startNs{0};
@@ -96,8 +106,16 @@ void loadEffect(DotsData *d)
 		d->pSoft = gs_effect_get_param_by_name(d->effect, "wave_soft");
 		d->pJitter = gs_effect_get_param_by_name(d->effect, "jitter");
 		d->pAccent = gs_effect_get_param_by_name(d->effect, "accent");
+		d->pStyle = gs_effect_get_param_by_name(d->effect, "style");
+		d->pPassDelay = gs_effect_get_param_by_name(d->effect, "pass_delay");
+		bool colorsOk = true;
+		for (int i = 0; i < 4; ++i) {
+			const char names[4][8] = {"color0", "color1", "color2", "color3"};
+			d->pColor[i] = gs_effect_get_param_by_name(d->effect, names[i]);
+			colorsOk = colorsOk && d->pColor[i];
+		}
 		if (!d->pProgress || !d->pSize || !d->pCell || !d->pDotScale || !d->pDir || !d->pSoft || !d->pJitter ||
-		    !d->pAccent) {
+		    !d->pAccent || !d->pStyle || !d->pPassDelay || !colorsOk) {
 			blog(LOG_WARNING, "[Zoominator] Dots overlay: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -119,6 +137,10 @@ void update(void *data, obs_data_t *settings)
 	d->soft = (float)std::clamp<long long>(obs_data_get_int(settings, kSoftness), 2, 100) / 100.0f;
 	d->jitter = (float)std::clamp<long long>(obs_data_get_int(settings, kJitter), 0, 100) / 100.0f;
 	d->accent = (float)std::clamp<long long>(obs_data_get_int(settings, kAccent), 0, 100) / 100.0f;
+	d->style = obs_data_get_int(settings, kStyle) == 0 ? 0.0f : 1.0f;
+	d->passDelay = (float)std::clamp<long long>(obs_data_get_int(settings, kPassDelay), 0, 40) / 100.0f;
+	for (int i = 0; i < 4; ++i)
+		d->colors[i] = (uint32_t)obs_data_get_int(settings, kColors[i]);
 }
 
 void *createData(obs_data_t *settings, obs_source_t *source)
@@ -160,6 +182,10 @@ void getDefaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, kSoftness, 35);
 	obs_data_set_default_int(settings, kJitter, 30);
 	obs_data_set_default_int(settings, kAccent, 60);
+	obs_data_set_default_int(settings, kStyle, 1);
+	obs_data_set_default_int(settings, kPassDelay, 12);
+	for (int i = 0; i < 4; ++i)
+		obs_data_set_default_int(settings, kColors[i], (long long)kDefaultColors[i]);
 }
 
 bool playClicked(obs_properties_t *, obs_property_t *, void *data)
@@ -173,6 +199,10 @@ obs_properties_t *getProperties(void *data)
 {
 	obs_properties_t *props = obs_properties_create();
 	obs_properties_add_button(props, kPlay, obs_module_text("DotsOverlay.Play"), playClicked);
+	obs_property_t *style = obs_properties_add_list(props, kStyle, obs_module_text("DotsOverlay.Style"),
+							OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Pastel"), 0);
+	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Layered"), 1);
 	obs_properties_add_int_slider(props, kDuration, obs_module_text("DotsOverlay.Duration"), 500, 6000, 50);
 	obs_properties_add_int_slider(props, kCell, obs_module_text("DotsOverlay.Cell"), 16, 160, 2);
 	obs_properties_add_int_slider(props, kDotSize, obs_module_text("DotsOverlay.DotSize"), 30, 100, 1);
@@ -180,6 +210,11 @@ obs_properties_t *getProperties(void *data)
 	obs_properties_add_int_slider(props, kSoftness, obs_module_text("DotsOverlay.Softness"), 5, 80, 1);
 	obs_properties_add_int_slider(props, kJitter, obs_module_text("DotsOverlay.Jitter"), 0, 60, 1);
 	obs_properties_add_int_slider(props, kAccent, obs_module_text("DotsOverlay.Accent"), 0, 100, 1);
+	obs_properties_add_int_slider(props, kPassDelay, obs_module_text("DotsOverlay.PassDelay"), 0, 40, 1);
+	obs_properties_add_color(props, kColors[0], obs_module_text("DotsOverlay.Color1"));
+	obs_properties_add_color(props, kColors[1], obs_module_text("DotsOverlay.Color2"));
+	obs_properties_add_color(props, kColors[2], obs_module_text("DotsOverlay.Color3"));
+	obs_properties_add_color(props, kColors[3], obs_module_text("DotsOverlay.Color4"));
 	return props;
 }
 
@@ -233,6 +268,15 @@ void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pSoft, d->soft.load());
 	gs_effect_set_float(d->pJitter, d->jitter.load());
 	gs_effect_set_float(d->pAccent, d->accent.load());
+	gs_effect_set_float(d->pStyle, d->style.load());
+	gs_effect_set_float(d->pPassDelay, d->passDelay.load());
+	for (int i = 0; i < 4; ++i) {
+		const uint32_t c = d->colors[i].load();
+		vec4 v;
+		vec4_set(&v, (float)(c & 0xFF) / 255.0f, (float)((c >> 8) & 0xFF) / 255.0f,
+			 (float)((c >> 16) & 0xFF) / 255.0f, 1.0f);
+		gs_effect_set_vec4(d->pColor[i], &v);
+	}
 
 	obs_source_process_filter_end(d->context, d->effect, w, h);
 }
