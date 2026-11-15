@@ -23,7 +23,13 @@ uniform float dot_scale;     // dot diameter as a fraction of the cell
 uniform float2 wave_dir;     // unit vector the wave travels along (pixels, y down)
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
-uniform float accent;        // 0..1, how many cells show a coloured accent dot
+uniform float accent;        // 0..1, how many cells show a coloured accent dot (pastel style)
+uniform float style;         // 0 = pastel, 1 = layered coloured passes
+uniform float pass_delay;    // layered: delay between two passes, fraction of the sweep
+uniform float4 color0;       // layered: colours of the four passes, outermost ring first
+uniform float4 color1;
+uniform float4 color2;
+uniform float4 color3;
 
 sampler_state tex_sampler {
 	Filter   = Linear;
@@ -55,6 +61,16 @@ float2 hash22(float2 p)
 {
 	float h = hash21(p);
 	return float2(h, hash21(p + h * 17.17 + 3.31));
+}
+
+// Layered style: one round dot of pass k. Later passes are a little smaller, so every colour stays visible as a ring.
+float layer_mask(float tc, float g, float k, float r_base, float r_full, float grow, float soft, float d)
+{
+	float l = saturate((tc - g - k * pass_delay) / soft);
+	float pop = 1.0 + 0.22 * sin(3.14159265 * l);
+	float r = r_base * (1.0 - 0.15 * k) * smoothstep(0.0, 0.6, l) * pop;
+	r = lerp(r, r_full, grow);
+	return saturate(r - d + 0.5) * step(0.001, l);
 }
 
 float4 PSDots(VertData vert_in) : TARGET
@@ -91,6 +107,22 @@ float4 PSDots(VertData vert_in) : TARGET
 	float d = length(pix - cc);
 	float r_dot = cell_px * 0.5 * dot_scale;
 	float r_full = cell_px * 0.80;
+
+	if (style > 0.5) {
+		// Four colour passes, each one delayed after the one before, over a coloured gradient while the picture
+		// is covered. At the end every dot grows to fill its cell and the mosaic gives way to the clean picture.
+		float tc = t_cover * (1.0 + soft + 3.0 * pass_delay);
+		float l0 = saturate((tc - g_cover) / soft);
+		float cover2 = smoothstep(0.0, 0.35, l0) * (1.0 - s_end);
+		float3 fill = lerp(color1.rgb, color2.rgb, gb);
+		float3 col2 = lerp(src.rgb, lerp(float3(1.0, 1.0, 1.0), fill, 0.30), cover2 * 0.92);
+		col2 = lerp(col2, color0.rgb, layer_mask(tc, g_cover, 0.0, r_dot, r_full, s_grow, soft, d));
+		col2 = lerp(col2, color1.rgb, layer_mask(tc, g_cover, 1.0, r_dot, r_full, s_grow, soft, d));
+		col2 = lerp(col2, color2.rgb, layer_mask(tc, g_cover, 2.0, r_dot, r_full, s_grow, soft, d));
+		col2 = lerp(col2, color3.rgb, layer_mask(tc, g_cover, 3.0, r_dot, r_full, s_grow, soft, d));
+		col2 = lerp(col2, src.rgb, s_end);
+		return float4(saturate(col2), src.a);
+	}
 
 	// Colour of the picture at the cell centre, washed out towards a warm pastel for the middle of the effect.
 	float3 pic = image.Sample(tex_sampler, cuv).rgb;
