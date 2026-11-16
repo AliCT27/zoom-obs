@@ -46,13 +46,14 @@ vec2 sideDir(int side)
 	return v;
 }
 
-constexpr int kColorCount = 7;
+constexpr int kColorCount = 8;
 constexpr const char *kColors[kColorCount] = {"wave_color1", "wave_color2", "wave_color3", "fill_color",
-					      "map_dark",    "map_mid",     "map_light"};
+					      "map_dark",    "map_mid",     "map_light",   "band_color"};
 /* OBS colour settings are 0xAABBGGRR. Taken from a reference recording: light blue, dark red, orange, peach,
- * then the brightness map for the new picture: dark teal, orange, light pink. */
+ * then the brightness map for the new picture: dark teal, orange, light pink, then the dot colour of the
+ * single band: pastel peach. */
 constexpr uint32_t kDefaultColors[kColorCount] = {0xFFEBC773, 0xFF121A9E, 0xFF1A6BD9, 0xFFA3B8E8,
-						  0xFF80991F, 0xFF4085ED, 0xFFCCC2F2};
+						  0xFF80991F, 0xFF4085ED, 0xFFCCC2F2, 0xFFB3BDED};
 constexpr const char *kPlay = "play_now";
 
 struct DotsData {
@@ -75,7 +76,7 @@ struct DotsData {
 	std::atomic<float> style{2.0f};
 	std::atomic<uint32_t> colors[kColorCount] = {kDefaultColors[0], kDefaultColors[1], kDefaultColors[2],
 						     kDefaultColors[3], kDefaultColors[4], kDefaultColors[5],
-						     kDefaultColors[6]};
+						     kDefaultColors[6], kDefaultColors[7]};
 
 	/* Start time of the running animation in os_gettime_ns(), 0 = not playing. */
 	std::atomic<uint64_t> startNs{0};
@@ -135,7 +136,7 @@ void loadEffect(DotsData *d)
 		bool colorsOk = true;
 		for (int i = 0; i < kColorCount; ++i) {
 			const char names[kColorCount][8] = {"color0", "color1", "color2", "color3",
-							    "color4", "color5", "color6"};
+							    "color4", "color5", "color6", "color7"};
 			d->pColor[i] = gs_effect_get_param_by_name(d->effect, names[i]);
 			colorsOk = colorsOk && d->pColor[i];
 		}
@@ -252,6 +253,7 @@ obs_properties_t *getProperties(void *data)
 	obs_properties_add_color(props, kColors[4], obs_module_text("DotsOverlay.Color5"));
 	obs_properties_add_color(props, kColors[5], obs_module_text("DotsOverlay.Color6"));
 	obs_properties_add_color(props, kColors[6], obs_module_text("DotsOverlay.Color7"));
+	obs_properties_add_color(props, kColors[7], obs_module_text("DotsOverlay.Color8"));
 	return props;
 }
 

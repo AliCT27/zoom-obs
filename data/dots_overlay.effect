@@ -34,6 +34,7 @@ uniform float4 color3;       // layered: colour the covered picture settles on (
 uniform float4 color4;       // layered: colour map for the new picture, dark parts
 uniform float4 color5;       //   mid tones
 uniform float4 color6;       //   light parts
+uniform float4 color7;       // single band: dot colour
 
 sampler_state tex_sampler {
 	Filter   = Linear;
@@ -157,7 +158,8 @@ float4 PSDots(VertData vert_in) : TARGET
 		float fq = smoothstep(0.05, 0.30, lp) * (1.0 - smoothstep(0.55, 0.95, lp));
 		float3 colq = lerp(src.rgb, float3(0.92, 0.92, 0.92), 0.35 * fq);
 		float mq = saturate(rq - d + 0.5) * step(0.001, rq);
-		colq = lerp(colq, color0.rgb, mq);
+		float3 dotq = saturate(color7.rgb * (0.94 + 0.12 * h.y));   // a little variation from dot to dot
+		colq = lerp(colq, dotq, mq);
 		return float4(saturate(colq), src.a);
 	}
 
