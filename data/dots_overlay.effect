@@ -152,8 +152,10 @@ float4 PSDots(VertData vert_in) : TARGET
 		float vanish = smoothstep(0.55, 1.00, lq);
 		float pop2 = 1.0 + 0.20 * sin(3.14159265 * saturate(lq / 0.30));
 		float rq = r_dot * grow * (1.0 - vanish) * pop2;
-		float fq = smoothstep(0.05, 0.30, lq) * (1.0 - smoothstep(0.55, 0.95, lq));
-		float3 colq = lerp(src.rgb, float3(0.92, 0.92, 0.92), 0.55 * fq);
+		// A light tint under the band, worked out per pixel (not per cell) so it does not show square tiles.
+		float lp = saturate((progress * (1.0 + soft) - front_circ(pix, wave_dir)) / soft);
+		float fq = smoothstep(0.05, 0.30, lp) * (1.0 - smoothstep(0.55, 0.95, lp));
+		float3 colq = lerp(src.rgb, float3(0.92, 0.92, 0.92), 0.35 * fq);
 		float mq = saturate(rq - d + 0.5) * step(0.001, rq);
 		colq = lerp(colq, color0.rgb, mq);
 		return float4(saturate(colq), src.a);
