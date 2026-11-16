@@ -26,6 +26,7 @@ uniform float2 wave_dir_out; // the same for the reveal wave; the cells it reach
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
 uniform float accent;        // 0..1, how many cells show a coloured accent dot (pastel style)
+uniform float single_pass;    // 1 = cover and reveal run along the same sweep, one after the other, so it passes once
 uniform float style;         // 0 = pastel, 1 = layered, 2 = single band
 uniform float4 color0;       // layered: wave colours, first dots to show
 uniform float4 color1;       //   (blue, dark red, orange)
@@ -125,10 +126,10 @@ float4 PSDots(VertData vert_in) : TARGET
 	float2 h = hash22(cell);
 	float jit = (h.x - 0.5) * jitter;
 	float g_cover = saturate(gb + jit);
-	float g_reveal = saturate(gb_out + jit);
+	float g_reveal = saturate(lerp(gb_out, gb, single_pass) + jit);
 	float soft = max(wave_soft, 0.02);
-	float t_cover = saturate(progress / 0.68);
-	float t_reveal = saturate((progress - 0.78) / 0.22);
+	float t_cover = saturate(progress / lerp(0.68, 0.70, single_pass));
+	float t_reveal = saturate((progress - lerp(0.78, 0.30, single_pass)) / lerp(0.22, 0.70, single_pass));
 	float lt = saturate((t_cover * (1.0 + soft) - g_cover) / soft);
 	float lr = saturate((t_reveal * (1.0 + soft) - g_reveal) / soft);
 
@@ -172,9 +173,9 @@ float4 PSDots(VertData vert_in) : TARGET
 		float go_out = front_circ(cc, wave_dir_out);
 		float pioneer = step(h.x, 0.25) * h.y;
 		float gc = saturate(go + jit * 0.35 - pioneer * 0.30);
-		float gr = saturate(go_out + jit * 0.35);
-		float tcv = saturate(progress / 0.55);
-		float trv = saturate((progress - 0.68) / 0.32);
+		float gr = saturate(lerp(go_out, go, single_pass) + jit * 0.35);
+		float tcv = saturate(progress / lerp(0.55, 0.70, single_pass));
+		float trv = saturate((progress - lerp(0.68, 0.30, single_pass)) / lerp(0.32, 0.70, single_pass));
 		float lc = saturate((tcv * (1.0 + soft) - gc) / soft);
 		float lrv = saturate((trv * (1.0 + soft) - gr) / soft);
 
