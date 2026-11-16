@@ -28,6 +28,7 @@ constexpr const char *kSoftness = "softness_pct";
 constexpr const char *kJitter = "jitter_pct";
 constexpr const char *kAccent = "accent_pct";
 constexpr const char *kStyle = "style";
+constexpr const char *kRun = "run_mode";
 /* The sides a sweep can start from; the vector is the way it travels (pixels, y down), zero = from the centre. */
 constexpr const char *kSideNames[9] = {"DotsOverlay.Side.Top",        "DotsOverlay.Side.Bottom",
 				       "DotsOverlay.Side.Left",       "DotsOverlay.Side.Right",
@@ -61,7 +62,7 @@ struct DotsData {
 	gs_effect_t *effect = nullptr;
 	gs_eparam_t *pProgress = nullptr, *pSize = nullptr, *pCell = nullptr, *pDotScale = nullptr, *pDir = nullptr,
 		    *pDirOut = nullptr, *pSoft = nullptr, *pJitter = nullptr, *pAccent = nullptr, *pStyle = nullptr,
-		    *pColor[kColorCount] = {};
+		    *pSinglePass = nullptr, *pColor[kColorCount] = {};
 
 	/* Written by the main thread (update), read by the graphics thread; plain floats, a torn read at worst shows one
 	 * odd frame. */
@@ -74,6 +75,7 @@ struct DotsData {
 	std::atomic<float> jitter{0.30f};
 	std::atomic<float> accent{0.6f};
 	std::atomic<float> style{2.0f};
+	std::atomic<float> singlePass{1.0f};
 	std::atomic<uint32_t> colors[kColorCount] = {kDefaultColors[0], kDefaultColors[1], kDefaultColors[2],
 						     kDefaultColors[3], kDefaultColors[4], kDefaultColors[5],
 						     kDefaultColors[6], kDefaultColors[7]};
@@ -133,6 +135,7 @@ void loadEffect(DotsData *d)
 		d->pJitter = gs_effect_get_param_by_name(d->effect, "jitter");
 		d->pAccent = gs_effect_get_param_by_name(d->effect, "accent");
 		d->pStyle = gs_effect_get_param_by_name(d->effect, "style");
+		d->pSinglePass = gs_effect_get_param_by_name(d->effect, "single_pass");
 		bool colorsOk = true;
 		for (int i = 0; i < kColorCount; ++i) {
 			const char names[kColorCount][8] = {"color0", "color1", "color2", "color3",
@@ -141,7 +144,7 @@ void loadEffect(DotsData *d)
 			colorsOk = colorsOk && d->pColor[i];
 		}
 		if (!d->pProgress || !d->pSize || !d->pCell || !d->pDotScale || !d->pDir || !d->pDirOut || !d->pSoft ||
-		    !d->pJitter || !d->pAccent || !d->pStyle || !colorsOk) {
+		    !d->pJitter || !d->pAccent || !d->pStyle || !d->pSinglePass || !colorsOk) {
 			blog(LOG_WARNING, "[Zoominator] Dots overlay: %s is missing expected parameters", kEffectFile);
 			gs_effect_destroy(d->effect);
 			d->effect = nullptr;
@@ -165,6 +168,7 @@ void update(void *data, obs_data_t *settings)
 	d->jitter = (float)std::clamp<long long>(obs_data_get_int(settings, kJitter), 0, 100) / 100.0f;
 	d->accent = (float)std::clamp<long long>(obs_data_get_int(settings, kAccent), 0, 100) / 100.0f;
 	d->style = (float)std::clamp<long long>(obs_data_get_int(settings, kStyle), 0, 2);
+	d->singlePass = obs_data_get_int(settings, kRun) == 0 ? 1.0f : 0.0f;
 	for (int i = 0; i < kColorCount; ++i)
 		d->colors[i] = (uint32_t)obs_data_get_int(settings, kColors[i]);
 }
@@ -210,6 +214,7 @@ void getDefaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, kJitter, 30);
 	obs_data_set_default_int(settings, kAccent, 60);
 	obs_data_set_default_int(settings, kStyle, 2);
+	obs_data_set_default_int(settings, kRun, 0);
 	for (int i = 0; i < kColorCount; ++i)
 		obs_data_set_default_int(settings, kColors[i], (long long)kDefaultColors[i]);
 }
@@ -230,6 +235,10 @@ obs_properties_t *getProperties(void *data)
 	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Pastel"), 0);
 	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Layered"), 1);
 	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Band"), 2);
+	obs_property_t *run = obs_properties_add_list(props, kRun, obs_module_text("DotsOverlay.Run"),
+						      OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(run, obs_module_text("DotsOverlay.Run.Single"), 0);
+	obs_property_list_add_int(run, obs_module_text("DotsOverlay.Run.Both"), 1);
 	obs_properties_add_int_slider(props, kDuration, obs_module_text("DotsOverlay.Duration"), 500, 6000, 50);
 	obs_properties_add_int_slider(props, kCell, obs_module_text("DotsOverlay.Cell"), 16, 160, 2);
 	obs_properties_add_int_slider(props, kDotSize, obs_module_text("DotsOverlay.DotSize"), 30, 100, 1);
@@ -314,6 +323,7 @@ void videoRender(void *data, gs_effect_t *)
 	gs_effect_set_float(d->pJitter, d->jitter.load());
 	gs_effect_set_float(d->pAccent, d->accent.load());
 	gs_effect_set_float(d->pStyle, d->style.load());
+	gs_effect_set_float(d->pSinglePass, d->singlePass.load());
 	for (int i = 0; i < kColorCount; ++i) {
 		const uint32_t c = d->colors[i].load();
 		vec4 v;
