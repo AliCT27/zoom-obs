@@ -72,7 +72,7 @@ struct DotsData {
 	std::atomic<float> soft{0.35f};
 	std::atomic<float> jitter{0.30f};
 	std::atomic<float> accent{0.6f};
-	std::atomic<float> style{1.0f};
+	std::atomic<float> style{2.0f};
 	std::atomic<uint32_t> colors[kColorCount] = {kDefaultColors[0], kDefaultColors[1], kDefaultColors[2],
 						     kDefaultColors[3], kDefaultColors[4], kDefaultColors[5],
 						     kDefaultColors[6]};
@@ -163,7 +163,7 @@ void update(void *data, obs_data_t *settings)
 	d->soft = (float)std::clamp<long long>(obs_data_get_int(settings, kSoftness), 2, 100) / 100.0f;
 	d->jitter = (float)std::clamp<long long>(obs_data_get_int(settings, kJitter), 0, 100) / 100.0f;
 	d->accent = (float)std::clamp<long long>(obs_data_get_int(settings, kAccent), 0, 100) / 100.0f;
-	d->style = obs_data_get_int(settings, kStyle) == 0 ? 0.0f : 1.0f;
+	d->style = (float)std::clamp<long long>(obs_data_get_int(settings, kStyle), 0, 2);
 	for (int i = 0; i < kColorCount; ++i)
 		d->colors[i] = (uint32_t)obs_data_get_int(settings, kColors[i]);
 }
@@ -208,7 +208,7 @@ void getDefaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, kSoftness, 35);
 	obs_data_set_default_int(settings, kJitter, 30);
 	obs_data_set_default_int(settings, kAccent, 60);
-	obs_data_set_default_int(settings, kStyle, 1);
+	obs_data_set_default_int(settings, kStyle, 2);
 	for (int i = 0; i < kColorCount; ++i)
 		obs_data_set_default_int(settings, kColors[i], (long long)kDefaultColors[i]);
 }
@@ -228,6 +228,7 @@ obs_properties_t *getProperties(void *data)
 							OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
 	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Pastel"), 0);
 	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Layered"), 1);
+	obs_property_list_add_int(style, obs_module_text("DotsOverlay.Style.Band"), 2);
 	obs_properties_add_int_slider(props, kDuration, obs_module_text("DotsOverlay.Duration"), 500, 6000, 50);
 	obs_properties_add_int_slider(props, kCell, obs_module_text("DotsOverlay.Cell"), 16, 160, 2);
 	obs_properties_add_int_slider(props, kDotSize, obs_module_text("DotsOverlay.DotSize"), 30, 100, 1);

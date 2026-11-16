@@ -26,7 +26,7 @@ uniform float2 wave_dir_out; // the same for the reveal wave; the cells it reach
 uniform float wave_soft;     // width of the wave front as a fraction of the sweep
 uniform float jitter;        // random shift of each cell's timing, fraction of the sweep
 uniform float accent;        // 0..1, how many cells show a coloured accent dot (pastel style)
-uniform float style;         // 0 = pastel, 1 = layered
+uniform float style;         // 0 = pastel, 1 = layered, 2 = single band
 uniform float4 color0;       // layered: wave colours, first dots to show
 uniform float4 color1;       //   (blue, dark red, orange)
 uniform float4 color2;
@@ -141,6 +141,23 @@ float4 PSDots(VertData vert_in) : TARGET
 	float d = length(pix - cc);
 	float r_dot = cell_px * 0.5 * dot_scale;
 	float r_full = cell_px * 0.80;
+
+	if (style > 1.5) {
+		// Single band: one layer of flat dots of one colour that travels across the picture once. The dots grow at
+		// the front of the band and shrink away behind it, so the picture is never covered completely and is
+		// plain again as soon as the band has passed.
+		float gq = saturate(front_circ(cc, wave_dir) + jit * 0.35);
+		float lq = saturate((progress * (1.0 + soft) - gq) / soft);
+		float grow = smoothstep(0.0, 0.30, lq);
+		float vanish = smoothstep(0.55, 1.00, lq);
+		float pop2 = 1.0 + 0.20 * sin(3.14159265 * saturate(lq / 0.30));
+		float rq = r_dot * grow * (1.0 - vanish) * pop2;
+		float fq = smoothstep(0.05, 0.30, lq) * (1.0 - smoothstep(0.55, 0.95, lq));
+		float3 colq = lerp(src.rgb, float3(0.92, 0.92, 0.92), 0.55 * fq);
+		float mq = saturate(rq - d + 0.5) * step(0.001, rq);
+		colq = lerp(colq, color0.rgb, mq);
+		return float4(saturate(colq), src.a);
+	}
 
 	if (style > 0.5) {
 		// Flat dots of one colour each on a light grey field. The cover wave spreads from a point above the frame
