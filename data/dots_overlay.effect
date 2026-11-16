@@ -130,8 +130,13 @@ float4 PSDots(VertData vert_in) : TARGET
 	float soft = max(wave_soft, 0.02);
 	float t_cover = saturate(progress / lerp(0.68, 0.70, single_pass));
 	float t_reveal = saturate((progress - lerp(0.78, 0.30, single_pass)) / lerp(0.22, 0.70, single_pass));
-	float lt = saturate((t_cover * (1.0 + soft) - g_cover) / soft);
-	float lr = saturate((t_reveal * (1.0 + soft) - g_reveal) / soft);
+	// Run once: cover and reveal are one wave. A cell is covered when the wave reaches it and cleared again a short
+	// lag later, so a band of dots passes over the picture and nothing is left behind it.
+	float sp = lerp(soft, soft * 0.5, single_pass);
+	float lag = 0.15 * single_pass;
+	float wp = lerp(t_cover * (1.0 + soft), progress * (1.0 + 2.0 * sp + lag), single_pass);
+	float lt = saturate((wp - g_cover) / sp);
+	float lr = saturate((lerp(t_reveal * (1.0 + soft), wp - lag, single_pass) - g_reveal) / sp);
 
 	float s_acc_in = smoothstep(0.05, 0.30, lt);
 	float s_acc_out = smoothstep(0.60, 0.85, lt);
@@ -176,8 +181,9 @@ float4 PSDots(VertData vert_in) : TARGET
 		float gr = saturate(lerp(go_out, go, single_pass) + jit * 0.35);
 		float tcv = saturate(progress / lerp(0.55, 0.70, single_pass));
 		float trv = saturate((progress - lerp(0.68, 0.30, single_pass)) / lerp(0.32, 0.70, single_pass));
-		float lc = saturate((tcv * (1.0 + soft) - gc) / soft);
-		float lrv = saturate((trv * (1.0 + soft) - gr) / soft);
+		float wp2 = lerp(tcv * (1.0 + soft), progress * (1.0 + 2.0 * sp + lag), single_pass);
+		float lc = saturate((wp2 - gc) / sp);
+		float lrv = saturate((lerp(trv * (1.0 + soft), wp2 - lag, single_pass) - gr) / sp);
 
 		float s_bg = smoothstep(0.0, 0.08, lc);
 		float3 pic2 = image.Sample(tex_sampler, cuv).rgb;
