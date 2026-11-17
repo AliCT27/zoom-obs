@@ -638,15 +638,21 @@ void ZoominatorDialog::buildMouseFollowSection(QWidget *page, QVBoxLayout *lay)
 	followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
 	lay->addLayout(followRow);
 
-	auto *zoneRow = new QHBoxLayout;
-	zoneRow->setSpacing(12);
-	zoneRow->addWidget(mkField(T("Dialog.FollowEdgeZone"), spFollowEdgeZone), 1);
-	zoneRow->addStretch(1);
-	lay->addLayout(zoneRow);
-
-	auto *zoneHelp = new QLabel(T("Dialog.FollowEdgeZoneHelp"), page);
+	/* Label, then the help text, then the spin box (at the width of the other half-width fields). */
+	auto *zoneField = new QWidget(page);
+	auto *zoneCol = new QVBoxLayout(zoneField);
+	zoneCol->setContentsMargins(0, 0, 0, 0);
+	zoneCol->setSpacing(4);
+	zoneCol->addWidget(new QLabel(T("Dialog.FollowEdgeZone"), zoneField));
+	auto *zoneHelp = new QLabel(T("Dialog.FollowEdgeZoneHelp"), zoneField);
 	zoneHelp->setWordWrap(true);
-	lay->addWidget(zoneHelp);
+	zoneCol->addWidget(zoneHelp);
+	auto *zoneSpinRow = new QHBoxLayout;
+	zoneSpinRow->setSpacing(12);
+	zoneSpinRow->addWidget(spFollowEdgeZone, 1);
+	zoneSpinRow->addStretch(1);
+	zoneCol->addLayout(zoneSpinRow);
+	lay->addWidget(zoneField);
 
 	lay->addWidget(chkCenterFocus);
 
