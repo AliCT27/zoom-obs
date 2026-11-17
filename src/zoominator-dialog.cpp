@@ -644,6 +644,10 @@ void ZoominatorDialog::buildMouseFollowSection(QWidget *page, QVBoxLayout *lay)
 	zoneRow->addStretch(1);
 	lay->addLayout(zoneRow);
 
+	auto *zoneHelp = new QLabel(T("Dialog.FollowEdgeZoneHelp"), page);
+	zoneHelp->setWordWrap(true);
+	lay->addWidget(zoneHelp);
+
 	lay->addWidget(chkCenterFocus);
 
 	/* Smoothing only means something while the anchor
