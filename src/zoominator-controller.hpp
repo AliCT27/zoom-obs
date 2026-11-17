@@ -265,6 +265,10 @@ public:
 	 * canvas while zoomed, even near the edges of the capture. */
 	bool centerFocus = false;
 	int edgeOverflowMarginPct = 0;
+	/* Outer share of the zoomed view, per side, that makes it pan in follow mode. 0 follows every cursor
+	 * movement. Upper limit kFollowEdgeZoneMaxPct: at 50 % the inner rectangle would be empty. */
+	static constexpr int kFollowEdgeZoneMaxPct = 45;
+	int followEdgeZonePct = 0;
 	int mouseIdleTimeoutMs = 0;
 	bool portraitCover = true;
 	bool showStatusHud = false; /* status badge on the user's own monitor, hidden from the recording */
@@ -404,6 +408,8 @@ private:
 	bool isMarkerFlashActive(qint64 nowMs) const;
 	int currentMarkerOpacity(qint64 nowMs);
 	void applyZoomToScene(double t);
+	void followEdgeZoneGoal(double cursorX, double cursorY, double zoom, double zoomRamp, double canvasW,
+			       double canvasH, bool centerAnchor, double &goalX, double &goalY);
 
 	/* Focus spotlight (see updateFocus). Main thread only. */
 	QString focusImagePath() const;
@@ -536,6 +542,12 @@ private:
 	bool followHasPos = false;
 	float followX = 0.0f;
 	float followY = 0.0f;
+	/* Edge zone (graphics thread only): centre of the view the follow easing is heading for, in scene
+	 * coordinates, and the zoom it was last worked out at. */
+	bool edgeZoneHasPos = false;
+	double edgeZoneX = 0.0;
+	double edgeZoneY = 0.0;
+	double edgeZoneZoom = 1.0;
 	bool lastCursorSampleValid = false;
 	float lastCursorSampleX = 0.0f;
 	float lastCursorSampleY = 0.0f;

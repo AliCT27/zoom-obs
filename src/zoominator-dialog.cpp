@@ -625,12 +625,24 @@ void ZoominatorDialog::buildMouseFollowSection(QWidget *page, QVBoxLayout *lay)
 	chkCenterFocus = new QCheckBox(T("Dialog.CenterFocus"), page);
 	chkCenterFocus->setToolTip(T("Dialog.CenterFocusTooltip"));
 
+	spFollowEdgeZone = new QSpinBox(page);
+	spFollowEdgeZone->setRange(0, ZoominatorController::kFollowEdgeZoneMaxPct);
+	spFollowEdgeZone->setSuffix(QStringLiteral("%"));
+	spFollowEdgeZone->setSpecialValueText(T("Dialog.FollowEdgeZone.Disabled"));
+	spFollowEdgeZone->setToolTip(T("Dialog.FollowEdgeZoneTooltip"));
+
 	auto *followRow = new QHBoxLayout;
 	followRow->setSpacing(12);
 
 	followRow->addWidget(mkField(T("Dialog.ZoomAnchor"), cmbZoomAnchor), 1);
 	followRow->addWidget(mkField(T("Dialog.SmoothingSpeed"), spFollowSpeed), 1);
 	lay->addLayout(followRow);
+
+	auto *zoneRow = new QHBoxLayout;
+	zoneRow->setSpacing(12);
+	zoneRow->addWidget(mkField(T("Dialog.FollowEdgeZone"), spFollowEdgeZone), 1);
+	zoneRow->addStretch(1);
+	lay->addLayout(zoneRow);
 
 	lay->addWidget(chkCenterFocus);
 
@@ -639,9 +651,12 @@ void ZoominatorDialog::buildMouseFollowSection(QWidget *page, QVBoxLayout *lay)
 	auto syncFollowOnlyFields = [this]() {
 		const bool follows = (cmbZoomAnchor->currentData().toString() == "cursor_follow");
 		spFollowSpeed->setEnabled(follows);
+		/* Centre focus pins the cursor to the middle, which is the opposite of a dead zone. */
+		spFollowEdgeZone->setEnabled(follows && !chkCenterFocus->isChecked());
 	};
 	connect(cmbZoomAnchor, &QComboBox::currentIndexChanged, this,
 		[syncFollowOnlyFields](int) { syncFollowOnlyFields(); });
+	connect(chkCenterFocus, &QCheckBox::toggled, this, [syncFollowOnlyFields](bool) { syncFollowOnlyFields(); });
 	syncFollowOnlyFields();
 
 }
@@ -2064,6 +2079,7 @@ void ZoominatorDialog::loadFromController()
 			cmbZoomAnchor->findData(ZoominatorController::zoomAnchorModeToString(c.zoomAnchor));
 		cmbZoomAnchor->setCurrentIndex(anchorIdx >= 0 ? anchorIdx : 1);
 		spFollowSpeed->setValue(c.followSpeed);
+		spFollowEdgeZone->setValue(c.followEdgeZonePct);
 		chkCenterFocus->setChecked(c.centerFocus);
 		chkPortraitCover->setChecked(c.portraitCover);
 		chkIdleFollowX->setChecked(c.idleFollowX);
@@ -2278,6 +2294,7 @@ void ZoominatorDialog::applyToController()
 	c.autoHoldMs = spAutoHold->value();
 	c.zoomAnchor = ZoominatorController::zoomAnchorModeFromString(cmbZoomAnchor->currentData().toString());
 	c.followSpeed = spFollowSpeed->value();
+	c.followEdgeZonePct = spFollowEdgeZone->value();
 	/* Fixed: no longer offered in the dialog. */
 	c.centerCursorUntilEdge = true;
 	c.edgeOverflowMarginPct = 0;
@@ -2546,6 +2563,7 @@ void ZoominatorDialog::applyPreset(const QString &id, bool horizontal)
 	cmbEasing->setCurrentIndex(std::max(0, cmbEasing->findData("punch")));
 	cmbZoomAnchor->setCurrentIndex(std::max(0, cmbZoomAnchor->findData("cursor_follow")));
 	spFollowSpeed->setValue(6.0);
+	spFollowEdgeZone->setValue(0);
 	chkShowCursorMarker->setChecked(true);
 	if (horizontal) {
 		spZoom->setValue(2.0);

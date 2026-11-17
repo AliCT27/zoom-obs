@@ -133,6 +133,8 @@ constexpr ScalarSetting kScalarSettings[] = {
 	{"key_display_sec", nullptr, nullptr, nullptr, &ZoominatorController::keyDisplaySec, 1.7, 0.5, 10.0},
 	{"countdown_default_record", &ZoominatorController::countdownOnDefaultRecord, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"countdown_sec", nullptr, &ZoominatorController::countdownSec, nullptr, nullptr, 3, 1, 10},
+	{"follow_edge_zone_pct", nullptr, &ZoominatorController::followEdgeZonePct, nullptr, nullptr, 0, 0,
+	 ZoominatorController::kFollowEdgeZoneMaxPct},
 	{"rec_limit_sec", nullptr, &ZoominatorController::recLimitSec, nullptr, nullptr, 90, 0, 600},
 	{"show_cursor_marker", &ZoominatorController::showCursorMarker, nullptr, nullptr, nullptr, 0, 0, 1},
 	{"show_marker_when_not_zoomed", &ZoominatorController::showMarkerWhenNotZoomed, nullptr, nullptr, nullptr, 0, 0, 1},
