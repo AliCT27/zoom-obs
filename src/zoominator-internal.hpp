@@ -125,6 +125,9 @@ inline void rotation_sin_cos(float degrees, float &sinOut, float &cosOut)
  * enough here that even an 8K source stays under a hundredth of a pixel. */
 static constexpr float kScaleEpsilon = 1.0e-5f;
 static constexpr double kWheelZoomSmoothingRate = 14.0;
+/* Below this zoom the view is practically the whole frame: there is nothing for an edge zone to hold still, and
+ * the focal point that would produce a given view centre runs off to infinity as the zoom approaches 1. */
+static constexpr double kEdgeZoneMinZoom = 1.01;
 
 inline void logi(bool enabled, const char *fmt, ...)
 {

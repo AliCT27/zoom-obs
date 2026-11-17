@@ -120,6 +120,7 @@ private:
 	QSpinBox *spOut = nullptr;
 	QComboBox *cmbZoomAnchor = nullptr;
 	QDoubleSpinBox *spFollowSpeed = nullptr;
+	QSpinBox *spFollowEdgeZone = nullptr;
 	QCheckBox *chkCenterFocus = nullptr;
 	QCheckBox *chkPortraitCover = nullptr;
 	QCheckBox *chkShowCursorMarker = nullptr;

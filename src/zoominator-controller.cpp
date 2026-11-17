@@ -2,6 +2,7 @@
 
 #include "dots-overlay-filter.hpp"
 #include "zoominator-internal.hpp"
+#include "edge-zone.hpp"
 #include "zoominator-hud.hpp"
 
 bool ZoominatorController::usesWheelZoomGesture() const
@@ -564,6 +565,7 @@ void ZoominatorController::resetState()
 	}
 	animDir.store(0, std::memory_order_relaxed);
 	followHasPos = false;
+	edgeZoneHasPos = false;
 	panHasPos = false;
 	lastCursorSampleValid = false;
 	lastCursorMovementMs = 0;
@@ -594,6 +596,54 @@ void ZoominatorController::resetState()
 	}
 }
 
+
+/* Where the follow easing should head for. Without an edge zone that is the cursor itself. With one, the view
+ * holds still while the cursor is inside its inner rectangle and gives way by just the overshoot once the cursor
+ * reaches the outer band (see edge-zone.hpp); the easing itself is unchanged, and the clamp to the capture is
+ * still applied by the caller. Only active once the zoom-in ramp has finished: during the ramp the view starts
+ * on the cursor exactly as without a zone. Runs on the graphics tick. */
+void ZoominatorController::followEdgeZoneGoal(double cursorX, double cursorY, double zoom, double zoomRamp,
+					      double canvasW, double canvasH, bool centerAnchor, double &goalX,
+					      double &goalY)
+{
+	goalX = cursorX;
+	goalY = cursorY;
+
+	const double zone = (double)std::clamp(followEdgeZonePct, 0, kFollowEdgeZoneMaxPct) / 100.0;
+	/* centerFocus pins the cursor to the middle of the canvas, which is the opposite of a dead zone. */
+	if (zone <= 0.0 || centerFocus || zoomRamp < 0.999 || zoom < kEdgeZoneMinZoom) {
+		edgeZoneHasPos = false;
+		return;
+	}
+
+	using zoominator::edge_zone_center;
+	using zoominator::edge_zone_rezoom;
+	using zoominator::focal_to_view_center;
+	using zoominator::view_center_to_focal;
+
+	const double cx = canvasW * 0.5;
+	const double cy = canvasH * 0.5;
+	const double k = zoominator::focal_view_factor(zoom, zoomRamp, centerAnchor);
+
+	if (!edgeZoneHasPos) {
+		/* Start from the view as it is now, so the zone never makes it jump. */
+		edgeZoneX = focal_to_view_center((double)followX, cx, k);
+		edgeZoneY = focal_to_view_center((double)followY, cy, k);
+		edgeZoneZoom = zoom;
+		edgeZoneHasPos = true;
+	} else if (zoom != edgeZoneZoom) {
+		/* Wheel zoom: keep zooming about the cursor, as follow does without a zone. */
+		edgeZoneX = edge_zone_rezoom(edgeZoneX, cursorX, edgeZoneZoom, zoom);
+		edgeZoneY = edge_zone_rezoom(edgeZoneY, cursorY, edgeZoneZoom, zoom);
+		edgeZoneZoom = zoom;
+	}
+
+	edgeZoneX = edge_zone_center(edgeZoneX, cursorX, canvasW / zoom, zone);
+	edgeZoneY = edge_zone_center(edgeZoneY, cursorY, canvasH / zoom, zone);
+
+	goalX = view_center_to_focal(edgeZoneX, cx, k);
+	goalY = view_center_to_focal(edgeZoneY, cy, k);
+}
 
 void ZoominatorController::applyZoomToScene(double t)
 {
@@ -711,19 +761,25 @@ void ZoominatorController::applyZoomToScene(double t)
 				followX = mx;
 				followY = my;
 				followHasPos = true;
-			} else {
-				const double dx = (double)mx - (double)followX;
-				const double dy = (double)my - (double)followY;
-				const double dist = std::sqrt(dx * dx + dy * dy);
+				edgeZoneHasPos = false;
+			}
 
-				const double effectiveSpeed = clampd(followSpeed, 0.25, 30.0);
-				if (dist > 0.01) {
-					const double response =
-						1.0 - std::exp(-(2.0 + effectiveSpeed * 1.35) * tickDeltaSeconds);
-					const double step = clampd(response, 0.01, 0.92);
-					followX = (float)((double)followX + dx * step);
-					followY = (float)((double)followY + dy * step);
-				}
+			/* The easing heads for the cursor, or with an edge zone for the view that keeps the cursor
+			 * inside its inner rectangle. On the first frame the two coincide, so nothing moves. */
+			double goalX = mx;
+			double goalY = my;
+			followEdgeZoneGoal(mx, my, z, ttA, cw, ch, centerAnchor, goalX, goalY);
+
+			const double dx = goalX - (double)followX;
+			const double dy = goalY - (double)followY;
+			const double dist = std::sqrt(dx * dx + dy * dy);
+
+			const double effectiveSpeed = clampd(followSpeed, 0.25, 30.0);
+			if (dist > 0.01) {
+				const double response = 1.0 - std::exp(-(2.0 + effectiveSpeed * 1.35) * tickDeltaSeconds);
+				const double step = clampd(response, 0.01, 0.92);
+				followX = (float)((double)followX + dx * step);
+				followY = (float)((double)followY + dy * step);
 			}
 			fx = followX;
 			fy = followY;
@@ -750,6 +806,7 @@ void ZoominatorController::applyZoomToScene(double t)
 			}
 		}
 	} else {
+		edgeZoneHasPos = false;
 		if (!targetHasPos) {
 			if (followHasPos) {
 				/* Follow mode frozen mid-zoom by the runtime toggle or the
